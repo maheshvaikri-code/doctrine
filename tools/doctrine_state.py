@@ -3,26 +3,37 @@
 state plane (.Doctrine/state-plane/STATE.md + hydration/HYDRATION.md).
 
 Commands:
-  init                    create .doctrine/state/ layout (local/ gitignored)
-  checkpoint --proposal F model proposes, this validator disposes: stamps
-                          at_commit/seq/created_at, chains prev_sha256,
-                          writes checkpoint + history copy + distillate,
-                          appends decision_ref claims to DECISIONS.ndjson,
-                          prunes old distillates (dead_ends merge forward)
+  init                    create .doctrine-state/ layout (local/ gitignored)
+  checkpoint --proposal F model proposes, this validator disposes: BOTH
+                          schema instances validate before ANY write; then
+                          checkpoint + history copy + distillate written,
+                          decision_ref claims appended to DECISIONS.ndjson,
+                          old distillates pruned (dead_ends merge forward)
   verify                  walk the checkpoint chain (prev_sha256 links,
-                          monotonic seq) and re-hash state_index targets
-  hydrate [--check]       compile the bounded hydration bundle (markdown);
+                          monotonic seq, canonical bytes) and re-hash every
+                          state_index target, including the graph
+  hydrate [--check]       verify first, then compile the bounded bundle
+                          (markdown) with per-section degrade-to forms;
                           --check compiles twice and asserts identical
-                          bundle_sha256 (determinism gate)
-  prune [--keep N]        prune distillates beyond N (default 5)
-  status                  one-screen summary
+                          bundle_sha256
+  prune [--keep N]        prune distillates beyond N (N >= 1, default 5)
+  status                  one-screen summary (warns if chain verify fails)
 
-Design decision (documented per plan): dead_ends of pruned distillates are
-merged into the NEW distillate at checkpoint time, deduped, oldest dropped
-first when the schema cap (8) overflows — stored artifacts stay immutable.
+Design decisions (per docs/plans/state-tooling.md and the G4/G5 review):
+- State root is `.doctrine-state/` (NOT `.doctrine/state/`): on
+  case-insensitive filesystems `.doctrine/` merges into `.Doctrine/`,
+  landing runtime state inside the doctrine corpus. Spec amended.
+- dead_ends of pruned distillates merge into the NEW distillate, newest
+  negatives kept preferentially, oldest dropped at the schema cap of 8.
+- STATE.md checkpoint step 4 (git commit) is left to the operator or a
+  hook; the CLI prints the exact command instead of committing itself.
+- `hydrate --check` double-compiles in-process: the body is a pure
+  function of canonical (sorted-key) serialization, so it carries no
+  hash-seed or environment dependence.
 
-Canonicalization (pack-wide): UTF-8, LF, lexicographically sorted keys,
-no trailing whitespace, single trailing newline.
+Terminal output is ASCII-only (Windows cp1252 pipes). Canonicalization
+(pack-wide): UTF-8, LF, sorted keys, no trailing whitespace, single
+trailing newline.
 """
 
 from __future__ import annotations
@@ -32,34 +43,46 @@ import datetime as _dt
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 DEFAULT_KEEP = 5
 TOKEN_CHARS = 4  # 1 token ~ 4 chars, per HYDRATION.md budget accounting
-BUDGETS = [  # (section, tokens, never_trim)
-    ("invariants", 800, True),
-    ("control", 200, True),
-    ("intents", 1200, False),
-    ("distillate", 1600, False),
-    ("decisions", 800, False),
-    ("graph", 1000, False),
-    ("effects", 400, False),
+MAX_STATE_FILE_BYTES = 5_000_000  # bound on any parsed state artifact
+GIT_TIMEOUT = 30
+STATE_DIRNAME = ".doctrine-state"
+CHECKPOINT_FILE_RE = re.compile(r"^(\d+)-[0-9a-f]{12}\.json$")
+DISTILLATE_FILE_RE = re.compile(r"^(\d+)-[0-9a-f]{12}\.json$")
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+SECRET_RES = [
+    re.compile(r"AKIA[0-9A-Z]{16}"),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),
+    re.compile(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\b"
+               r"\s*[:=]\s*['\"]?[^\s'\"]{6,}"),
 ]
+BUDGETS = {  # section -> tokens (HYDRATION.md); invariants+control never trim
+    "invariants": 800, "control": 200, "intents": 1200,
+    "distillate": 1600, "decisions": 800, "graph": 1000, "effects": 400,
+}
+
+
+class StateError(ValueError):
+    """Operational error: bad input, unreadable artifact, unsafe id."""
 
 
 # ---------------------------------------------------------------- canonical
 
 def canonical_bytes(obj) -> bytes:
-    """Serialize per the pack-wide canonicalization rules."""
     text = json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=2,
                       separators=(",", ": "))
     return (text + "\n").encode("utf-8")
 
 
 def canonical_line(obj) -> str:
-    """One canonical NDJSON line (no indent, sorted keys)."""
     return json.dumps(obj, ensure_ascii=False, sort_keys=True,
                       separators=(",", ":"))
 
@@ -72,6 +95,21 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def load_json(path: Path, what: str = "state file"):
+    """Bounded, exception-hardened parse of an untrusted state artifact."""
+    try:
+        size = path.stat().st_size
+    except OSError as exc:
+        raise StateError(f"{what} {path}: {exc}") from exc
+    if size > MAX_STATE_FILE_BYTES:
+        raise StateError(f"{what} {path}: {size} bytes exceeds the "
+                         f"{MAX_STATE_FILE_BYTES}-byte state-file bound")
+    try:
+        return json.loads(path.read_text("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
+        raise StateError(f"{what} {path}: unparseable ({exc})") from exc
+
+
 # ------------------------------------------------------- minimal validator
 
 class SchemaError(ValueError):
@@ -79,9 +117,9 @@ class SchemaError(ValueError):
 
 
 def validate(instance, schema, root=None, path="$"):
-    """Minimal JSON-Schema validator covering exactly the constructs used
-    by checkpoint.schema.json / distillate.schema.json. Raises SchemaError
-    with a JSON-path on first failure."""
+    """Minimal JSON-Schema validator covering the constructs used by the
+    state-plane schemas (incl. propertyNames). Raises SchemaError with a
+    JSON-path on first failure."""
     if root is None:
         root = schema
     if "$ref" in schema:
@@ -115,6 +153,10 @@ def validate(instance, schema, root=None, path="$"):
         for req in schema.get("required", []):
             if req not in instance:
                 raise SchemaError(f"{path}: missing required '{req}'")
+        if "propertyNames" in schema:
+            for key in instance:
+                validate(key, schema["propertyNames"], root,
+                         f"{path}(key {key!r})")
         props = schema.get("properties", {})
         addl = schema.get("additionalProperties", True)
         for key, value in instance.items():
@@ -165,7 +207,7 @@ class Plane:
 
     def __init__(self, repo_root: Path):
         self.repo = repo_root
-        self.state = repo_root / ".doctrine" / "state"
+        self.state = repo_root / STATE_DIRNAME
         self.checkpoint = self.state / "checkpoint.json"
         self.checkpoints = self.state / "checkpoints"
         self.intents = self.state / "intent"
@@ -174,17 +216,36 @@ class Plane:
         self.distillates = self.state / "distillates"
         self.local = self.state / "local"
 
-    def schemas_dir(self) -> Path:
-        return self.repo / ".Doctrine" / "state-plane" / "schemas"
-
     def load_schema(self, name: str) -> dict:
-        return json.loads(
-            (self.schemas_dir() / f"{name}.schema.json").read_text("utf-8"))
+        path = (self.repo / ".Doctrine" / "state-plane" / "schemas"
+                / f"{name}.schema.json")
+        if not path.exists():
+            raise StateError(f"schema not found: {path} (is .Doctrine/ "
+                             "installed at the repo root?)")
+        return load_json(path, "schema")
+
+
+def safe_intent_path(plane: Plane, intent: str) -> Path:
+    """Resolve an intent id to a file, refusing unsafe ids and any path
+    escaping the intents directory (path-traversal defense)."""
+    if not SAFE_ID_RE.fullmatch(intent):
+        raise StateError(f"unsafe intent id {intent!r} (must match "
+                         f"{SAFE_ID_RE.pattern})")
+    candidate = (plane.intents / f"{intent}.intent.json").resolve()
+    base = plane.intents.resolve()
+    if base not in candidate.parents:
+        raise StateError(f"intent id {intent!r} escapes the intents dir")
+    return candidate
+
+
+_GIT = shutil.which("git")
 
 
 def git(repo: Path, *args: str) -> str:
-    out = subprocess.run(["git", *args], cwd=repo, capture_output=True,
-                         text=True, check=True)
+    if not _GIT:
+        raise StateError("git executable not found on PATH")
+    out = subprocess.run([_GIT, *args], cwd=repo, capture_output=True,
+                         text=True, check=True, timeout=GIT_TIMEOUT)
     return out.stdout.strip()
 
 
@@ -217,58 +278,58 @@ def _distillate_files(plane: Plane) -> list[Path]:
     if not plane.distillates.exists():
         return []
     files = [p for p in plane.distillates.iterdir()
-             if p.suffix == ".json" and re.match(r"^\d+-", p.name)]
+             if DISTILLATE_FILE_RE.match(p.name)]
     return sorted(files, key=lambda p: int(p.name.split("-", 1)[0]))
 
 
-def _decisions_sha(plane: Plane) -> str:
-    if plane.decisions.exists():
-        return sha256_file(plane.decisions)
-    return sha256_bytes(b"")
-
-
-def _unresolved_effects(plane: Plane) -> int:
-    count = 0
+def _unresolved_effect_entries(plane: Plane) -> list[dict]:
+    entries: list[dict] = []
     if plane.effects.exists():
-        for f in plane.effects.glob("*.effects.ndjson"):
+        for f in sorted(plane.effects.glob("*.effects.ndjson")):
             for line in f.read_text("utf-8").splitlines():
                 if not line.strip():
                     continue
                 try:
                     entry = json.loads(line)
                 except json.JSONDecodeError:
-                    count += 1  # malformed = unresolved by definition
-                    continue
+                    entry = {"status": "malformed", "raw": line[:80]}
                 if entry.get("status") not in ("confirmed", "compensated"):
-                    count += 1
-    return count
+                    entries.append(entry)
+    return entries
 
 
-def _graph_index(plane: Plane, at_commit: str) -> dict:
+def _graph_index(plane: Plane) -> dict:
+    """Index graphify-out/graph.json. Never fabricates freshness: if the
+    graph does not carry built_at_commit, it stays null (stale-as-fresh is
+    the failure mode STATE.md defends against)."""
     graph = plane.repo / "graphify-out" / "graph.json"
     if not graph.exists():
         return {"built_at_commit": None}
     entry: dict = {"sha256": sha256_file(graph)}
     try:
-        built = json.loads(graph.read_text("utf-8")).get("built_at_commit")
-    except (json.JSONDecodeError, UnicodeDecodeError):
+        built = load_json(graph, "graph").get("built_at_commit")
+    except StateError as exc:
+        print(f"warning: graph.json unreadable, freshness unknown ({exc})",
+              file=sys.stderr)
         built = None
-    entry["built_at_commit"] = built if built else at_commit
+    entry["built_at_commit"] = built if isinstance(built, str) else None
     return entry
 
 
 def _merge_dead_ends(new_ends: list, pruned_files: list[Path],
                      cap: int = 8) -> tuple[list, int]:
-    """Dedupe (approach, why_failed) across new + pruned; newest-first
-    priority; returns (merged ≤ cap, dropped_count)."""
+    """Dedupe (approach, why_failed). Priority: the new distillate's own
+    ends, then pruned negatives NEWEST first — the oldest are dropped at
+    the cap. Corrupt pruned files are reported, not silently skipped."""
     seen, merged = set(), []
     pruned_ends: list = []
-    for f in pruned_files:
+    for f in reversed(pruned_files):  # newest pruned first
         try:
-            pruned_ends.extend(json.loads(f.read_text("utf-8"))
+            pruned_ends.extend(load_json(f, "distillate")
                                .get("dead_ends", []))
-        except json.JSONDecodeError:
-            continue
+        except StateError as exc:
+            print(f"warning: dead_ends lost from corrupt {f.name}: {exc}",
+                  file=sys.stderr)
     for end in list(new_ends) + pruned_ends:
         key = (end.get("approach"), end.get("why_failed"))
         if key in seen:
@@ -278,13 +339,32 @@ def _merge_dead_ends(new_ends: list, pruned_files: list[Path],
     return merged[:cap], max(0, len(merged) - cap)
 
 
+def _scan_secrets(distillate: dict) -> None:
+    """Refuse secret-like content in committed state (fail closed)."""
+    texts: list[str] = []
+    for item in distillate.get("learned", []):
+        texts += [item.get("claim", ""), item.get("evidence", "")]
+    for end in distillate.get("dead_ends", []):
+        texts += [end.get("approach", ""), end.get("why_failed", "")]
+    texts += distillate.get("open_threads", [])
+    texts += distillate.get("next_actions", [])
+    for text in texts:
+        for pattern in SECRET_RES:
+            if pattern.search(text):
+                raise StateError(
+                    "distillate text matches a secret pattern "
+                    f"({pattern.pattern[:40]}...); state files are "
+                    "committed forever - rephrase without the secret")
+
+
 def cmd_checkpoint(plane: Plane, proposal_path: Path,
                    keep: int = DEFAULT_KEEP) -> int:
-    proposal = json.loads(proposal_path.read_text("utf-8"))
+    if keep < 1:
+        raise StateError("--keep must be >= 1")
+    proposal = load_json(proposal_path, "proposal")
     for field in ("session_id", "control", "distillate"):
         if field not in proposal:
-            print(f"proposal missing '{field}'", file=sys.stderr)
-            return 2
+            raise StateError(f"proposal missing '{field}'")
 
     at_commit = head_commit(plane.repo)
     created = now_utc()
@@ -293,50 +373,56 @@ def cmd_checkpoint(plane: Plane, proposal_path: Path,
     prev_sha, seq = None, 0
     if plane.checkpoint.exists():
         prev_sha = sha256_file(plane.checkpoint)
-        seq = json.loads(plane.checkpoint.read_text("utf-8"))["seq"] + 1
+        seq = load_json(plane.checkpoint, "checkpoint")["seq"] + 1
 
-    # prune BEFORE writing, so pruned dead_ends merge into the new one
+    # ---- propose/dispose: EVERYTHING validates before ANY write ----
     existing = _distillate_files(plane)
-    cut = len(existing) - max(keep - 1, 0)
+    cut = len(existing) - (keep - 1)
     pruned = existing[:cut] if cut > 0 else []
     pending = plane.distillates / "pending-dead-ends.json"
 
     dist_body = dict(proposal["distillate"])
-    pending_ends = json.loads(pending.read_text("utf-8")).get(
+    pending_ends = load_json(pending, "pending dead-ends").get(
         "dead_ends", []) if pending.exists() else []
     merged, dropped = _merge_dead_ends(
         list(dist_body.get("dead_ends", [])) + pending_ends, pruned)
     dist_body["dead_ends"] = merged
-    if dropped:
-        print(f"note: {dropped} merged dead_end(s) dropped at the schema "
-              "cap of 8 (oldest first)", file=sys.stderr)
 
     distillate = {
         "distillate_version": "1", "seq": seq, "session_id": session,
         "created_at": created, "at_commit": at_commit, **dist_body,
     }
     validate(distillate, plane.load_schema("distillate"))
+    _scan_secrets(distillate)
     dist_bytes = canonical_bytes(distillate)
     dist_sha = sha256_bytes(dist_bytes)
 
-    # decisions: append decision_ref claims (append-only, never rewritten)
-    for claim in distillate.get("learned", []):
-        if claim.get("kind") == "decision_ref":
-            plane.decisions.parent.mkdir(parents=True, exist_ok=True)
-            line = canonical_line({
-                "at_commit": at_commit, "claim": claim["claim"],
-                "created_at": created, "evidence": claim["evidence"],
-                "intents": distillate.get("task_refs", []),
-                "seq": seq, "session_id": session,
-            })
-            with plane.decisions.open("a", encoding="utf-8", newline="\n") \
-                    as fh:
-                fh.write(line + "\n")
+    # prospective decisions content, hashed BEFORE writing anything
+    decision_lines = [
+        canonical_line({
+            "at_commit": at_commit, "claim": c["claim"],
+            "created_at": created, "evidence": c["evidence"],
+            "intents": distillate.get("task_refs", []),
+            "seq": seq, "session_id": session,
+        }) + "\n"
+        for c in distillate.get("learned", [])
+        if c.get("kind") == "decision_ref"
+    ]
+    existing_decisions = plane.decisions.read_bytes() \
+        if plane.decisions.exists() else b""
+    prospective_decisions = existing_decisions + \
+        "".join(decision_lines).encode("utf-8")
 
-    intents_index = {
-        p.name.removesuffix(".intent.json"): sha256_file(p)
-        for p in sorted(plane.intents.glob("*.intent.json"))
-    } if plane.intents.exists() else {}
+    intents_index = {}
+    if plane.intents.exists():
+        for p in sorted(plane.intents.glob("*.intent.json")):
+            stem = p.name.removesuffix(".intent.json")
+            if not SAFE_ID_RE.fullmatch(stem):
+                raise StateError(f"unsafe intent filename: {p.name}")
+            intents_index[stem] = sha256_file(p)
+    for intent in proposal["control"].get("active_intents", []):
+        if not SAFE_ID_RE.fullmatch(str(intent)):
+            raise StateError(f"unsafe intent id in control: {intent!r}")
 
     checkpoint = {
         "checkpoint_version": "1", "seq": seq, "prev_sha256": prev_sha,
@@ -345,17 +431,20 @@ def cmd_checkpoint(plane: Plane, proposal_path: Path,
         "control": proposal["control"],
         "state_index": {
             "intents": intents_index,
-            "decisions_sha256": _decisions_sha(plane),
+            "decisions_sha256": sha256_bytes(prospective_decisions),
             "latest_distillate_sha256": dist_sha,
-            "graph": _graph_index(plane, at_commit),
-            "unresolved_effects": _unresolved_effects(plane),
+            "graph": _graph_index(plane),
+            "unresolved_effects": len(_unresolved_effect_entries(plane)),
         },
     }
     validate(checkpoint, plane.load_schema("checkpoint"))
     cp_bytes = canonical_bytes(checkpoint)
     cp_sha = sha256_bytes(cp_bytes)
 
-    # write phase (all validations passed)
+    # ---- write phase: both instances valid, nothing written until now ----
+    if dropped:
+        print(f"note: {dropped} merged dead_end(s) dropped at the schema "
+              "cap of 8 (oldest first)", file=sys.stderr)
     plane.distillates.mkdir(parents=True, exist_ok=True)
     (plane.distillates / f"{seq}-{dist_sha[:12]}.json").write_bytes(
         dist_bytes)
@@ -363,6 +452,9 @@ def cmd_checkpoint(plane: Plane, proposal_path: Path,
         f.unlink()
     if pending.exists():
         pending.unlink()
+    if decision_lines:
+        plane.decisions.parent.mkdir(parents=True, exist_ok=True)
+        plane.decisions.write_bytes(prospective_decisions)
     plane.checkpoints.mkdir(parents=True, exist_ok=True)
     plane.checkpoint.write_bytes(cp_bytes)
     (plane.checkpoints / f"{seq}-{cp_sha[:12]}.json").write_bytes(cp_bytes)
@@ -370,86 +462,133 @@ def cmd_checkpoint(plane: Plane, proposal_path: Path,
     print(f"checkpoint {seq} written at {at_commit[:12]} "
           f"({cp_sha[:12]}); distillate {dist_sha[:12]}"
           + (f"; pruned {len(pruned)} distillate(s)" if pruned else ""))
+    print(f"remember (STATE.md step 4): git add {STATE_DIRNAME} && "
+          f"git commit -m \"state: checkpoint {seq}\"")
     return 0
 
 
-def cmd_verify(plane: Plane) -> int:
-    failures: list[str] = []
-    files = sorted(
-        (p for p in plane.checkpoints.glob("*.json")),
-        key=lambda p: int(p.name.split("-", 1)[0]),
-    ) if plane.checkpoints.exists() else []
+def verify_findings(plane: Plane) -> list[str]:
+    """Full chain + state_index verification; returns findings ([] = OK)."""
+    findings: list[str] = []
+    files: list[Path] = []
+    if plane.checkpoints.exists():
+        for p in sorted(plane.checkpoints.iterdir()):
+            if CHECKPOINT_FILE_RE.match(p.name):
+                files.append(p)
+            elif p.name != ".gitignore":
+                findings.append(f"stray file in checkpoints/: {p.name}")
+    files.sort(key=lambda p: int(p.name.split("-", 1)[0]))
+
+    if plane.checkpoint.exists() and not files:
+        findings.append("checkpoint.json exists but checkpoints/ history "
+                        "is empty - history wiped or never copied")
+        return findings
     if not files:
-        print("nothing to verify: no checkpoints")
-        return 0
+        return findings  # genuinely empty plane
 
     schema = plane.load_schema("checkpoint")
     prev_file: Path | None = None
     for f in files:
-        data = json.loads(f.read_text("utf-8"))
+        try:
+            data = load_json(f, "checkpoint")
+        except StateError as exc:
+            findings.append(str(exc))
+            prev_file = f
+            continue
         try:
             validate(data, schema)
         except SchemaError as exc:
-            failures.append(f"{f.name}: schema: {exc}")
+            findings.append(f"{f.name}: schema: {exc}")
         expected_seq = 0 if prev_file is None else \
             int(prev_file.name.split("-", 1)[0]) + 1
-        if data["seq"] != expected_seq:
-            failures.append(f"{f.name}: seq {data['seq']} != expected "
+        if data.get("seq") != expected_seq:
+            findings.append(f"{f.name}: seq {data.get('seq')} != expected "
                             f"{expected_seq}")
         expected_prev = None if prev_file is None else sha256_file(prev_file)
-        if data["prev_sha256"] != expected_prev:
-            failures.append(f"{f.name}: broken chain — prev_sha256 does "
+        if data.get("prev_sha256") != expected_prev:
+            findings.append(f"{f.name}: broken chain - prev_sha256 does "
                             "not match predecessor's canonical bytes")
         if f.read_bytes() != canonical_bytes(data):
-            failures.append(f"{f.name}: not canonical bytes")
+            findings.append(f"{f.name}: not canonical bytes")
         prev_file = f
 
     if not plane.checkpoint.exists():
-        failures.append("checkpoint.json missing while history exists")
-    elif plane.checkpoint.read_bytes() != prev_file.read_bytes():
-        failures.append("checkpoint.json != latest history copy")
-    else:
-        current = json.loads(plane.checkpoint.read_text("utf-8"))
-        idx = current["state_index"]
-        if idx["decisions_sha256"] != _decisions_sha(plane):
-            failures.append("state_index.decisions_sha256 desync")
-        want = idx["latest_distillate_sha256"]
-        dists = _distillate_files(plane)
-        have = sha256_file(dists[-1]) if dists else None
-        if want != have:
-            failures.append("state_index.latest_distillate_sha256 desync")
-        for intent, sha in (idx.get("intents") or {}).items():
-            p = plane.intents / f"{intent}.intent.json"
-            if not p.exists():
-                failures.append(f"intent '{intent}' indexed but missing")
-            elif sha256_file(p) != sha:
-                failures.append(f"intent '{intent}' hash desync")
+        findings.append("checkpoint.json missing while history exists")
+        return findings
+    if plane.checkpoint.read_bytes() != prev_file.read_bytes():
+        findings.append("checkpoint.json != latest history copy")
+        return findings
 
-    if failures:
-        print(f"VERIFY FAILED ({len(failures)}):")
-        for msg in failures:
+    current = load_json(plane.checkpoint, "checkpoint")
+    idx = current["state_index"]
+    actual_decisions = sha256_file(plane.decisions) \
+        if plane.decisions.exists() else sha256_bytes(b"")
+    if idx["decisions_sha256"] != actual_decisions:
+        findings.append("state_index.decisions_sha256 desync")
+    dists = _distillate_files(plane)
+    have = sha256_file(dists[-1]) if dists else None
+    if idx["latest_distillate_sha256"] != have:
+        findings.append("state_index.latest_distillate_sha256 desync")
+    for intent, sha in (idx.get("intents") or {}).items():
+        try:
+            p = safe_intent_path(plane, intent)
+        except StateError as exc:
+            findings.append(str(exc))
+            continue
+        if not p.exists():
+            findings.append(f"intent '{intent}' indexed but missing")
+        elif sha256_file(p) != sha:
+            findings.append(f"intent '{intent}' hash desync")
+    graph_idx = idx.get("graph", {})
+    if "sha256" in graph_idx:
+        graph = plane.repo / "graphify-out" / "graph.json"
+        if not graph.exists():
+            findings.append("state_index.graph.sha256 set but graph.json "
+                            "missing")
+        elif sha256_file(graph) != graph_idx["sha256"]:
+            findings.append("state_index.graph hash desync (graph.json "
+                            "changed since checkpoint)")
+    return findings
+
+
+def cmd_verify(plane: Plane) -> int:
+    findings = verify_findings(plane)
+    if findings:
+        print(f"VERIFY FAILED ({len(findings)}):")
+        for msg in findings:
             print(f"  - {msg}")
         return 1
-    print(f"verify OK: {len(files)} checkpoint(s), chain intact, "
-          "state_index hashes match")
+    n = len([p for p in plane.checkpoints.glob("*.json")
+             if CHECKPOINT_FILE_RE.match(p.name)]) \
+        if plane.checkpoints.exists() else 0
+    if n == 0:
+        print("nothing to verify: no checkpoints")
+    else:
+        print(f"verify OK: {n} checkpoint(s), chain intact, "
+              "state_index hashes match")
     return 0
 
 
 # ---------------------------------------------------------------- hydrate
 
-def _clip(text: str, tokens: int) -> tuple[str, bool]:
-    limit = tokens * TOKEN_CHARS
+def _fit(section: str, full: str, degraded: str | None,
+         trimmed: list[str]) -> str:
+    """Budget a section: full form if it fits; else the spec's degrade-to
+    form; else a hard clip of the degraded form. Records the trim."""
+    limit = BUDGETS[section] * TOKEN_CHARS
+    if len(full) <= limit:
+        return full
+    trimmed.append(section)
+    text = degraded if degraded is not None else full
     if len(text) <= limit:
-        return text, False
-    return text[:limit].rsplit("\n", 1)[0] + "\n", True
+        return text
+    return text[:limit].rsplit("\n", 1)[0] + "\n[clipped]"
 
 
 def _extract_sections(md: str, headings: list[str]) -> str:
-    """Extract '## <heading>' sections from a markdown file."""
     out: list[str] = []
-    lines = md.splitlines()
     keep = False
-    for line in lines:
+    for line in md.splitlines():
         if line.startswith("## "):
             keep = any(h in line for h in headings)
         if keep:
@@ -459,8 +598,8 @@ def _extract_sections(md: str, headings: list[str]) -> str:
 
 def _stale_prefix(artifact_commit: str | None, head: str,
                   stale: list[str], label: str) -> str:
-    if artifact_commit and not head.startswith(artifact_commit) \
-            and artifact_commit != head:
+    if artifact_commit and artifact_commit != head \
+            and not head.startswith(artifact_commit):
         stale.append(label)
         return f"STALE@{artifact_commit[:12]} "
     return ""
@@ -469,13 +608,14 @@ def _stale_prefix(artifact_commit: str | None, head: str,
 def build_bundle_body(plane: Plane) -> tuple[str, list[str], list[str]]:
     """Deterministic bundle body (no timestamps). Returns
     (body, trimmed[], stale[])."""
-    cp = json.loads(plane.checkpoint.read_text("utf-8"))
+    cp = load_json(plane.checkpoint, "checkpoint")
     head = head_commit(plane.repo)
     trimmed: list[str] = []
     stale: list[str] = []
     parts: list[str] = []
 
-    # 1 invariants — REPO.md/ROLE.md invariant blocks, else doctrine slice
+    # 1 invariants — never trimmed (HYDRATION.md: "earlier sections are
+    # never trimmed"), sourced from REPO.md/ROLE.md else the doctrine slice
     sources = [plane.repo / "REPO.md", plane.repo / "ROLE.md"]
     inv = "\n\n".join(_extract_sections(p.read_text("utf-8"), ["Invariant"])
                       for p in sources if p.exists()).strip()
@@ -484,94 +624,120 @@ def build_bundle_body(plane: Plane) -> tuple[str, list[str], list[str]]:
         if doctrine.exists():
             inv = _extract_sections(doctrine.read_text("utf-8"),
                                     ["Prime Directive", "Non-Negotiables"])
-    text, _ = _clip(inv or "(no invariant source found)", BUDGETS[0][1])
-    parts.append("## Invariants\n" + text)
+    parts.append("## Invariants\n" + (inv or "(no invariant source found)"))
 
-    # 2 control
+    # 2 control — never trimmed; staleness flagged like any artifact
     control = dict(cp["control"])
-    control_line = (f"seq={cp['seq']} at_commit={cp['at_commit'][:12]} "
-                    f"worktree={cp['worktree']} role={control['role']} "
-                    f"phase={control['phase']} "
-                    f"ponytail={control['ponytail_mode']} "
-                    f"gates={','.join(control.get('gates_passed', [])) or '-'}")
-    parts.append("## Control\n" + control_line)
+    prefix = _stale_prefix(cp["at_commit"], head, stale, "control")
+    parts.append(
+        "## Control\n"
+        f"{prefix}seq={cp['seq']} at_commit={cp['at_commit'][:12]} "
+        f"worktree={cp['worktree']} role={control['role']} "
+        f"phase={control['phase']} ponytail={control['ponytail_mode']} "
+        f"gates={','.join(control.get('gates_passed', [])) or '-'}")
 
-    # 3 active intents
-    lines = []
+    # 3 active intents — degrade: titles + acceptance criteria only
+    full_lines, deg_lines = [], []
     for intent in control.get("active_intents", []):
-        p = plane.intents / f"{intent}.intent.json"
+        p = safe_intent_path(plane, str(intent))
         if not p.exists():
-            lines.append(f"- {intent}: MISSING intent file")
+            full_lines.append(f"- {intent}: MISSING intent file")
+            deg_lines.append(f"- {intent}: MISSING intent file")
             continue
-        data = json.loads(p.read_text("utf-8"))
+        data = load_json(p, "intent")
         prefix = _stale_prefix(data.get("at_commit"), head, stale,
                                f"intent:{intent}")
         title = data.get("title", intent)
         acc = data.get("acceptance_criteria", [])
-        lines.append(f"- {prefix}**{intent}** — {title}")
-        lines.extend(f"  - AC: {a}" for a in acc)
-    text, was = _clip("\n".join(lines) or "(no active intents)",
-                      BUDGETS[2][1])
-    if was:
-        trimmed.append("intents")
-    parts.append("## Active intents\n" + text)
+        head_line = f"- {prefix}**{intent}** - {title}"
+        ac_lines = [f"  - AC: {a}" for a in acc]
+        deg_lines += [head_line, *ac_lines]
+        extra = [f"  - {k}: {data[k]}" for k in ("description",
+                                                 "constraints") if k in data]
+        full_lines += [head_line, *ac_lines, *extra]
+    empty = "(no active intents)"
+    parts.append("## Active intents\n" + _fit(
+        "intents", "\n".join(full_lines) or empty,
+        "\n".join(deg_lines) or empty, trimmed))
 
-    # 4 distillate (+ merged dead_ends already live in the latest one)
+    # 4 distillate — latest, + dead_ends merged from the last K retained
+    # (HYDRATION.md); degrade: dead_ends + open_threads ONLY (the
+    # anti-thought-drift payload survives first)
     dists = _distillate_files(plane)
     if dists:
-        d = json.loads(dists[-1].read_text("utf-8"))
+        d = load_json(dists[-1], "distillate")
+        merged_ends, seen = [], set()
+        for f in reversed(dists):  # newest first across ALL retained
+            for e in load_json(f, "distillate").get("dead_ends", []):
+                key = (e.get("approach"), e.get("why_failed"))
+                if key not in seen:
+                    seen.add(key)
+                    merged_ends.append(e)
         prefix = _stale_prefix(d.get("at_commit"), head, stale, "distillate")
-        seg = [f"{prefix}(distillate seq {d['seq']})"]
-        for item in d.get("learned", []):
-            seg.append(f"- [{item['kind']}/{item['confidence']}] "
-                       f"{item['claim']} (evidence: {item['evidence']})")
-        seg.append("Dead ends:")
-        seg.extend(f"- {e['approach']} → {e['why_failed']}"
-                   for e in d.get("dead_ends", []))
-        seg.append("Open threads:")
-        seg.extend(f"- {t}" for t in d.get("open_threads", []))
-        seg.append("Next actions:")
-        seg.extend(f"- {n}" for n in d.get("next_actions", []))
-        text, was = _clip("\n".join(seg), BUDGETS[3][1])
-        if was:
-            trimmed.append("distillate")
+        core = [f"{prefix}(distillate seq {d['seq']})", "Dead ends:"]
+        core += [f"- {e['approach']} -> {e['why_failed']}"
+                 for e in merged_ends]
+        core.append("Open threads:")
+        core += [f"- {t}" for t in d.get("open_threads", [])]
+        full = list(core)
+        full.append("Learned:")
+        full += [f"- [{i['kind']}/{i['confidence']}] {i['claim']} "
+                 f"(evidence: {i['evidence']})"
+                 for i in d.get("learned", [])]
+        full.append("Next actions:")
+        full += [f"- {n}" for n in d.get("next_actions", [])]
+        parts.append("## Distillate\n" + _fit(
+            "distillate", "\n".join(full), "\n".join(core), trimmed))
     else:
-        text = "(no distillates)"
-    parts.append("## Distillate\n" + text)
+        parts.append("## Distillate\n(no distillates)")
 
-    # 5 decisions slice — entries tagged to the active intents
+    # 5 decisions — scoped to active intents; degrade: ids + one line
     active = set(control.get("active_intents", []))
-    lines = []
-    if plane.decisions.exists():
+    full_lines, deg_lines = [], []
+    if plane.decisions.exists() and active:
         for raw in plane.decisions.read_text("utf-8").splitlines():
             if not raw.strip():
                 continue
             entry = json.loads(raw)
-            if not active or active & set(entry.get("intents", [])):
-                lines.append(f"- (seq {entry['seq']}) {entry['claim']} "
-                             f"[{entry['evidence']}]")
-    text, was = _clip("\n".join(lines) or "(no matching decisions)",
-                      BUDGETS[4][1])
-    if was:
-        trimmed.append("decisions")
-    parts.append("## Decisions\n" + text)
+            if active & set(entry.get("intents", [])):
+                full_lines.append(f"- (seq {entry['seq']}) {entry['claim']} "
+                                  f"[{entry['evidence']}]")
+                deg_lines.append(f"- D{entry['seq']}: "
+                                 f"{entry['claim'][:80]}")
+    empty = "(no active intents - decisions omitted)" if not active \
+        else "(no matching decisions)"
+    parts.append("## Decisions\n" + _fit(
+        "decisions", "\n".join(full_lines) or empty,
+        "\n".join(deg_lines) or empty, trimmed))
 
-    # 6 graph slice
+    # 6 graph — degrade: god nodes + EXTRACTED lines only
     report = plane.repo / "graphify-out" / "GRAPH_REPORT.md"
     if report.exists():
         built = cp["state_index"]["graph"].get("built_at_commit")
         prefix = _stale_prefix(built, head, stale, "graph")
-        text, was = _clip(prefix + report.read_text("utf-8"), BUDGETS[5][1])
-        if was:
-            trimmed.append("graph")
+        text = report.read_text("utf-8")
+        key_lines = [ln for ln in text.splitlines()
+                     if "god" in ln.lower() or "EXTRACTED" in ln]
+        parts.append("## Graph\n" + _fit(
+            "graph", prefix + text,
+            prefix + ("\n".join(key_lines) or text.split("\n\n")[0]),
+            trimmed))
     else:
-        text = "(no graph built)"
-    parts.append("## Graph\n" + text)
+        parts.append("## Graph\n(no graph built)")
 
-    # 7 unresolved effects
-    count = _unresolved_effects(plane)
-    text, _ = _clip(f"unresolved effects: {count}", BUDGETS[6][1])
-    parts.append("## Unresolved effects\n" + text)
+    # 7 unresolved effects — degrade: count + most recent entry
+    entries = _unresolved_effect_entries(plane)
+    if entries:
+        full = [f"unresolved effects: {len(entries)}"]
+        full += [f"- {e.get('status', '?')}: "
+                 f"{e.get('action', e.get('raw', ''))[:80]}"
+                 for e in entries]
+        deg = (f"unresolved effects: {len(entries)}\nmost recent: "
+               f"{entries[-1].get('action', entries[-1].get('raw', ''))[:80]}")
+        parts.append("## Unresolved effects\n" + _fit(
+            "effects", "\n".join(full), deg, trimmed))
+    else:
+        parts.append("## Unresolved effects\nunresolved effects: 0")
 
     body = "\n\n".join(parts) + "\n"
     return body, trimmed, stale
@@ -579,7 +745,12 @@ def build_bundle_body(plane: Plane) -> tuple[str, list[str], list[str]]:
 
 def cmd_hydrate(plane: Plane, check: bool = False) -> int:
     if not plane.checkpoint.exists():
-        print("no checkpoint.json — run checkpoint first", file=sys.stderr)
+        print("no checkpoint.json - run checkpoint first", file=sys.stderr)
+        return 1
+    findings = verify_findings(plane)  # never hydrate from a broken chain
+    if findings:
+        print("refusing to hydrate: chain verification failed "
+              f"({len(findings)} finding(s); run verify)", file=sys.stderr)
         return 1
     body1, trimmed, stale = build_bundle_body(plane)
     sha1 = sha256_bytes(body1.encode("utf-8"))
@@ -592,7 +763,7 @@ def cmd_hydrate(plane: Plane, check: bool = False) -> int:
         print(f"hydrate --check OK: bundle_sha256 {sha1[:12]} stable")
         return 0
 
-    cp = json.loads(plane.checkpoint.read_text("utf-8"))
+    cp = load_json(plane.checkpoint, "checkpoint")
     header = canonical_line({
         "at_commit": cp["at_commit"], "bundle_sha256": sha1,
         "checkpoint_seq": cp["seq"], "generated_at": now_utc(),
@@ -604,16 +775,19 @@ def cmd_hydrate(plane: Plane, check: bool = False) -> int:
                     .encode("utf-8"))
     print(f"bundle written: {out} ({len(body1) // TOKEN_CHARS} tokens est., "
           f"sha {sha1[:12]}"
-          + (f", trimmed: {','.join(trimmed)}" if trimmed else "")
-          + (f", STALE: {','.join(stale)}" if stale else "") + ")")
+          + (f", trimmed: {','.join(sorted(trimmed))}" if trimmed else "")
+          + (f", STALE: {','.join(sorted(stale))}" if stale else "") + ")")
     return 0
 
 
 def cmd_prune(plane: Plane, keep: int) -> int:
+    if keep < 1:
+        raise StateError("--keep must be >= 1")
     files = _distillate_files(plane)
-    victims = files[:-keep] if keep >= 1 and len(files) > keep else []
+    victims = files[:-keep] if len(files) > keep else []
     if not victims:
-        print(f"nothing to prune ({len(files)} ≤ keep {keep})")
+        print(f"nothing to prune ({len(files)} distillate(s) <= keep "
+              f"{keep})")
         return 0
     print(f"pruning {len(victims)} distillate(s); their dead_ends will "
           "merge into the NEXT checkpoint's distillate:")
@@ -631,13 +805,17 @@ def cmd_status(plane: Plane) -> int:
     if not plane.checkpoint.exists():
         print("no state plane (run: init, then checkpoint)")
         return 0
-    cp = json.loads(plane.checkpoint.read_text("utf-8"))
+    findings = verify_findings(plane)
+    if findings:
+        print(f"WARNING: chain verification fails ({len(findings)} "
+              "finding(s)) - run verify. Status below is UNVERIFIED.")
+    cp = load_json(plane.checkpoint, "checkpoint")
     dists = _distillate_files(plane)
     print(f"checkpoint seq {cp['seq']} @ {cp['at_commit'][:12]} "
           f"({cp['worktree']}) session {cp['session_id']}")
     print(f"role={cp['control']['role']} phase={cp['control']['phase']} "
           f"intents={','.join(cp['control']['active_intents']) or '-'}")
-    print(f"distillates: {len(dists)} · unresolved effects: "
+    print(f"distillates: {len(dists)} | unresolved effects: "
           f"{cp['state_index']['unresolved_effects']}")
     return 0
 
@@ -676,11 +854,14 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_prune(plane, args.keep)
         if args.command == "status":
             return cmd_status(plane)
-    except SchemaError as exc:
-        print(f"validation failed: {exc}", file=sys.stderr)
+    except (SchemaError, StateError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 2
     except subprocess.CalledProcessError as exc:
         print(f"git failed: {exc.stderr.strip()}", file=sys.stderr)
+        return 2
+    except subprocess.TimeoutExpired:
+        print(f"git timed out after {GIT_TIMEOUT}s", file=sys.stderr)
         return 2
     return 2
 

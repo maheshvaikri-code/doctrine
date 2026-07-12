@@ -6,7 +6,7 @@ version: 0.1.0
 # HYDRATION.md — the rehydration compiler
 
 Input: repo at HEAD + the state plane. Output: one bounded, deterministic bundle —
-`.doctrine/state/local/hydration.bundle.ison` (canonical) and `.md` (human/adapter
+`.doctrine-state/local/hydration.bundle.ison` (canonical) and `.md` (human/adapter
 fallback). The bundle is generated state: it lives in `local/`, never committed.
 
 ## Assembly order and token budget
@@ -54,7 +54,7 @@ shared with the sibling packs.
 The bundle is plain text, so statefulness becomes an emit target like everything else:
 
 - **Claude Code:** SessionStart hook runs `doctrine state hydrate`; `CLAUDE.md` carries
-  one line — `@.doctrine/state/local/hydration.bundle.md`. A `/checkpoint` command file
+  one line — `@.doctrine-state/local/hydration.bundle.md`. A `/checkpoint` command file
   wraps the checkpoint protocol; optional Stop hook auto-checkpoints session end.
   (Same lifecycle-hook pattern ponytail already proved out.)
 - **Codex:** hydrate via lifecycle hook; bundle referenced from `AGENTS.md`;

@@ -3,7 +3,7 @@
 Makes any stateless coding model stateful inside a `.Doctrine` repo. The model never
 remembers; the repo does. Three invariants:
 
-1. **Externalized.** All state is plain canonical files under `.doctrine/state/`,
+1. **Externalized.** All state is plain canonical files under `.doctrine-state/`,
    committed to git. No vendor memory feature is load-bearing.
 2. **Deterministic rehydration.** Same HEAD + same state plane → byte-identical
    hydration bundle. Rehydration is a compile step with a hash gate, not a vibe.

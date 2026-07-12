@@ -6,4 +6,4 @@ Desktop.ini
 *~
 
 # Machine-local state (doctrine state plane) — the only uncommitted state dir
-.doctrine/state/local/
+.doctrine-state/local/

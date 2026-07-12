@@ -1,7 +1,13 @@
-"""Tests for tools/doctrine_state.py — run: python -m unittest discover tests"""
+"""Tests for tools/doctrine_state.py — run: python -m unittest discover tests
+
+Includes regression tests for every G4/G5 verifier finding (see
+docs/reviews/state-tooling.md and docs/qa/state-tooling*.md).
+"""
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import shutil
 import subprocess
@@ -19,11 +25,12 @@ SCHEMAS = REPO / ".Doctrine" / "state-plane" / "schemas"
 EXAMPLES = REPO / ".Doctrine" / "state-plane" / "examples"
 
 
-def proposal(dead_ends=None, learned=None):
+def proposal(dead_ends=None, learned=None, active_intents=None):
     return {
         "session_id": "s-test-1",
         "control": {"role": "backend-engineer", "phase": "g3",
-                    "ponytail_mode": "off", "active_intents": [],
+                    "ponytail_mode": "off",
+                    "active_intents": active_intents or [],
                     "gates_passed": []},
         "distillate": {
             "task_refs": ["t-1"],
@@ -125,6 +132,17 @@ class TestValidator(unittest.TestCase):
         with self.assertRaises(ds.SchemaError):
             ds.validate(bad, self.cp_schema)
 
+    def test_property_names_traversal_rejected(self):
+        """Regression: security P-1 — schema-level intent-id constraint."""
+        bad = json.loads(json.dumps(self.cp))
+        bad["state_index"]["intents"] = {"../evil": "a" * 64}
+        with self.assertRaises(ds.SchemaError):
+            ds.validate(bad, self.cp_schema)
+        bad2 = json.loads(json.dumps(self.cp))
+        bad2["control"]["active_intents"] = ["../evil"]
+        with self.assertRaises(ds.SchemaError):
+            ds.validate(bad2, self.cp_schema)
+
 
 class TestCheckpointVerify(TempRepo):
     def test_chain_and_verify(self):
@@ -154,15 +172,114 @@ class TestCheckpointVerify(TempRepo):
         self.assertTrue(self.plane.decisions.exists())
         self.assertEqual(ds.cmd_verify(self.plane), 0)
 
-    def test_invalid_proposal_rejected(self):
+    def test_rejected_proposal_leaves_no_trace(self):
+        """Regression: QA #1 / review BLOCKER — a rejected proposal must
+        not mutate the decisions log (or anything else)."""
+        good = proposal(learned=[
+            {"claim": "first decision", "kind": "decision_ref",
+             "evidence": "decisions:D-1", "confidence": "verified"}])
+        self.checkpoint(good)
+        before = self.plane.decisions.read_bytes()
+        bad = proposal(learned=[
+            {"claim": "phantom decision", "kind": "decision_ref",
+             "evidence": "decisions:D-2", "confidence": "verified"}])
+        bad["control"]["ponytail_mode"] = "invalid-mode"
+        p = self.root / "bad.json"
+        p.write_text(json.dumps(bad), encoding="utf-8")
+        with self.assertRaises(ds.SchemaError):
+            ds.cmd_checkpoint(self.plane, p)
+        self.assertEqual(self.plane.decisions.read_bytes(), before,
+                         "rejected proposal polluted the decisions log")
+        self.assertEqual(ds.cmd_verify(self.plane), 0)
+
+    def test_traversal_intent_rejected_at_checkpoint(self):
+        """Regression: security P-1 — runtime defense."""
+        prop = proposal(active_intents=["../TOPSECRET"])
+        p = self.root / "evil.json"
+        p.write_text(json.dumps(prop), encoding="utf-8")
+        with self.assertRaises((ds.StateError, ds.SchemaError)):
+            ds.cmd_checkpoint(self.plane, p)
+        self.assertFalse(self.plane.checkpoint.exists())
+
+    def test_history_wipe_detected(self):
+        """Regression: review MAJOR #2."""
+        self.checkpoint()
+        for f in self.plane.checkpoints.glob("*.json"):
+            f.unlink()
+        self.assertEqual(ds.cmd_verify(self.plane), 1)
+
+    def test_stray_file_reported_not_crash(self):
+        """Regression: security F-1 / review MINOR."""
+        self.checkpoint()
+        (self.plane.checkpoints / "evil.json").write_text("{}")
+        self.assertEqual(ds.cmd_verify(self.plane), 1)
+
+    def test_graph_tamper_detected(self):
+        """Regression: review MAJOR #3 — graph is re-hashed."""
+        gdir = self.root / "graphify-out"
+        gdir.mkdir()
+        (gdir / "graph.json").write_text(
+            json.dumps({"built_at_commit": "f3a9c21", "nodes": []}),
+            encoding="utf-8")
+        self.checkpoint()
+        self.assertEqual(ds.cmd_verify(self.plane), 0)
+        (gdir / "graph.json").write_text(
+            json.dumps({"built_at_commit": "f3a9c21", "nodes": ["x"]}),
+            encoding="utf-8")
+        self.assertEqual(ds.cmd_verify(self.plane), 1)
+
+    def test_graph_freshness_not_fabricated(self):
+        """Regression: review MAJOR #8 — no built_at_commit means null."""
+        gdir = self.root / "graphify-out"
+        gdir.mkdir()
+        (gdir / "graph.json").write_text(json.dumps({"nodes": []}),
+                                         encoding="utf-8")
+        self.checkpoint()
+        cp = json.loads(self.plane.checkpoint.read_text("utf-8"))
+        self.assertIsNone(cp["state_index"]["graph"]["built_at_commit"])
+
+    def test_secretlike_claim_rejected(self):
+        """Regression: security S-1 — fail closed on secret-like state."""
+        prop = proposal(learned=[
+            {"claim": "set api_key = sk_live_abcdef123456 in prod",
+             "kind": "fact", "evidence": "config:1",
+             "confidence": "verified"}])
+        p = self.root / "leak.json"
+        p.write_text(json.dumps(prop), encoding="utf-8")
+        with self.assertRaises(ds.StateError):
+            ds.cmd_checkpoint(self.plane, p)
+        self.assertFalse(self.plane.checkpoint.exists())
+
+    def test_deep_json_bounded(self):
+        """Regression: security R-1 — RecursionError becomes StateError."""
+        p = self.root / "deep.json"
+        p.write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
+        with self.assertRaises(ds.StateError):
+            ds.cmd_checkpoint(self.plane, p)
+
+    def test_keep_below_one_rejected(self):
+        with self.assertRaises(ds.StateError):
+            self.checkpoint(keep=0)
+        with self.assertRaises(ds.StateError):
+            ds.cmd_prune(self.plane, keep=0)
+
+    def test_invalid_proposal_rejected_nothing_written(self):
         prop = proposal()
         prop["distillate"]["learned"][0]["confidence"] = "hopeful"
         p = self.root / "bad.json"
         p.write_text(json.dumps(prop), encoding="utf-8")
         with self.assertRaises(ds.SchemaError):
             ds.cmd_checkpoint(self.plane, p)
-        self.assertFalse(self.plane.checkpoint.exists(),
-                         "nothing written on validation failure")
+        self.assertFalse(self.plane.checkpoint.exists())
+        self.assertFalse(self.plane.decisions.exists())
+
+    def test_state_root_avoids_doctrine_collision(self):
+        """Regression: QA #3 — state root must not be .doctrine/ (which
+        merges with .Doctrine/ on case-insensitive filesystems)."""
+        self.assertEqual(self.plane.state.name, ".doctrine-state")
+        self.assertFalse(
+            (self.root / ".Doctrine" / "state").exists(),
+            "state must not land inside the doctrine corpus dir")
 
 
 class TestPrune(TempRepo):
@@ -178,6 +295,24 @@ class TestPrune(TempRepo):
         self.assertIn("approach-0", approaches,
                       "pruned negatives must outlive the prune")
         self.assertIn("approach-2", approaches)
+
+    def test_no_negative_lost_across_retained_set(self):
+        """Regression: review MINOR — negatives survive pruning. The union
+        of dead_ends across ALL retained distillates loses nothing, and the
+        hydration bundle merges across the retained set (HYDRATION.md
+        'dead_ends merged from last K')."""
+        for i in range(12):
+            self.checkpoint(proposal(dead_ends=[
+                {"approach": f"a-{i:02d}", "why_failed": "r"}]), keep=2)
+        union = set()
+        for f in ds._distillate_files(self.plane):
+            d = json.loads(f.read_text("utf-8"))
+            union |= {e["approach"] for e in d["dead_ends"]}
+        self.assertEqual(union, {f"a-{i:02d}" for i in range(12)},
+                         "a pruned negative was lost")
+        body, _, _ = ds.build_bundle_body(self.plane)
+        self.assertIn("a-10", body)
+        self.assertIn("a-11", body)
 
     def test_keep_one(self):
         self.checkpoint(keep=1)
@@ -197,6 +332,18 @@ class TestPrune(TempRepo):
             ds._distillate_files(self.plane)[-1].read_text("utf-8"))
         self.assertIn("a-0", {e["approach"] for e in latest["dead_ends"]})
 
+    def test_ascii_only_terminal_output(self):
+        """Regression: QA #2 — cp1252-safe prints."""
+        self.checkpoint()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            ds.cmd_prune(self.plane, keep=5)
+            ds.cmd_status(self.plane)
+            ds.cmd_verify(self.plane)
+        for ch in buf.getvalue():
+            self.assertLess(ord(ch), 128,
+                            f"non-ASCII {ch!r} in terminal output")
+
 
 class TestHydrate(TempRepo):
     def test_deterministic_and_written(self):
@@ -212,6 +359,54 @@ class TestHydrate(TempRepo):
         body = text.split("-->\n\n", 1)[1]
         self.assertEqual(header["bundle_sha256"],
                          ds.sha256_bytes(body.encode("utf-8")))
+
+    def test_refuses_broken_chain(self):
+        """Regression: security P-2 — no hydration from tampered state."""
+        self.checkpoint()
+        self.checkpoint()
+        victim = sorted(self.plane.checkpoints.glob("0-*.json"))[0]
+        data = json.loads(victim.read_text("utf-8"))
+        data["session_id"] = "forged"
+        victim.write_bytes(ds.canonical_bytes(data))
+        self.assertEqual(ds.cmd_hydrate(self.plane), 1)
+
+    def test_degrade_keeps_dead_ends_drops_learned(self):
+        """Regression: review MAJOR #4 — degrade-to form, not tail clip."""
+        big = proposal(
+            learned=[{"claim": ("c" * 270) + f"-{i}", "kind": "fact",
+                      "evidence": "e" * 150, "confidence": "inferred"}
+                     for i in range(12)],
+            dead_ends=[{"approach": ("a" * 190) + f"-{i}",
+                        "why_failed": "w" * 190} for i in range(8)])
+        big["distillate"]["open_threads"] = ["t" * 190 for _ in range(6)]
+        self.checkpoint(big)
+        body, trimmed, _ = ds.build_bundle_body(self.plane)
+        section = body.split("## Distillate\n", 1)[1].split("\n\n## ", 1)[0]
+        self.assertIn("distillate", trimmed)
+        self.assertIn("Dead ends:", section)
+        self.assertIn("Open threads:", section)
+        self.assertNotIn("Learned:", section,
+                         "degrade must drop learned, keep dead_ends")
+
+    def test_decisions_omitted_without_active_intents(self):
+        """Regression: QA L2 — decisions scoped to active intents."""
+        prop = proposal(learned=[
+            {"claim": "a decision", "kind": "decision_ref",
+             "evidence": "decisions:D-1", "confidence": "verified"}])
+        self.checkpoint(prop)
+        body, _, _ = ds.build_bundle_body(self.plane)
+        self.assertIn("decisions omitted", body)
+
+    def test_control_stale_flagged(self):
+        """Regression: QA L3 — control staleness surfaces."""
+        self.checkpoint()
+        (self.root / "new.txt").write_text("x\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        subprocess.run(["git", "commit", "-qm", "advance"], cwd=self.root,
+                       check=True)
+        body, _, stale = ds.build_bundle_body(self.plane)
+        self.assertIn("control", stale)
+        self.assertIn("STALE@", body)
 
     def test_no_checkpoint_errors(self):
         self.assertEqual(ds.cmd_hydrate(self.plane), 1)

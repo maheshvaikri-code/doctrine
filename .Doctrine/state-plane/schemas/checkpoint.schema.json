@@ -26,7 +26,7 @@
         "phase": { "type": "string", "minLength": 1, "description": "e.g. fde:P4, or repo-defined." },
         "gates_passed": { "type": "array", "items": { "type": "string" } },
         "ponytail_mode": { "enum": ["off", "lite", "full", "ultra"] },
-        "active_intents": { "type": "array", "items": { "type": "string" }, "maxItems": 8 }
+        "active_intents": { "type": "array", "items": { "$ref": "#/$defs/intent_id" }, "maxItems": 8 }
       }
     },
     "state_index": {
@@ -36,6 +36,7 @@
       "properties": {
         "intents": {
           "type": "object",
+          "propertyNames": { "$ref": "#/$defs/intent_id" },
           "additionalProperties": { "$ref": "#/$defs/sha256" },
           "description": "intent-id → sha256 of its canonical bytes."
         },
@@ -56,6 +57,7 @@
   },
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "gitsha": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" }
+    "gitsha": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
+    "intent_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", "description": "Filesystem-safe id: also a path-traversal defense (ids become intent/<id>.intent.json)." }
   }
 }

@@ -1,14 +1,21 @@
 ---
 spec: doctrine-state-plane
-version: 0.1.0
+version: 0.2.0
 ---
 
 # STATE.md — the .Doctrine state plane
 
 ## Directory layout (in a target repo)
 
+> Spec amendment (0.2.0): the state root is `.doctrine-state/`, not
+> `.doctrine/state/`. On case-insensitive filesystems (Windows, macOS
+> default) `.doctrine/` and `.Doctrine/` are the same directory, which
+> would land runtime state inside the doctrine corpus and record paths a
+> POSIX clone can't find. Found by the G5 QA pass of the reference
+> implementation (`tools/doctrine_state.py`).
+
 ```
-.doctrine/state/
+.doctrine-state/
 ├── checkpoint.json                  # current control state (schema: checkpoint)
 ├── checkpoints/                     # append-only history: <seq>-<shorthash>.json
 ├── intent/<task-id>.intent.json     # RIR outputs / task ledger

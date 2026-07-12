@@ -222,3 +222,142 @@ are untracked in the working tree — worth a `.gitignore` entry.
   hints + ruff still absent), R-2 and assorted NITs. None block; land
   R-1/R-3 as immediate follow-ups, and correct the remediation record
   for finding 15.
+
+---
+
+# Delta review — v0.3.0 session wiring @ working tree on f2ee5d5 — 2026-07-12
+
+**Reviewer role:** Code Reviewer (fresh pass). **Scope:** uncommitted delta
+per `docs/plans/state-tooling.md` slices 7-10: `hydrate --if-present` +
+`--emit-agents` (tools/doctrine_state.py), `.claude/settings.json`
+SessionStart hook, `CLAUDE.md` bundle import, `.claude/commands/checkpoint.md`,
+04-agent-adapters "State-plane wiring", HYDRATION.md CLI section, 5 new tests.
+
+**Executed** (real output):
+
+```
+$ python tools/doctrine_lint.py        -> doctrine_lint: corpus clean (0)
+$ python -m ruff check tools tests     -> All checks passed! (0)   [ruff 0.8.6]
+$ python -m unittest discover -s tests -> Ran 43 tests ... OK
+```
+
+Prior residuals confirmed fixed at HEAD (b5b8717): R-1 effects reads now go
+through `read_ndjson_text` hardening; R-3 hints present
+(`canonical_bytes(obj: object)`, `validate(instance: object, schema: dict,
+...)`) and ruff wired into Makefile + CI, executed clean above.
+
+Emit-path probes (temp git repos, real output):
+
+```
+E1 marker block at EOF, no trailing newline:
+   replaced cleanly, single marker pair, byte-idempotent    -> PASS
+E2 CRLF AGENTS.md:
+   CRLF preserved in user content: False; no CRLF left      -> whole file
+   rewritten LF outside the markers (one-time churn)
+E3 empty AGENTS.md: emits, idempotent, but file starts b'\n\n<!--...'
+E4 swapped markers (END before BEGIN):
+   rc 0, output has 2 BEGIN + 2 END, layout mangled          -> silent
+   corruption (the lone-marker guard exists; the order case slips past)
+E5 duplicate marker pairs: rc 0, second (stale) block survives forever
+E6 bundle body containing the literal END marker (a 280-char learned
+   claim fits it comfortably):
+   first emit: END count 2; re-emit: END count 3, file grew 785 -> 976
+   bytes                                                    -> silent,
+   COMPOUNDING corruption on every re-emit
+E7 6.4 KB block into a 2-byte AGENTS.md: emits, stable       -> PASS
+```
+
+## Findings (delta)
+
+| # | Sev | Location | Finding | Suggested fix | Resolution |
+|---|-----|----------|---------|---------------|------------|
+| D-1 | [MAJOR] | tools/doctrine_state.py:785-810 (emit_agents_block) | Marker integrity is not validated. (a) A bundle body containing the literal `<!-- doctrine:state:end -->` string - e.g. a learned claim written by a session that worked on this very feature - injects an early END into the block; every subsequent emit splits at the first END and re-appends, silently compounding garbage into a committed file (probe E6: END 2 -> 3, 785 -> 976 bytes, exit 0 throughout). (b) Swapped markers (END before BEGIN) pass both `in`-checks and corrupt the layout with duplicated markers, exit 0 (E4), while the lone-marker case correctly raises StateError - the guard intent exists but misses these. (c) Duplicate marker pairs leave a permanently stale second block (E5). | Enforce exactly one BEGIN and one END with BEGIN before END, else StateError (same treatment as the lone-marker case); refuse or neutralize marker strings in the body before emitting (a SECRET_RES-style scan at checkpoint time, or escape on emit). Regression tests for all three. | fixed@working-tree (re-check below) |
+| D-2 | [MINOR] | tools/doctrine_state.py:796 (read_text) + :807 (write_bytes) | A CRLF AGENTS.md is rewritten whole-file to LF on first emit (E2): `read_text` does universal-newline translation, `write_bytes` writes the translated text. The adapter contract (HYDRATION.md, quoted in the docstring) says the compiler owns the content *between the markers*; this mutates every line of a user-owned file. One-time churn, content preserved. | Splice on bytes, or detect and preserve the file's dominant line ending outside the block. | fixed@working-tree |
+| D-3 | [NIT] | tools/doctrine_state.py:805 | Empty AGENTS.md: `"".rstrip("\n") + "\n\n" + block` emits a file starting with two blank lines (E3). Author's call. | `text.rstrip("\n")` -> conditional separator when text is empty. | fixed@working-tree |
+| D-4 | [NIT] | tools/doctrine_state.py:815-835 | `hydrate --check --emit-agents` silently ignores the emit (`--check` returns first). Document or reject the combination. | Author's call. | fixed@working-tree |
+| D-5 | [NIT] | .claude/settings.json | Hook invokes bare `python` - same convention as the Makefile; fine wherever the tool runs at all, noting for Windows py-launcher-only setups. | Author's call. | fixed@working-tree (doc note) |
+
+## Scope and docs check (delta)
+
+Diff matches plan slices 7-10 exactly; no unrelated edits. The four
+`emit_agents_block` code branches and `--if-present` are covered by the 5
+new tests (replace/append/skip/lone-marker/quiet-empty), all run by me;
+the D-1 edge cases are not covered (regression tests belong with the fix).
+Docs are honest: the CLAUDE.md-import ordering caveat and the deliberate
+absence of a Stop-hook auto-checkpoint are both documented with rationale
+in 04-agent-adapters.md (the "mechanical hook cannot write an honest
+distillate" reasoning is exactly right). `/checkpoint` command matches the
+STATE.md protocol and the schema caps it quotes. HYDRATION.md "Implemented"
+claim verified against the CLI. The claim that a missing bundle import
+no-ops on fresh clones is a documented adapter assumption I could not
+execute-verify from here - it is stated, not hidden, which is the standard.
+
+## Delta verdict
+
+- [ ] Pass
+- [x] **Return to build - REQUEST-CHANGES (delta only).** One MAJOR:
+  marker integrity in `emit_agents_block` (D-1) - silent, compounding
+  corruption of a committed adapter file from realistic state content,
+  demonstrated by probe. The fix is small (order/count check + marker scan
+  on the body) and the rest of the delta is clean: happy paths solid,
+  byte-idempotency verified three ways, EOF/large-file edges pass,
+  hooks/docs/tests match the plan slice. Fix D-1 (D-2 ideally with it),
+  add the regression tests, and this approves on re-check.
+
+---
+
+# Delta re-check @ working tree (v0.3.0 remediation) — 2026-07-12
+
+**Executed** (real output):
+
+```
+$ python tools/doctrine_lint.py        -> doctrine_lint: corpus clean (0)
+$ python -m ruff check tools tests     -> All checks passed! (0)
+$ python -m unittest discover -s tests -> Ran 49 tests ... OK
+$ python tools/doctrine_state.py verify           (this repo's live plane)
+verify OK: 2 checkpoint(s), chain intact, state_index hashes match
+$ python tools/doctrine_state.py hydrate --check
+hydrate --check OK: bundle_sha256 070c601046c6 stable
+```
+
+Every delta probe re-run against the fixed `emit_agents_block`:
+
+```
+E2' CRLF AGENTS.md: outside content preserved byte-exactly (CRLF kept),
+    first emit idempotent, replace round-trip after a new checkpoint
+    keeps CRLF outside + exactly one marker pair          -> D-2 FIXED
+E4' swapped markers (END before BEGIN):
+    StateError "marker integrity: expected exactly one begin/end pair in
+    order"; file byte-untouched                           -> FIXED
+E5' duplicate pairs: same StateError; file byte-untouched -> FIXED
+E6' marker tokens in distillate text, four variants ("<!--", "-->",
+    full END marker, bare "doctrine:state:end"): ALL rejected at
+    checkpoint time (MARKER_RES), nothing written         -> FIXED
+E6'' marker smuggled via an intent file (not distillate-scanned):
+    emit backstop raises StateError, AGENTS.md byte-untouched, and plain
+    `hydrate` (no emit) still succeeds                    -> FIXED
+E3' empty AND whitespace-only AGENTS.md: block alone, no leading blanks
+E1'/E7' regressions: EOF-no-newline replace + 6 KB block both still
+    clean and idempotent
+D-4' `--check --emit-agents`: explicit "ignored with --check" note
+```
+
+New regression tests cover each variant (swapped, duplicate, checkpoint
+marker scan, emit backstop, CRLF preservation, empty-file, ignored-note);
+I ran them in the 49-green suite. `04-agent-adapters.md` carries the
+interpreter-name note (D-5). Rejection paths all leave the target file
+byte-untouched - verified explicitly in the probes.
+
+Accepted-cost notes (no action demanded): MARKER_RES also rejects benign
+ASCII arrows (`A --> B`) in distillate text - fail-closed with a clear
+message, consistent with the secret-scan posture; a marker-bearing
+invariant/graph source makes `--emit-agents` (only) persistently error
+until rephrased - same posture, plain hydrate unaffected (E6'' verified).
+
+## Final delta verdict
+
+- [x] **Pass - APPROVE.** All five delta findings (D-1 MAJOR through
+  D-5 NIT) verified fixed by re-executing the original failing probes;
+  no regressions across the earlier probe set; 49/49 tests, corpus lint,
+  and ruff all clean; this repo's own live state plane verifies and
+  hydrates deterministically. v0.3.0 session wiring is good to land.

@@ -43,11 +43,14 @@ the header only). CI-able. Cross-time: diffing bundle bodies between checkpoints
 ReplayLens-style drift report on the state plane itself — what changed in what the
 agent is told, commit over commit.
 
-## CLI surface (spec, not implementation)
+## CLI surface
 
-`doctrine state hydrate [--check]` · `checkpoint` · `verify` · `prune` · `status`.
-Stdlib-only reference implementation target: Python, zero deps, canonical JSON writer
-shared with the sibling packs.
+`doctrine state hydrate [--check|--if-present|--emit-agents]` · `checkpoint` ·
+`verify` · `prune` · `status`. **Implemented**: `tools/doctrine_state.py` —
+stdlib-only Python, zero deps, canonical JSON writer shared with the
+sibling packs. (`hydrate` verifies the chain first and refuses to compile
+from tampered state; the AGENTS.md emit block is timestamp-free so
+unchanged state emits byte-identical files.)
 
 ## Adapter emit
 

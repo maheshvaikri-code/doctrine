@@ -53,6 +53,30 @@ file the agent auto-loads at session start. This doc wires that ignition.
    Windsurf turbo) must have publish/deploy commands on the deny list —
    escalation gates assume a human is actually asked.
 
+## State-plane wiring (repos that adopted `.doctrine-state/`)
+
+Reference implementation: `tools/doctrine_state.py`. Per-tool ignition:
+
+- **Claude Code:** `.claude/settings.json` ships a SessionStart hook
+  running `hydrate --if-present` (adjust the interpreter name if your
+  platform ships only `python3`); `CLAUDE.md` imports
+  `.doctrine-state/local/hydration.bundle.md` (a missing bundle no-ops on
+  fresh clones); `/checkpoint` (`.claude/commands/checkpoint.md`) wraps
+  the propose→dispose protocol. Ordering note: the CLAUDE.md import may
+  resolve before the hook refreshes the bundle — you then read the
+  PREVIOUS session's bundle, which is still hash-verified state; the
+  `STALE@` markers cover any commit drift.
+- **Generic AGENTS.md readers:** `hydrate --emit-agents` maintains a
+  deterministic block between `<!-- doctrine:state:begin -->` /
+  `<!-- doctrine:state:end -->` markers in the root AGENTS.md — anything
+  that reads AGENTS.md is stateful with zero further integration. The
+  compiler owns the content; never hand-edit inside the markers.
+- **Cursor / Windsurf / others:** run `hydrate` from a git hook or
+  pre-session task and point the always-on rule at the bundle path.
+- **Deliberately absent:** a Stop-hook auto-checkpoint. Distillates are
+  model-authored; a mechanical hook cannot write an honest one. Use
+  `/checkpoint` (or your agent's equivalent) at session end.
+
 ## Sync rule
 
 When the doctrine changes materially (new non-negotiable, new gate, new

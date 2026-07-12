@@ -35,3 +35,20 @@ Schema-validator subset must cover exactly the constructs the two schemas
 use — test against both examples and hand-broken variants. Windows paths:
 use pathlib throughout; LF enforced by writing bytes. Rollback: tools are
 additive; reverting the tag removes them cleanly.
+
+## v0.3.0 slice — session wiring (added 2026-07-12, Class M)
+7. **[Backend] `hydrate --if-present`** (exit 0 on empty plane, for
+   hooks) and **`hydrate --emit-agents`** (marker-managed
+   `<!-- doctrine:state:begin/end -->` block in root AGENTS.md; replace
+   between markers, append block if absent, skip+note if no AGENTS.md;
+   idempotent for unchanged state).
+8. **[DevOps] Claude Code wiring**: `.claude/settings.json` SessionStart
+   hook running `hydrate --if-present`; CLAUDE.md gains the bundle
+   import line; `.claude/commands/checkpoint.md` wraps the checkpoint
+   protocol as a slash command. Stop-hook auto-checkpoint deliberately
+   NOT implemented: distillates are model-authored — a mechanical hook
+   cannot write an honest one (documented in 04-agent-adapters).
+9. **[Docs] `04-agent-adapters.md`** gains a State-plane wiring section;
+   HYDRATION.md notes the reference implementation.
+10. **[QA] tests** for --if-present and all --emit-agents paths;
+    then G4/G5 fan-out on the delta.

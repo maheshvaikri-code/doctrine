@@ -6,6 +6,34 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-12
+
+### Added
+- **Sessions are now stateful by default.** `hydrate --if-present` (quiet
+  no-op on an empty plane, for hooks) and `hydrate --emit-agents`
+  (deterministic marker-managed state block in root AGENTS.md — any
+  AGENTS.md-reading tool becomes stateful with zero integration).
+  Claude Code wiring shipped: `.claude/settings.json` SessionStart hook,
+  `CLAUDE.md` bundle import, `/checkpoint` slash command wrapping the
+  propose→dispose protocol. A Stop-hook auto-checkpoint is deliberately
+  absent: distillates are model-authored; a mechanical hook cannot write
+  an honest one.
+- `04-agent-adapters.md` State-plane wiring section; HYDRATION.md CLI
+  section marked implemented.
+- New standing-audit item 7 in `skills/security.md`: agent-context
+  emission is an injection surface (second finding of that class this
+  release cycle — the closed loop promoted it to law).
+
+### Security
+- Delta review round-trip on the emit path: the security VETO reproduced
+  a managed-block breakout (marker tokens in model-authored state text
+  escaping into committed AGENTS.md on re-emit, self-propagating).
+  Closed with defense in depth: MARKER_RES rejection at checkpoint
+  time, HTML-comment-token refusal at emit time (covers intent files
+  written by other tools), strict one-ordered-pair marker integrity,
+  byte-exact preservation outside the markers. Both verifiers re-ran the
+  original probes: APPROVE + SIGN-OFF. Suite: 49 tests.
+
 ## [0.2.1] - 2026-07-12
 
 ### Added

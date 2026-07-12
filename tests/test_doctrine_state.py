@@ -411,6 +411,120 @@ class TestHydrate(TempRepo):
     def test_no_checkpoint_errors(self):
         self.assertEqual(ds.cmd_hydrate(self.plane), 1)
 
+    def test_if_present_quiet_on_empty_plane(self):
+        """Session-hook mode: an empty plane is not an error."""
+        self.assertEqual(ds.cmd_hydrate(self.plane, if_present=True), 0)
+
+    def test_emit_agents_replaces_between_markers(self):
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_text(
+            f"# Boot\n\nkeep-above\n\n{ds.AGENTS_BEGIN}\nold-content\n"
+            f"{ds.AGENTS_END}\n\nkeep-below\n", encoding="utf-8")
+        self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
+        text = agents.read_text("utf-8")
+        self.assertIn("keep-above", text)
+        self.assertIn("keep-below", text)
+        self.assertNotIn("old-content", text)
+        self.assertIn("## Control", text)
+        # idempotent: unchanged state emits byte-identical file
+        before = agents.read_bytes()
+        self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
+        self.assertEqual(agents.read_bytes(), before)
+
+    def test_emit_agents_appends_when_no_markers(self):
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_text("# Boot\n\nexisting\n", encoding="utf-8")
+        self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
+        text = agents.read_text("utf-8")
+        self.assertTrue(text.startswith("# Boot"))
+        self.assertIn(ds.AGENTS_BEGIN, text)
+        self.assertIn(ds.AGENTS_END, text)
+
+    def test_emit_agents_skips_without_agents_md(self):
+        self.checkpoint()
+        self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
+        self.assertFalse((self.root / "AGENTS.md").exists(),
+                         "emit must not create AGENTS.md")
+
+    def test_emit_agents_lone_marker_rejected(self):
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_text(f"# Boot\n{ds.AGENTS_BEGIN}\nno end marker\n",
+                          encoding="utf-8")
+        with self.assertRaises(ds.StateError):
+            ds.cmd_hydrate(self.plane, emit_agents=True)
+
+    def test_checkpoint_rejects_marker_like_state_text(self):
+        """Regression: security delta VETO — a distillate carrying marker
+        or HTML-comment tokens could break out of the AGENTS.md managed
+        block; rejected fail-closed at write time."""
+        for payload in ("benign <!-- doctrine:state:end --> injected",
+                        "text --> break", "x doctrine:state:begin y"):
+            prop = proposal()
+            prop["distillate"]["open_threads"] = [payload]
+            p = self.root / "inject.json"
+            p.write_text(json.dumps(prop), encoding="utf-8")
+            with self.assertRaises(ds.StateError, msg=payload):
+                ds.cmd_checkpoint(self.plane, p)
+        self.assertFalse(self.plane.checkpoint.exists())
+
+    def test_emit_refuses_html_comment_in_body(self):
+        """Regression: D-1 second layer — intent files are written by
+        other tools and are NOT distillate-scanned; emit must guard."""
+        prop = proposal(active_intents=["evil-intent"])
+        self.plane.intents.mkdir(parents=True, exist_ok=True)
+        (self.plane.intents / "evil-intent.intent.json").write_text(
+            json.dumps({"title": "x --> breakout",
+                        "acceptance_criteria": []}), encoding="utf-8")
+        self.checkpoint(prop)
+        agents = self.root / "AGENTS.md"
+        agents.write_text("# Boot\n", encoding="utf-8")
+        with self.assertRaises(ds.StateError):
+            ds.cmd_hydrate(self.plane, emit_agents=True)
+        self.assertEqual(agents.read_text("utf-8"), "# Boot\n",
+                         "AGENTS.md must be untouched on refusal")
+
+    def test_emit_agents_swapped_markers_rejected(self):
+        """Regression: D-1 — END before BEGIN must not corrupt layout."""
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_text(f"# Boot\n{ds.AGENTS_END}\nmid\n{ds.AGENTS_BEGIN}\n",
+                          encoding="utf-8")
+        with self.assertRaises(ds.StateError):
+            ds.cmd_hydrate(self.plane, emit_agents=True)
+
+    def test_emit_agents_duplicate_markers_rejected(self):
+        """Regression: D-1 — duplicate pairs must not leave stale blocks."""
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_text(
+            f"{ds.AGENTS_BEGIN}\na\n{ds.AGENTS_END}\n"
+            f"{ds.AGENTS_BEGIN}\nb\n{ds.AGENTS_END}\n", encoding="utf-8")
+        with self.assertRaises(ds.StateError):
+            ds.cmd_hydrate(self.plane, emit_agents=True)
+
+    def test_emit_agents_preserves_crlf_outside(self):
+        """Regression: D-2 — content outside the markers is preserved
+        byte-exactly; a CRLF file is not rewritten to LF wholesale."""
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_bytes(b"# Boot\r\n\r\nkeep-crlf\r\n")
+        self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
+        raw = agents.read_bytes()
+        self.assertIn(b"# Boot\r\n\r\nkeep-crlf", raw)
+        self.assertIn(ds.AGENTS_BEGIN.encode(), raw)
+
+    def test_emit_agents_empty_file_gets_block_only(self):
+        """Regression: D-3 — no leading blank lines on an empty file."""
+        self.checkpoint()
+        agents = self.root / "AGENTS.md"
+        agents.write_text("", encoding="utf-8")
+        self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
+        self.assertTrue(agents.read_text("utf-8")
+                        .startswith(ds.AGENTS_BEGIN))
+
 
 if __name__ == "__main__":
     unittest.main()

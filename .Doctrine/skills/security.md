@@ -28,6 +28,11 @@ constructs, and failure posture — for applications and libraries alike.
    races (use the stdlib tempfile primitives), `subprocess(shell=True)`.
 6. **Resource bounds:** sizes, depths, counts, timeouts on everything
    user-influenced (zip bombs, billion-laughs, unbounded regex).
+7. **Agent-context emission:** anything written into files agents
+   auto-read (AGENTS.md, CLAUDE.md, rules files, hydration bundles) is
+   an injection surface — model-authored text is untrusted input to
+   future sessions. Validate fence/marker integrity strictly and
+   reject/neutralize markup tokens in emitted bodies, fail-closed.
 
 ## Defaults
 - Constant-time comparison for secrets; passwords only via a modern KDF

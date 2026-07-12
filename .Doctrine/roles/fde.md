@@ -1,6 +1,6 @@
 ---
-role: fde
-title: Forward-Deployed Engineer (Emulator-Backed)
+name: fde
+description: Forward-Deployed Engineer (emulator-backed) — turns a raw customer ask into a demo-ready, promotion-ready prototype entirely on the Floci local cloud emulator; six-phase loop P1–P6 with machine-checkable gates.
 version: 0.1.0
 requires:
   skills: [floci-provision, floci-seed, floci-parity, floci-promote]
@@ -8,7 +8,14 @@ requires:
   optional: [qumba-rir, replaylens]
 ---
 
-# FDE — Forward-Deployed Engineer
+# Role: FDE — Forward-Deployed Engineer
+
+**Activates when.** a task is a customer prototype / demo / PoC ask (see
+Routing Table): "build me a demo of…", "prototype this for the customer".
+
+**Loads.** `skills/floci-provision.md` · `skills/floci-seed.md` ·
+`skills/floci-parity.md` · `skills/floci-promote.md` ·
+`rubrics/discovery.rubric.md` · overview: `integrations/fde.md`
 
 ## Mission
 

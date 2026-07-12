@@ -4,23 +4,21 @@ Wires two third-party OSS tools into `.Doctrine` as **integrations** — thin sh
 pinned upstream, never vendored copies. Both are actively developed; vendoring would go
 stale and fork the behavior silently.
 
-## Layout
+## Installed layout (merged into `.Doctrine/` at doctrine v0.1.3)
 
 ```
-doctrine-integrations/
-├── README.md
-└── integrations/
-    ├── ponytail/
-    │   ├── INTEGRATION.md   ← pin, per-adapter install, health check, precedence
-    │   └── SKILL.md         ← doctrine-side shim: when agents engage it
-    └── graphify/
-        ├── INTEGRATION.md
-        └── SKILL.md
+.Doctrine/
+├── integrations/
+│   ├── README.md            ← you are here (index; also see fde.md)
+│   ├── ponytail.md          ← pin, per-adapter install, health check, precedence
+│   └── graphify.md          ← pin, install, modes, doctrine wiring
+└── skills/
+    ├── ponytail.md          ← doctrine-side shim: when agents engage it
+    └── graphify.md          ← doctrine-side shim: graph before grep
 ```
 
-Drop `integrations/` into your `.doctrine/` tree. Adapters emit the shim SKILL.md files
-alongside role skills; the INTEGRATION.md files are for humans (and for agents running
-setup/health tasks).
+The shim skills are routed via `.Doctrine.md` §6; the `integrations/*.md` files are
+for humans (and for agents running setup/health tasks).
 
 ## What each one is
 

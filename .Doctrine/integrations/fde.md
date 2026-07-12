@@ -1,29 +1,23 @@
-# fde-floci-pack
+# FDE / floci — integration overview
 
 A `.Doctrine` role + skill pack: a **Forward-Deployed Engineer that carries its own cloud**.
 The FDE turns a raw customer ask into a demo-ready, promotion-ready AI prototype without
 touching a real cloud account — all infrastructure runs on Floci (local three-cloud emulator),
 deterministically, at zero cost. Promotion to a real cloud is an emitted config diff, not a rebuild.
 
-## Layout
+## Installed layout (merged into `.Doctrine/` at doctrine v0.1.3)
 
 ```
-fde-floci-pack/
-├── README.md                          ← you are here
-├── roles/
-│   └── fde/
-│       ├── ROLE.md                    ← the FDE role spec (mission, guardrails, 6-phase loop, gates)
-│       └── rubrics/
-│           └── discovery.rubric.md    ← QUMBA RIR authority document for the discovery interview
+.Doctrine/
+├── roles/fde.md                       ← the FDE role spec (mission, guardrails, 6-phase loop, gates)
+├── rubrics/discovery.rubric.md        ← QUMBA RIR authority document for the discovery interview
 ├── skills/
-│   ├── floci-provision/SKILL.md       ← manifest → emulated infra + endpoints.lock.json + .env.floci
-│   ├── floci-seed/SKILL.md            ← seeded synthetic data + hash-verified seed manifest
-│   ├── floci-parity/SKILL.md          ← the honesty layer: emits parity-ledger.json, gates promote
-│   └── floci-promote/SKILL.md         ← emit-only IaC diff + promotion checklist (never applies)
-├── schemas/
-│   └── parity-ledger.schema.json      ← JSON Schema for the ledger; canonical-bytes hashing rules
-└── examples/
-    └── floci.manifest.yaml            ← worked manifest for the rag-over-docs archetype
+│   ├── floci-provision.md             ← manifest → emulated infra + endpoints.lock.json + .env.floci
+│   ├── floci-seed.md                  ← seeded synthetic data + hash-verified seed manifest
+│   ├── floci-parity.md                ← the honesty layer: emits parity-ledger.json, gates promote
+│   └── floci-promote.md               ← emit-only IaC diff + promotion checklist (never applies)
+├── schemas/parity-ledger.schema.json  ← JSON Schema for the ledger; canonical-bytes hashing rules
+└── examples/floci.manifest.yaml       ← worked manifest for the rag-over-docs archetype
 ```
 
 ## Phase → skill → artifact map
@@ -47,7 +41,8 @@ the promotion step trustworthy.
 
 ## Install & bind
 
-1. Copy `roles/` and `skills/` into your repo's `.doctrine/` tree.
+1. Role and skills are already merged into this `.Doctrine/` tree (see layout above);
+   the Routing Table in `.Doctrine.md` §6 routes prototype/demo asks to them.
 2. **Bind CLI names**: skill procedures assume `floci up | down | status | logs`. Align these
    with your installed Floci version and pin that version in the manifest (`floci.version`).
 3. Adapters: the role spec is agent-agnostic (plain shell + file ops, no tool-specific syntax),

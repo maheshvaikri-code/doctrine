@@ -24,8 +24,8 @@ and enter the missing earlier gates before continuing.
 - **Entry:** approved brief.
 - **Do:** module boundaries, data flow, tech selection, failure-mode sketch,
   alternatives considered. One ADR per significant decision.
-- **Exit:** design section + ADR(s) (`templates/adr.md`); no unresolved
-  "TBD" on anything the build needs.
+- **Exit:** design captured in ADR(s) (`templates/adr.md`) — the ADR set
+  *is* the design document; no unresolved "TBD" on anything the build needs.
 
 ### G2 — Planning (owner: Chief Architect)
 - **Entry:** approved design.

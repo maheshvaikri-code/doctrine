@@ -1,7 +1,7 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: fourteen roles, ten skill playbooks, six standards, a gated
+repository: fourteen roles, fourteen skill playbooks, six standards, a gated
 workflow, and templates for every artifact the workflow produces.
 
 ## Layout

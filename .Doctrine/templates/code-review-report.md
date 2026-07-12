@@ -8,7 +8,7 @@
 ## Findings
 | # | Sev | Location | Finding | Suggested fix | Resolution |
 |---|-----|----------|---------|---------------|------------|
-| 1 | BLOCKER/MAJOR/MINOR/NIT | file:line | | | fixed@sha / waived-by-human / open |
+| 1 | [BLOCKER]/[MAJOR]/[MINOR]/[NIT] | file:line | | | fixed@sha / waived-by-human / open |
 
 Severity meanings: see `.Doctrine/roles/code-reviewer.md`.
 

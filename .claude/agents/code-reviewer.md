@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Adversarial diff review against the brief and coding standards, severity-ranked (BLOCKER/MAJOR/MINOR/NIT). MUST BE USED at G4 for every Class M/L task, in parallel with security-reviewer and qa-engineer.
+description: Adversarial diff review against the brief and coding standards, severity-ranked (BLOCKER/MAJOR/MINOR/NIT). MUST BE USED at G4 for every Class M/L task; dispatched in the G4/G5 review fan-out alongside security-reviewer and qa-engineer (03-parallel-execution §4).
 tools: Read, Grep, Glob, Bash
 ---
 

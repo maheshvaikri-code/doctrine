@@ -1,5 +1,5 @@
 # Release Checklist — v<X.Y.Z>
-<!-- G6 artifact. All boxes or no release. -->
+<!-- G6 artifact. File as docs/releases/v<X.Y.Z>.md. All boxes or no release. -->
 
 ## Entry
 - [ ] Project Reviewer sign-off recorded (brief vs delivered audit)

@@ -409,12 +409,12 @@ G8 record with rebuilt worktree artifact under an older tag: rc 0,
 
 | # | Sev | Location | Finding | Suggested fix | Resolution |
 |---|-----|----------|---------|---------------|------------|
-| GD-1 | [MAJOR] | tools/doctrine_gold.py:66-70 (_gold_records mtime sort), :185-194 (chain check) | Chain ordering and genesis detection depend on file mtime, which an ordinary `git clone` equalizes (git does not preserve mtimes). Probe G1: post-clone, `_latest_gold` returns v1.9.0 instead of v1.11.0 and the next promotion chains to the wrong predecessor - the rollback ladder is silently mis-ordered with zero tampering involved; `check` passes because it only requires `prev_gold_sha256` to match ANY record on disk, not the true predecessor, and cannot see forks or wrong order. Probe G2: a forged genesis record (prev null) is detected with fresh mtimes but passes post-clone. The standard says "the chain IS the rollback ladder"; the ladder must not depend on filesystem timestamps. | Derive order from the chain itself: build the prev_sha256 -> record map, require exactly one genesis, unique predecessors (no forks), one head; `_latest_gold` = the chain head; `check` verifies the record's position by walking links. Use mtime for nothing. Regression tests with equalized mtimes. | open |
-| GD-2 | [MINOR] | tools/doctrine_gold.py:161-171 | `check` on a shape-tampered record (e.g. `artifacts` replaced with a string) crashes with a raw TypeError traceback (probe G6) instead of the clean "CHECK FAILED" contract. Exit code is still nonzero via the traceback, so pipelines refuse - but the tool's own exit-code contract (0/1/2, ASCII errors) is broken. | After a schema finding, skip structural checks (or guard types per field) and report findings cleanly. | open |
-| GD-3 | [MINOR] | tools/doctrine_gold.py:61-63 | "Annotated tags only" (permission matrix row 3) is unenforced: `git rev-list -n 1` resolves lightweight tags happily and `record` succeeds on one (probe G3). | One guard: `git cat-file -t <tag>` must equal `tag`; else StateError naming the policy. | open |
-| GD-4 | [MINOR] | tools/doctrine_gold.py:87 (record), :140 (check) | The tag string is used in git argv and in path composition BEFORE format validation: `record` with tag `--all` executes `git rev-list -n 1 --all` (read-only, but attacker-influenced argv); `check --tag ../secret` composes an escaping path and reads an arbitrary .json before failing (probe G7 - both end in refusal, nothing written). | Validate the tag against `^v[0-9]+\.[0-9]+\.[0-9]+$` at entry of both commands; prefer `refs/tags/<tag>` in git calls. | open |
-| GD-5 | [NIT] | tools/doctrine_gold.py:100-106 | `record` hashes artifacts from the current worktree with no warning when HEAD != the tag's commit or the worktree is dirty (probe G8) - a stale/rebuilt dist/ can be bound to an older tag. The ladder assigns artifact provenance to CI, so this is a missing guardrail, not a broken one. | Warn (or require --force) when HEAD != tag commit or `git status --porcelain` is non-empty. | open |
-| GD-6 | [NIT] | schemas/gold-build.schema.json relpath; tools/doctrine_gold.py:101-106 | Duplicate artifact paths are accepted into one record (probe G5); the relpath pattern permits a POSIX-absolute leading "/" (machine-specific path recorded; `check` on other clones would fail artifact-missing, so it degrades loudly). | Dedupe artifact paths at record time; anchor the pattern against a leading "/". | open |
+| GD-1 | [MAJOR] | tools/doctrine_gold.py:66-70 (_gold_records mtime sort), :185-194 (chain check) | Chain ordering and genesis detection depend on file mtime, which an ordinary `git clone` equalizes (git does not preserve mtimes). Probe G1: post-clone, `_latest_gold` returns v1.9.0 instead of v1.11.0 and the next promotion chains to the wrong predecessor - the rollback ladder is silently mis-ordered with zero tampering involved; `check` passes because it only requires `prev_gold_sha256` to match ANY record on disk, not the true predecessor, and cannot see forks or wrong order. Probe G2: a forged genesis record (prev null) is detected with fresh mtimes but passes post-clone. The standard says "the chain IS the rollback ladder"; the ladder must not depend on filesystem timestamps. | Derive order from the chain itself: build the prev_sha256 -> record map, require exactly one genesis, unique predecessors (no forks), one head; `_latest_gold` = the chain head; `check` verifies the record's position by walking links. Use mtime for nothing. Regression tests with equalized mtimes. | fixed@0c18652 (re-check below) |
+| GD-2 | [MINOR] | tools/doctrine_gold.py:161-171 | `check` on a shape-tampered record (e.g. `artifacts` replaced with a string) crashes with a raw TypeError traceback (probe G6) instead of the clean "CHECK FAILED" contract. Exit code is still nonzero via the traceback, so pipelines refuse - but the tool's own exit-code contract (0/1/2, ASCII errors) is broken. | After a schema finding, skip structural checks (or guard types per field) and report findings cleanly. | fixed@0c18652 |
+| GD-3 | [MINOR] | tools/doctrine_gold.py:61-63 | "Annotated tags only" (permission matrix row 3) is unenforced: `git rev-list -n 1` resolves lightweight tags happily and `record` succeeds on one (probe G3). | One guard: `git cat-file -t <tag>` must equal `tag`; else StateError naming the policy. | fixed@0c18652 |
+| GD-4 | [MINOR] | tools/doctrine_gold.py:87 (record), :140 (check) | The tag string is used in git argv and in path composition BEFORE format validation: `record` with tag `--all` executes `git rev-list -n 1 --all` (read-only, but attacker-influenced argv); `check --tag ../secret` composes an escaping path and reads an arbitrary .json before failing (probe G7 - both end in refusal, nothing written). | Validate the tag against `^v[0-9]+\.[0-9]+\.[0-9]+$` at entry of both commands; prefer `refs/tags/<tag>` in git calls. | fixed@0c18652 |
+| GD-5 | [NIT] | tools/doctrine_gold.py:100-106 | `record` hashes artifacts from the current worktree with no warning when HEAD != the tag's commit or the worktree is dirty (probe G8) - a stale/rebuilt dist/ can be bound to an older tag. The ladder assigns artifact provenance to CI, so this is a missing guardrail, not a broken one. | Warn (or require --force) when HEAD != tag commit or `git status --porcelain` is non-empty. | fixed@0c18652 |
+| GD-6 | [NIT] | schemas/gold-build.schema.json relpath; tools/doctrine_gold.py:101-106 | Duplicate artifact paths are accepted into one record (probe G5); the relpath pattern permits a POSIX-absolute leading "/" (machine-specific path recorded; `check` on other clones would fail artifact-missing, so it degrades loudly). | Dedupe artifact paths at record time; anchor the pattern against a leading "/". | fixed@0c18652 |
 
 ## What holds (verified by executing the 12 shipped tests + probes)
 
@@ -442,3 +442,68 @@ guardrail - good scope hygiene.
   hash chain instead of trusting timestamps) and everything else - 61
   green tests, refusal paths, tamper detection, schema discipline - is
   in good shape. GD-2..GD-4 should ride along; GD-5/GD-6 author's call.
+
+---
+
+# Delta re-check — v0.4.0 remediation @ 0c18652 — 2026-07-12
+
+**Executed** (real output):
+
+```
+$ python tools/doctrine_lint.py        -> doctrine_lint: corpus clean (0)
+$ python -m ruff check tools tests     -> All checks passed! (0)
+$ python -m unittest discover -s tests -> Ran 70 tests ... OK
+```
+
+Every original probe re-run against the reworked `doctrine_gold.py`:
+
+```
+R-G1 clone-equalized mtimes:
+   chain order (from prev-hash links): v1.9.0 -> v1.10.0 -> v1.11.0
+   next promotion v1.12.0 chained to v1.11.0 (the TRUE head); check 0
+                                                        -> GD-1 FIXED
+R-G2 forged genesis alongside older records, clone-equalized mtimes:
+   "gold chain topology: 2 genesis record(s), expected exactly 1"
+   check exit 1 for the forged record AND for the legit records - the
+   whole ladder fails loudly until repaired (correct fail-closed
+   posture)                                             -> GD-1 FIXED
+R-G3 lightweight tag: refused ("is commit, not an annotated tag")
+                                                        -> GD-3 FIXED
+R-G4/G6: duplicate artifact paths refused; "/abs/path.whl",
+   "a/../b.whl", backslash path all refused (schema lookahead pattern +
+   runtime guard); soak result "fail" still schema-refused
+                                                        -> GD-6 FIXED
+R-G6b record tampered to artifacts:"not-a-list":
+   clean "CHECK FAILED ... schema: $.artifacts: expected array", exit 1,
+   no traceback (schema validated FIRST, then stop)     -> GD-2 FIXED
+R-G7 tags "--all" and "../secret": StateError from require_tag_format
+   in BOTH commands before any git argv or path composition; nothing
+   written (no gold dir)                                -> GD-4 FIXED
+R-G8: HEAD-not-at-tag warning AND dirty-worktree warning both emitted
+   at record time                                       -> GD-5 FIXED
+```
+
+Bonus hardening (this commit, verified by probe + the shipped tests):
+verdict and sign-offs are now content-pinned (`hashedref` = path+sha256)
+- editing a sign-off after promotion fails `check` with "content changed
+after promotion"; an empty/whitespace-only verdict file is refused at
+record time ("existence is not evidence"). Chain topology errors also
+name forks explicitly (two records claiming one predecessor). All nine
+new regression tests ran in the 70-green suite.
+
+Notes, no action demanded: the `hashedref` schema change is a breaking
+record-format change while `gold_version` stays "1" - acceptable since no
+released gold records predate it (remediated within the same review
+cycle); the relpath lookahead `(?!.*\.\.)` also rejects benign filenames
+containing ".." (e.g. `release..notes.md`) - fail-closed, consistent with
+the marker/secret-scan posture.
+
+## Final delta verdict (v0.4.0)
+
+- [x] **Pass - APPROVE.** All six findings (GD-1 MAJOR through GD-6 NIT)
+  verified fixed by re-executing the original failing probes: chain
+  order now derives solely from prev_gold_sha256 links (single genesis,
+  no forks, reachability enforced) and survives clone-equalized mtimes;
+  tamper and forgery fail loudly; refusal paths are clean and write
+  nothing. 70/70 tests, corpus lint, and ruff all green. The enterprise
+  merge/promotion profile is good to land.

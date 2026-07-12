@@ -33,6 +33,10 @@ libraries — the code between the boundary and the store.
 - Treat append-only/hash-chained artifacts as transactions: compute
   content and hashes prospectively in memory, touch disk only after ALL
   validation passes — a rejected input leaves zero mutations.
+- Reference files by content hash wherever integrity matters: existence
+  is not evidence (empty files exist) and mtime is not an authority
+  signal (clones reset it, attackers forge it) — order and trust come
+  from the data, never the filesystem.
 - Bound every queue, buffer, and cache. Unbounded = incident scheduled.
 - Log at boundaries with correlation IDs; keep logic layers quiet.
 

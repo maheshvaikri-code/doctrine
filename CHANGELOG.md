@@ -6,6 +6,36 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-12
+
+### Added
+- **Enterprise merge & promotion profile** (OPT-IN via
+  `Merge profile: enterprise` in the brief; defaults unchanged
+  otherwise): `standards/merge-and-promotion.md` — Merge Council with
+  unanimity quorum for release-bound merges, a permission matrix
+  (role → merge/tag/promote/deploy rights → enforcement mechanism), and
+  the Gold Build ladder (candidate → soak → GOLD; deploy only from a
+  gold record; **the hash chain is the rollback ladder**).
+- `templates/merge-verdict.md` (council verdict record, filed at
+  `docs/merges/`), `schemas/gold-build.schema.json` (content-pinned
+  `hashedref`s, `prev_gold_sha256` chain), and `tools/doctrine_gold.py`
+  (`record`: refuses without verdict + sign-offs + human approval, all
+  content-pinned; `check`: the deploy gate — schema, re-hash, chain
+  topology, tag→commit binding).
+- Doctrine amendment (this round's lesson): `skills/backend.md` —
+  content-hash references; existence is not evidence, mtime is not an
+  authority signal.
+
+### Security
+- Delta review round-trip #3: security VETO reproduced chain forking
+  via mtime forgery and "no verdict, no gold" satisfied by zero-byte
+  files. Closed: chain order derives ONLY from prev-hash links (single
+  genesis, no forks, full reachability — a broken ladder blocks ALL
+  deploys); verdict and sign-offs content-pinned and re-hashed at the
+  deploy gate; annotated-tags-only; tag format validated before git
+  argv; hardened relpath schema. Re-verified by original exploits:
+  APPROVE + SIGN-OFF. Suite: 70 tests.
+
 ## [0.3.0] - 2026-07-12
 
 ### Added

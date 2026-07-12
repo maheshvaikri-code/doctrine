@@ -493,3 +493,84 @@ in writing, recorded here. Hands off to Builder for G-1 (chain-derived ordering 
 root linearity check) and G-2 (hash-pin + non-empty verdict/sign-offs), then re-review.
 
 -- Security Reviewer, 2026-07-12
+
+---
+
+# DELTA RE-AUDIT (G-1/G-2 remediation, commit 0c18652) - 2026-07-12
+
+Re-audited doctrine_gold after the fix. Baseline: 70 tests pass (was 61),
+doctrine_lint clean. Every prior break probe re-run against live code, plus the new
+guards.
+
+## G-1 (mtime chain ordering) - CLOSED
+
+load_chain now derives order ONLY by walking prev_gold_sha256 links: exactly one
+genesis, unique predecessors, full reachability from genesis; _latest_gold is the chain
+head; check requires the record to be reachable. mtime is read nowhere. Reproduced:
+
+- mtime bump no longer forks: after v1.0.0 (genesis) and v1.0.1, bumping v1.0.0 mtime to
+  newest and recording v1.0.2 chained it to v1.0.1 (the real head), not the bumped
+  genesis - check rc=0.
+- Planted FORK (two records claiming the same predecessor): load_chain raises
+  [gold chain fork: ... both claim the same predecessor] - check rc=1.
+- Forged SECOND genesis (prev=null) with oldest mtime: [gold chain topology: 2 genesis
+  record(s), expected exactly 1] - check rc=1. mtime is inert.
+
+## G-2 (existence-only sign-offs) - CLOSED
+
+Council verdict and every sign-off are content-pinned {path, sha256} in the record
+(schema hashedref, additionalProperties false); hashed_ref refuses empty/whitespace-only
+files; check re-hashes all of them. Reproduced:
+
+- Zero/whitespace sign-off refused at record: [sign-off 'security' is empty ... an empty
+  file is not a sign-off] - rc=2.
+- Empty council verdict refused at record - rc=2.
+- Post-promotion sign-off content swap detected: [sign-off 'security' hash mismatch ...
+  content changed after promotion] - check rc=1. Sign-offs are now tamper-evident
+  exactly like artifacts.
+
+## New hardening (all verified)
+
+- Annotated-tag-only: a lightweight tag is refused at record ([is commit, not an
+  annotated tag]) - rc=2; check has no record - rc=1.
+- Tag format validated BEFORE it reaches git argv or the filesystem
+  (require_tag_format in both record and check): [v1.0.0; rm -rf /], [../../../etc],
+  [v1.0], [v1.0.0-rc1] all refused.
+- Schema-first check: a shape-tampered record (artifacts set to a string) yields
+  [schema: $.artifacts: expected array] and a clean rc=1 - no crash, no treating the
+  untrusted shape as valid.
+- Duplicate artifact path rejected at record ([duplicate artifact path]) - rc=2.
+- relpath pattern hardened ^(?!/)(?!.*\.\.)... : /etc/passwd (leading slash),
+  ../secret, and a/../../b all rejected at schema level; ok/inside.bin accepted. This is
+  defense in depth atop safe_repo_path (which still resolve()+prefix-checks every path).
+- merge_verdict is now relpath/hashedref-typed (was a bare string).
+- Dirty-tree and HEAD!=tag conditions emit warnings at promotion (observed) - a
+  reasonable workflow caveat; check re-verifies artifact hashes and the tag->commit
+  binding at deploy regardless.
+
+The previously-sound controls still hold (artifact re-hash, tag->commit binding,
+no-gold-dir fail-safe, safe_repo_path escape refusal, immutable records).
+
+## Residual notes (minor, non-blocking)
+
+- human_approval remains inline self-asserted (approved_by/statement are proposal data,
+  not a file or signature). Acceptable for v1: it is enforced by the human reviewing and
+  committing the gold record, and the two strong gates (content-pinned verdict/sign-offs,
+  tag+artifact hashes) now carry the mechanical weight. Cryptographic approver signing is
+  a reasonable later step.
+- record hashes artifacts from the current worktree; if built somewhere other than the
+  tag commit the hashes reflect that. The dirty/HEAD-mismatch warnings plus deploy-time
+  re-hash cover it. Workflow caveat, not a security defect.
+
+## VERDICT: SIGN-OFF (gold-build gate cleared)
+
+Both vetoed findings are remediated and independently re-verified by execution: G-1 chain
+integrity is now link-derived with single-genesis/no-fork/reachability enforced and mtime
+eliminated; G-2 verdict and sign-offs are content-pinned, empty files refused, and swaps
+detected. The additional hardening (annotated-tag, tag-format-before-argv, schema-first
+check, duplicate rejection, relpath tightening, verdict relpath-typing) closes the minor
+notes too. check emits OK only for a single valid rooted chain with matching
+tag/artifact/verdict/sign-off hashes - no more false provenance assurance. The prior VETO
+on doctrine_gold is LIFTED. Combined with all earlier sign-offs, the release is cleared.
+
+-- Security Reviewer, 2026-07-12

@@ -169,6 +169,98 @@ class TestRecordAndCheck(GoldRepo):
     def test_check_without_record_fails(self):
         self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
 
+    def test_chain_order_survives_clone(self):
+        """Regression: G-1/GD-1 — order comes from prev-hash links, never
+        mtimes (clones reset them; attackers forge them)."""
+        import os
+        self.record()
+        for i, tag in enumerate(["v1.1.0", "v1.2.0"]):
+            subprocess.run(["git", "tag", "-a", tag, "-m", "v"],
+                           cwd=self.root, check=True)
+            self.assertEqual(self.record(self.proposal(tag=tag)), 0)
+        gold = self.root / "docs" / "releases" / "gold"
+        # simulate clone: equalize, then REVERSE mtimes
+        for i, p in enumerate(sorted(gold.glob("*.json"), reverse=True)):
+            os.utime(p, (1000000 + i, 1000000 + i))
+        chain = dg.load_chain(self.root)
+        self.assertEqual([p.name for p in chain],
+                         ["v1.0.0.json", "v1.1.0.json", "v1.2.0.json"])
+        subprocess.run(["git", "tag", "-a", "v1.3.0", "-m", "v"],
+                       cwd=self.root, check=True)
+        self.assertEqual(self.record(self.proposal(tag="v1.3.0")), 0)
+        fourth = json.loads((gold / "v1.3.0.json").read_text("utf-8"))
+        self.assertEqual(fourth["prev_gold_sha256"],
+                         ds.sha256_file(gold / "v1.2.0.json"),
+                         "must chain to the true head, not the mtime head")
+        self.assertEqual(dg.cmd_check(self.root, "v1.3.0"), 0)
+
+    def test_forged_second_genesis_detected(self):
+        """Regression: G-1 — a forged genesis breaks topology loudly."""
+        self.record()
+        gold = self.root / "docs" / "releases" / "gold"
+        forged = json.loads((gold / "v1.0.0.json").read_text("utf-8"))
+        forged["tag"] = "v9.9.9"
+        (gold / "v9.9.9.json").write_bytes(ds.canonical_bytes(forged))
+        self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
+
+    def test_chain_fork_detected(self):
+        """Regression: G-1 — two records claiming one predecessor."""
+        self.record()
+        subprocess.run(["git", "tag", "-a", "v1.1.0", "-m", "v"],
+                       cwd=self.root, check=True)
+        self.record(self.proposal(tag="v1.1.0"))
+        gold = self.root / "docs" / "releases" / "gold"
+        fork = json.loads((gold / "v1.1.0.json").read_text("utf-8"))
+        fork["tag"] = "v1.1.1"
+        (gold / "v1.1.1.json").write_bytes(ds.canonical_bytes(fork))
+        self.assertEqual(dg.cmd_check(self.root, "v1.1.0"), 1)
+
+    def test_empty_signoff_refused(self):
+        """Regression: G-2 — existence is not evidence."""
+        (self.root / "docs" / "qa" / "task-security.md").write_bytes(b"")
+        with self.assertRaises(dg.StateError):
+            self.record()
+        self.assertFalse((self.root / "docs" / "releases").exists())
+
+    def test_signoff_edited_after_promotion_fails_check(self):
+        """Regression: G-2 — sign-offs are content-pinned."""
+        self.record()
+        p = self.root / "docs" / "qa" / "task-security.md"
+        p.write_text(p.read_text("utf-8") + "\nretracted!\n",
+                     encoding="utf-8")
+        self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
+
+    def test_lightweight_tag_refused(self):
+        """Regression: GD-3 — annotated tags only."""
+        subprocess.run(["git", "tag", "v2.0.0"], cwd=self.root, check=True)
+        with self.assertRaises(dg.StateError):
+            self.record(self.proposal(tag="v2.0.0"))
+
+    def test_bad_tag_rejected_before_git_or_paths(self):
+        """Regression: GD-4 — tag validated before argv/path use."""
+        for bad in ("--all", "../secret", "v1.0.0; rm -rf", "HEAD"):
+            with self.assertRaises(dg.StateError, msg=bad):
+                dg.cmd_check(self.root, bad)
+            with self.assertRaises(dg.StateError, msg=bad):
+                self.record(self.proposal(tag=bad))
+
+    def test_duplicate_artifact_paths_refused(self):
+        """Regression: GD-6."""
+        prop = self.proposal()
+        prop["artifacts"] = [{"path": "dist/app.whl", "sha256": "0" * 64},
+                             "dist/app.whl"]
+        with self.assertRaises(dg.StateError):
+            self.record(prop)
+
+    def test_shape_tampered_record_fails_cleanly(self):
+        """Regression: GD-2 — schema failure exits 1, no traceback."""
+        self.record()
+        out = self.root / "docs" / "releases" / "gold" / "v1.0.0.json"
+        record = json.loads(out.read_text("utf-8"))
+        record["artifacts"] = "not-a-list"
+        out.write_bytes(ds.canonical_bytes(record))
+        self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

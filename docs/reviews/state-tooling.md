@@ -361,3 +361,84 @@ until rephrased - same posture, plain hydrate unaffected (E6'' verified).
   no regressions across the earlier probe set; 49/49 tests, corpus lint,
   and ruff all clean; this repo's own live state plane verifies and
   hydrates deterministically. v0.3.0 session wiring is good to land.
+
+---
+
+# Delta review — v0.4.0 enterprise merge/promotion @ d5eab56 — 2026-07-12
+
+**Reviewer role:** Code Reviewer (fresh pass). **Scope:** plan slices 11-14:
+`standards/merge-and-promotion.md`, `templates/merge-verdict.md`,
+`schemas/gold-build.schema.json`, `tools/doctrine_gold.py`,
+`tests/test_doctrine_gold.py`, routing/workflow/README wiring.
+
+**Executed** (real output):
+
+```
+$ python tools/doctrine_lint.py        -> doctrine_lint: corpus clean (0)
+$ python -m ruff check tools tests     -> All checks passed! (0)
+$ python -m unittest discover -s tests -> Ran 61 tests ... OK
+```
+
+Probes (temp git repos, real output, abridged):
+
+```
+G1 mtime chain ordering, clone-equalized mtimes:
+   true order:  v1.9.0, v1.10.0, v1.11.0
+   post-clone:  v1.10.0, v1.11.0, v1.9.0   (lexicographic tiebreak)
+   _latest_gold picks v1.9.0 (true latest v1.11.0); the next promotion
+   v1.12.0 CHAINS TO v1.9.0 - wrong predecessor - and check exits 0
+G2 forged genesis (prev null) alongside older records:
+   fresh mtimes: check exit 1 (detected)
+   clone-equalized mtimes: check exit 0 (UNDETECTED)
+G3 lightweight (non-annotated) tag: record succeeds rc 0
+   (permission matrix says "annotated tags only")
+G4 backslash artifact path: refused before write; absolute-with-drive
+   path: rejected by relpath pattern (colon)
+G5 duplicate artifact entries: accepted rc 0; soak result fail/degraded:
+   rejected by schema (only "pass" recordable - by design)
+G6 record tampered to artifacts:"not-a-list":
+   check CRASHED: TypeError string indices must be integers
+G7 record tag "--all": git argv executes rev-list first, then schema
+   refuses the tag; nothing written (gold dir absent). check --tag
+   "../secret": escaped path read, fails cleanly exit 1
+G8 record with rebuilt worktree artifact under an older tag: rc 0,
+   hashes the CURRENT disk bytes; no HEAD!=tag or dirty-worktree warning
+```
+
+## Findings (delta v0.4.0)
+
+| # | Sev | Location | Finding | Suggested fix | Resolution |
+|---|-----|----------|---------|---------------|------------|
+| GD-1 | [MAJOR] | tools/doctrine_gold.py:66-70 (_gold_records mtime sort), :185-194 (chain check) | Chain ordering and genesis detection depend on file mtime, which an ordinary `git clone` equalizes (git does not preserve mtimes). Probe G1: post-clone, `_latest_gold` returns v1.9.0 instead of v1.11.0 and the next promotion chains to the wrong predecessor - the rollback ladder is silently mis-ordered with zero tampering involved; `check` passes because it only requires `prev_gold_sha256` to match ANY record on disk, not the true predecessor, and cannot see forks or wrong order. Probe G2: a forged genesis record (prev null) is detected with fresh mtimes but passes post-clone. The standard says "the chain IS the rollback ladder"; the ladder must not depend on filesystem timestamps. | Derive order from the chain itself: build the prev_sha256 -> record map, require exactly one genesis, unique predecessors (no forks), one head; `_latest_gold` = the chain head; `check` verifies the record's position by walking links. Use mtime for nothing. Regression tests with equalized mtimes. | open |
+| GD-2 | [MINOR] | tools/doctrine_gold.py:161-171 | `check` on a shape-tampered record (e.g. `artifacts` replaced with a string) crashes with a raw TypeError traceback (probe G6) instead of the clean "CHECK FAILED" contract. Exit code is still nonzero via the traceback, so pipelines refuse - but the tool's own exit-code contract (0/1/2, ASCII errors) is broken. | After a schema finding, skip structural checks (or guard types per field) and report findings cleanly. | open |
+| GD-3 | [MINOR] | tools/doctrine_gold.py:61-63 | "Annotated tags only" (permission matrix row 3) is unenforced: `git rev-list -n 1` resolves lightweight tags happily and `record` succeeds on one (probe G3). | One guard: `git cat-file -t <tag>` must equal `tag`; else StateError naming the policy. | open |
+| GD-4 | [MINOR] | tools/doctrine_gold.py:87 (record), :140 (check) | The tag string is used in git argv and in path composition BEFORE format validation: `record` with tag `--all` executes `git rev-list -n 1 --all` (read-only, but attacker-influenced argv); `check --tag ../secret` composes an escaping path and reads an arbitrary .json before failing (probe G7 - both end in refusal, nothing written). | Validate the tag against `^v[0-9]+\.[0-9]+\.[0-9]+$` at entry of both commands; prefer `refs/tags/<tag>` in git calls. | open |
+| GD-5 | [NIT] | tools/doctrine_gold.py:100-106 | `record` hashes artifacts from the current worktree with no warning when HEAD != the tag's commit or the worktree is dirty (probe G8) - a stale/rebuilt dist/ can be bound to an older tag. The ladder assigns artifact provenance to CI, so this is a missing guardrail, not a broken one. | Warn (or require --force) when HEAD != tag commit or `git status --porcelain` is non-empty. | open |
+| GD-6 | [NIT] | schemas/gold-build.schema.json relpath; tools/doctrine_gold.py:101-106 | Duplicate artifact paths are accepted into one record (probe G5); the relpath pattern permits a POSIX-absolute leading "/" (machine-specific path recorded; `check` on other clones would fail artifact-missing, so it degrades loudly). | Dedupe artifact paths at record time; anchor the pattern against a leading "/". | open |
+
+## What holds (verified by executing the 12 shipped tests + probes)
+
+Happy path record->check round-trip; artifact tamper and moved-tag
+detection; record tamper caught via the NEXT record's pre-tamper hash;
+missing verdict/sign-off refusals leave nothing on disk (G7 confirms no
+gold dir after refusal); records immutable (second record for the same
+tag refused); empty human-approval statement refused at schema; path
+escapes refused; soak "pass"-only enum enforced by design; ASCII output;
+exit codes clean on the refusal paths. Standard/template/schema wiring is
+coherent (template carries its gate tag; routing row and G6 note added;
+plan slices 11-14 recorded; README counts lint-clean). The OPT-IN framing
+is explicit, with the "don't let the profile creep into Class S/M"
+guardrail - good scope hygiene.
+
+## Delta verdict (v0.4.0)
+
+- [ ] Pass
+- [x] **Return to build - REQUEST-CHANGES (delta only).** One MAJOR:
+  GD-1 - the rollback ladder's ordering rests on file mtimes that a
+  plain clone destroys; wrong-predecessor chains and forged genesis
+  records then pass `check` silently. This is the same failure class the
+  state-plane verify fixes addressed: an integrity tool whose core
+  property fails under normal operation. The fix is contained (walk the
+  hash chain instead of trusting timestamps) and everything else - 61
+  green tests, refusal paths, tamper detection, schema discipline - is
+  in good shape. GD-2..GD-4 should ride along; GD-5/GD-6 author's call.

@@ -391,3 +391,105 @@ hydrate --emit-agents is LIFTED. Combined with the earlier sign-offs (core state
 SessionStart hook, checkpoint.md), the v0.3.0 session-wiring delta is cleared for release.
 
 -- Security Reviewer, 2026-07-12
+
+---
+
+# DELTA AUDIT (v0.4.0 gold-build provenance, commit d5eab56) - 2026-07-12
+
+Security pass on tools/doctrine_gold.py (record/check) and
+.Doctrine/schemas/gold-build.schema.json. Baseline: 61 tests pass (dedicated
+test_doctrine_gold.py present), doctrine_lint clean. Every threat below probed against
+live code on a real temp git repo with annotated tags.
+
+## Sound controls (verified, keep as-is)
+
+- Artifact swap between record and deploy: CAUGHT. check re-hashes each artifact;
+  flipping dist/app.bin after promotion -> [artifact hash mismatch] -> rc=1.
+- Tag moved after promotion: CAUGHT. check compares rev-list -n1 <tag> to the recorded
+  at_commit; re-pointing the tag -> [the tag moved] -> rc=1.
+- check with NO gold dir / no record: FAILS SAFE -> [no gold record - do not deploy],
+  rc=1.
+- Path escapes via record-referenced paths: safe_repo_path (resolve + repo-prefix
+  check) REFUSED every escape - ../.. traversal, /etc/passwd absolute, C:/... and
+  C:\...  drive letters, //server and \server UNC - while resolving legitimate
+  inside paths and inside .. bounces correctly. This holds even though merge_verdict is
+  not schema-relpath-constrained and record accepts dict-less artifact strings, because
+  safe_repo_path is applied to all of them in BOTH record and check.
+- Immutability: record refuses to overwrite an existing <tag>.json (code path present:
+  [records are immutable; a correction is a NEW tag]).
+- schema relpath ^[^\:*?"<>|]+$ blocks Windows drive/backslash/wildcard chars. Note it
+  does NOT block .. or forward-slash traversal - traversal defense is safe_repo_path,
+  which held. The schema description is honest about this ([enforced by the tool]).
+
+## Finding G-1 (mtime-based chain ordering) - BLOCKER, reproduced
+
+_gold_records sorts by p.stat().st_mtime, and _latest_gold (which record uses to pick
+the predecessor) and the check genesis heuristic both rely on that order. mtime is not
+git-tracked, is reset to checkout time on every clone, and is trivially forgeable
+(os.utime / touch). Consequences reproduced:
+
+- FORK undetected: after recording v1.0.0 (genesis) and v1.0.1 (chained to v1.0.0),
+  bumping v1.0.0 mtime to newest made record chain v1.0.2 to v1.0.0 instead of v1.0.1 -
+  a fork. check v1.0.2 printed [chain intact] and returned 0. The chain link only
+  requires prev_gold_sha256 to match SOME record on disk; linearity, single-root, and
+  reachability are never verified.
+- ROGUE second genesis: a forged v2.0.0 record with prev_gold_sha256=null and an
+  artificially oldest mtime evaded the [genesis but older records exist] check -> check
+  returned 0.
+- Correctness (non-adversarial): on a fresh CI clone all gold files get checkout-time
+  mtimes in git-write order, not semver order, so _latest_gold is effectively undefined
+  there - record can chain to an arbitrary predecessor and the genesis check can
+  mis-fire in normal operation.
+
+Impact: check emits [chain intact] / OK for forked and rogue-genesis chains, giving a
+deploy pipeline false provenance assurance about the rollback ladder.
+
+Fix: derive ordering and integrity from the hash chain itself - walk prev_gold_sha256
+links and assert a single linear chain rooted at exactly one genesis (no forks, no
+second genesis, no cycles), reachable to the record under check. Drop mtime as an
+ordering/authority signal entirely (use semver or committed git order if a tiebreak is
+needed).
+
+## Finding G-2 (existence-only sign-off / verdict) - BLOCKER, reproduced
+
+record and check verify only that the merge_verdict and each signoff path EXIST. Zeroing
+all four sign-off files AND the council verdict to empty (0 bytes) still passed record
+(rc=0) and check ([sign-offs on disk], rc=0). The tool's stated guarantee - [REFUSE
+without the council verdict + all sign-offs + human approval] and [no verdict, no gold] -
+is satisfiable with meaningless empty files, including the security sign-off that gates
+this very release. human_approval is inline self-asserted data (approved_by/statement
+are whatever the proposal says), so the human gate is self-attestation too.
+
+Impact: a promoter (or a mistake) can obtain GOLD + a green check with content-free
+approvals; the mechanical council/security/human gate the tool advertises is not
+actually enforced.
+
+Fix (consistent with how artifacts are already handled): pin the sha256 of the verdict
+and of each sign-off file INTO the gold record and re-verify those hashes in check - then
+the sign-off content is bound to the record and a post-promotion swap is detected, same
+as artifacts. Minimum bar: reject empty/whitespace-only verdict and sign-off files.
+Consider requiring a recognizable sign-off sentinel. (Cryptographic signing is a later
+step; hash-pinning committed review files is the right v1 floor for a provenance tool.)
+
+## Minor notes (non-blocking)
+
+- merge_verdict is schema-typed as a plain string (not $defs/relpath), unlike signoffs
+  and artifact paths. safe_repo_path covers it in both commands, but add the relpath
+  $ref for consistency and defense in depth.
+- The record proposal is not itself schema-validated (only the constructed record is);
+  paths are used for existence checks before that. safe_repo_path makes this safe today,
+  but validating the proposal shape up front would be cleaner.
+
+## VERDICT: VETO (gold-build deploy gate blocked)
+
+The anti-tamper core (artifact re-hash, tag->commit binding, path-escape defense,
+fail-safe on no record) is sound and should be preserved. But two findings make the tool
+emit success/[chain intact]/[sign-offs on disk] in exactly the situations it claims to
+prevent - a forked or rogue-genesis chain (G-1) and empty council/security/human
+approvals (G-2) - which is false provenance assurance from a provenance gate, and G-1 is
+additionally a correctness bug on fresh CI clones. Release of doctrine_gold as a deploy
+gate is blocked until G-1 and G-2 are remediated. Only the human may override this veto,
+in writing, recorded here. Hands off to Builder for G-1 (chain-derived ordering + single-
+root linearity check) and G-2 (hash-pin + non-empty verdict/sign-offs), then re-review.
+
+-- Security Reviewer, 2026-07-12

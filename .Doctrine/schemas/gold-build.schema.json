@@ -11,17 +11,17 @@
     "tag": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "at_commit": { "$ref": "#/$defs/gitsha" },
     "created_at": { "type": "string", "format": "date-time" },
-    "merge_verdict": { "type": "string", "minLength": 1, "description": "Repo-relative path to the filed council verdict (docs/merges/<task>.md)." },
+    "merge_verdict": { "$ref": "#/$defs/hashedref", "description": "The filed council verdict (docs/merges/<task>.md), content-pinned - an empty or later-edited verdict fails check." },
     "signoffs": {
       "type": "object",
       "additionalProperties": false,
       "required": ["code_review", "security", "qa", "project_review"],
       "properties": {
-        "code_review": { "$ref": "#/$defs/relpath" },
-        "security": { "$ref": "#/$defs/relpath" },
-        "qa": { "$ref": "#/$defs/relpath" },
-        "project_review": { "$ref": "#/$defs/relpath" },
-        "compliance": { "$ref": "#/$defs/relpath" }
+        "code_review": { "$ref": "#/$defs/hashedref" },
+        "security": { "$ref": "#/$defs/hashedref" },
+        "qa": { "$ref": "#/$defs/hashedref" },
+        "project_review": { "$ref": "#/$defs/hashedref" },
+        "compliance": { "$ref": "#/$defs/hashedref" }
       }
     },
     "artifacts": {
@@ -65,6 +65,16 @@
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "gitsha": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
-    "relpath": { "type": "string", "minLength": 1, "pattern": "^[^\\\\:*?\"<>|]+$", "description": "Repo-relative POSIX path; no drive letters, no traversal past the repo (enforced by the tool)." }
+    "relpath": { "type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\:*?\"<>|]+$", "description": "Repo-relative POSIX path; no leading slash, no '..', no drive letters. The tool additionally resolve()+prefix-checks every path." },
+    "hashedref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/relpath" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "description": "Content-pinned file reference: existence is not evidence; the bytes are."
+    }
   }
 }

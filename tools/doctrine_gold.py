@@ -4,16 +4,21 @@
 
 Commands:
   record --input F   promote a candidate: validate the proposal, stamp
-                     at_commit from the tag, hash the artifacts, chain to
-                     the previous gold record, REFUSE without the council
-                     verdict + all sign-offs + human approval on disk.
-                     Nothing is written until everything validates.
-  check --tag vX.Y.Z re-verify a gold record: schema, artifact re-hash,
-                     chain link, referenced files exist, tag -> commit
-                     match. Deploy pipelines run this and refuse on exit 1.
+                     at_commit from the ANNOTATED tag, hash the artifacts
+                     AND the council verdict AND every sign-off into the
+                     record (empty files refused - "no verdict, no gold"
+                     means content, not filenames), chain to the head of
+                     the gold chain. Nothing is written until everything
+                     validates.
+  check --tag vX.Y.Z the deploy gate: schema, artifact/verdict/sign-off
+                     re-hash, chain topology (single genesis, no forks,
+                     record reachable), tag -> commit match. Deploy
+                     pipelines run this and refuse on exit 1.
 
-Gold records are immutable canonical JSON at docs/releases/gold/<tag>.json,
-hash-chained via prev_gold_sha256 - the chain is the rollback ladder.
+Chain order is derived ONLY by walking prev_gold_sha256 links - file
+mtimes are never an authority signal (clones reset them; attackers forge
+them). Gold records are immutable canonical JSON at
+docs/releases/gold/<tag>.json; the chain is the rollback ladder.
 
 Terminal output is ASCII-only. Exit codes: 0 ok / 1 verification failed /
 2 usage or validation error.
@@ -22,6 +27,7 @@ Terminal output is ASCII-only. Exit codes: 0 ok / 1 verification failed /
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -32,21 +38,31 @@ from doctrine_state import (  # noqa: E402
     StateError,
     canonical_bytes,
     git,
+    head_commit,
     load_json,
     now_utc,
     sha256_bytes,
     sha256_file,
     validate,
+    worktree_state,
 )
 
 GOLD_DIR = Path("docs") / "releases" / "gold"
+TAG_RE = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
 
 
 def load_gold_schema(repo: Path) -> dict:
-    path = (repo / ".Doctrine" / "schemas" / "gold-build.schema.json")
+    path = repo / ".Doctrine" / "schemas" / "gold-build.schema.json"
     if not path.exists():
         raise StateError(f"schema not found: {path}")
     return load_json(path, "schema")
+
+
+def require_tag_format(tag: str) -> None:
+    """Validate BEFORE the tag string reaches git argv or any path."""
+    if not TAG_RE.fullmatch(tag):
+        raise StateError(f"tag {tag!r} is not vX.Y.Z - refusing before "
+                         "it reaches git or the filesystem")
 
 
 def safe_repo_path(repo: Path, rel: str, what: str) -> Path:
@@ -58,59 +74,121 @@ def safe_repo_path(repo: Path, rel: str, what: str) -> Path:
     return candidate
 
 
+def hashed_ref(repo: Path, rel: str, what: str) -> dict:
+    """{path, sha256} for a referenced file; empty/whitespace-only files
+    are refused - existence is not evidence."""
+    p = safe_repo_path(repo, rel, what)
+    if not p.exists():
+        raise StateError(f"{what} not on disk: {rel}")
+    data = p.read_bytes()
+    if not data.strip():
+        raise StateError(f"{what} is empty: {rel} - an empty file is not "
+                         "a sign-off")
+    return {"path": rel, "sha256": sha256_bytes(data)}
+
+
 def tag_commit(repo: Path, tag: str) -> str:
-    """Full commit sha the annotated tag points at."""
+    """Full commit sha of an ANNOTATED tag (lightweight tags refused -
+    'annotated tags only' per standards/git-conventions.md)."""
+    kind = git(repo, "cat-file", "-t", tag)
+    if kind != "tag":
+        raise StateError(f"tag {tag} is {kind}, not an annotated tag - "
+                         "releases use annotated tags only")
     return git(repo, "rev-list", "-n", "1", tag)
 
 
-def _gold_records(repo: Path) -> list[Path]:
+def load_chain(repo: Path) -> list[Path]:
+    """Order gold records by walking prev_gold_sha256 links. Exactly one
+    genesis, every prev resolves to exactly one record, no forks, all
+    records reachable - anything else is a broken ladder (StateError)."""
     gold = repo / GOLD_DIR
     if not gold.exists():
         return []
-    return sorted(gold.glob("v*.json"), key=lambda p: p.stat().st_mtime)
-
-
-def _latest_gold(repo: Path) -> Path | None:
-    records = _gold_records(repo)
-    return records[-1] if records else None
+    entries: list[tuple[Path, str, str | None]] = []
+    for p in sorted(gold.glob("*.json")):
+        rec = load_json(p, "gold record")
+        prev = rec.get("prev_gold_sha256") if isinstance(rec, dict) else ""
+        entries.append((p, sha256_file(p), prev))
+    if not entries:
+        return []
+    shas = {sha for _, sha, _ in entries}
+    genesis = [e for e in entries if e[2] is None]
+    if len(genesis) != 1:
+        raise StateError(f"gold chain topology: {len(genesis)} genesis "
+                         "record(s), expected exactly 1")
+    child_of: dict[str, tuple[Path, str]] = {}
+    for p, sha, prev in entries:
+        if prev is None:
+            continue
+        if prev not in shas:
+            raise StateError(f"{p.name}: prev_gold_sha256 matches no gold "
+                             "record on disk - broken rollback chain")
+        if prev in child_of:
+            raise StateError(f"gold chain fork: {p.name} and "
+                             f"{child_of[prev][0].name} both claim the "
+                             f"same predecessor {prev[:12]}")
+        child_of[prev] = (p, sha)
+    ordered = [genesis[0][0]]
+    cursor = genesis[0][1]
+    while cursor in child_of:
+        p, sha = child_of[cursor]
+        ordered.append(p)
+        cursor = sha
+    if len(ordered) != len(entries):
+        raise StateError(f"gold chain topology: {len(entries) - len(ordered)}"
+                         " record(s) unreachable from genesis")
+    return ordered
 
 
 def cmd_record(repo: Path, input_path: Path) -> int:
     proposal = load_json(input_path, "gold proposal")
+    if not isinstance(proposal, dict):
+        raise StateError("gold proposal must be a JSON object")
     for field in ("tag", "merge_verdict", "signoffs", "artifacts", "soak",
                   "human_approval"):
         if field not in proposal:
             raise StateError(f"gold proposal missing '{field}'")
-    tag = proposal["tag"]
+    if not isinstance(proposal["signoffs"], dict) or \
+            not isinstance(proposal["artifacts"], list):
+        raise StateError("gold proposal: 'signoffs' must be an object and "
+                         "'artifacts' a list")
+    tag = str(proposal["tag"])
+    require_tag_format(tag)
 
     # ---- dispose: every claim verified before anything is written ----
     at_commit = tag_commit(repo, tag)
+    if head_commit(repo) != at_commit:
+        print(f"warning: HEAD is not {tag}'s commit - artifacts are "
+              "hashed from THIS worktree; make sure they were built from "
+              f"{at_commit[:12]}", file=sys.stderr)
+    if worktree_state(repo) == "dirty":
+        print("warning: worktree is dirty while promoting - artifact "
+              "hashes may not be reproducible from the tag",
+              file=sys.stderr)
 
-    verdict = safe_repo_path(repo, proposal["merge_verdict"],
-                             "merge verdict")
-    if not verdict.exists():
-        raise StateError(f"council verdict not on disk: "
-                         f"{proposal['merge_verdict']} - no verdict, "
-                         "no gold")
-    for name, rel in proposal["signoffs"].items():
-        p = safe_repo_path(repo, rel, f"sign-off '{name}'")
-        if not p.exists():
-            raise StateError(f"sign-off '{name}' not on disk: {rel}")
+    verdict = hashed_ref(repo, str(proposal["merge_verdict"]),
+                         "council verdict")
+    signoffs = {name: hashed_ref(repo, str(rel), f"sign-off '{name}'")
+                for name, rel in proposal["signoffs"].items()}
 
-    artifacts = []
+    artifacts, seen_paths = [], set()
     for entry in proposal["artifacts"]:
-        rel = entry["path"] if isinstance(entry, dict) else entry
+        rel = entry["path"] if isinstance(entry, dict) else str(entry)
+        if rel in seen_paths:
+            raise StateError(f"duplicate artifact path: {rel}")
+        seen_paths.add(rel)
         p = safe_repo_path(repo, rel, "artifact")
         if not p.exists():
             raise StateError(f"artifact not on disk: {rel}")
         artifacts.append({"path": rel, "sha256": sha256_file(p)})
 
-    prev = _latest_gold(repo)
+    chain = load_chain(repo)
+    prev = chain[-1] if chain else None
     record = {
         "gold_version": "1", "tag": tag, "at_commit": at_commit,
         "created_at": now_utc(),
-        "merge_verdict": proposal["merge_verdict"],
-        "signoffs": proposal["signoffs"],
+        "merge_verdict": verdict,
+        "signoffs": signoffs,
         "artifacts": artifacts,
         "soak": proposal["soak"],
         "human_approval": proposal["human_approval"],
@@ -136,7 +214,7 @@ def cmd_record(repo: Path, input_path: Path) -> int:
 
 
 def cmd_check(repo: Path, tag: str) -> int:
-    findings: list[str] = []
+    require_tag_format(tag)
     path = repo / GOLD_DIR / f"{tag}.json"
     if not path.exists():
         print(f"CHECK FAILED: no gold record for {tag} - do not deploy")
@@ -145,61 +223,52 @@ def cmd_check(repo: Path, tag: str) -> int:
     try:
         validate(record, load_gold_schema(repo))
     except SchemaError as exc:
-        findings.append(f"schema: {exc}")
+        # shape is untrusted beyond this point - report and stop
+        print(f"CHECK FAILED (1) - do not deploy {tag}:")
+        print(f"  - schema: {exc}")
+        return 1
 
-    if record.get("tag") != tag:
-        findings.append(f"record tag {record.get('tag')!r} != {tag!r}")
+    findings: list[str] = []
+    if record["tag"] != tag:
+        findings.append(f"record tag {record['tag']!r} != {tag!r}")
     try:
         actual = tag_commit(repo, tag)
-        if record.get("at_commit") != actual:
-            findings.append(f"tag now points at {actual[:12]}, record says "
-                            f"{str(record.get('at_commit'))[:12]} - "
-                            "the tag moved")
-    except subprocess.CalledProcessError:
-        findings.append(f"git tag {tag} does not exist")
+        if record["at_commit"] != actual:
+            findings.append(f"tag now points at {actual[:12]}, record "
+                            f"says {record['at_commit'][:12]} - the tag "
+                            "moved")
+    except (subprocess.CalledProcessError, StateError) as exc:
+        findings.append(f"tag verification: {exc}")
 
-    for entry in record.get("artifacts", []):
+    refs = [("council verdict", record["merge_verdict"])]
+    refs += [(f"sign-off '{k}'", v) for k, v in record["signoffs"].items()]
+    refs += [("artifact", a) for a in record["artifacts"]]
+    for what, entry in refs:
         try:
-            p = safe_repo_path(repo, entry["path"], "artifact")
+            p = safe_repo_path(repo, entry["path"], what)
         except StateError as exc:
             findings.append(str(exc))
             continue
         if not p.exists():
-            findings.append(f"artifact missing: {entry['path']}")
+            findings.append(f"{what} missing: {entry['path']}")
         elif sha256_file(p) != entry["sha256"]:
-            findings.append(f"artifact hash mismatch: {entry['path']} - "
-                            "the artifact changed after promotion")
+            findings.append(f"{what} hash mismatch: {entry['path']} - "
+                            "content changed after promotion")
 
-    refs = [("merge verdict", record.get("merge_verdict"))]
-    refs += [(f"sign-off '{k}'", v)
-             for k, v in (record.get("signoffs") or {}).items()]
-    for what, rel in refs:
-        if not rel:
-            continue
-        try:
-            if not safe_repo_path(repo, rel, what).exists():
-                findings.append(f"{what} missing: {rel}")
-        except StateError as exc:
-            findings.append(str(exc))
-
-    prev_sha = record.get("prev_gold_sha256")
-    others = [p for p in _gold_records(repo) if p.name != path.name]
-    if prev_sha is not None:
-        if not any(sha256_file(p) == prev_sha for p in others):
-            findings.append("prev_gold_sha256 matches no gold record on "
-                            "disk - broken rollback chain")
-    elif others and min(o.stat().st_mtime for o in others) \
-            < path.stat().st_mtime:
-        findings.append("genesis record (prev null) but older gold "
-                        "records exist")
+    try:
+        chain = load_chain(repo)
+        if path.resolve() not in [p.resolve() for p in chain]:
+            findings.append("record not reachable in the gold chain")
+    except StateError as exc:
+        findings.append(str(exc))
 
     if findings:
         print(f"CHECK FAILED ({len(findings)}) - do not deploy {tag}:")
         for msg in findings:
             print(f"  - {msg}")
         return 1
-    print(f"check OK: {tag} is GOLD - schema valid, artifacts match, "
-          "chain intact, sign-offs on disk")
+    print(f"check OK: {tag} is GOLD - schema valid, artifacts/verdict/"
+          "sign-offs match their recorded hashes, chain intact")
     return 0
 
 

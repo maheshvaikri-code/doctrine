@@ -1,6 +1,6 @@
 # 02 — Role Protocol
 
-One AI, fourteen hats. The value of the hats comes from keeping them
+One AI, fifteen hats. The value of the hats comes from keeping them
 genuinely distinct. These mechanics make that real.
 
 ## Adoption

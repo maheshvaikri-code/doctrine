@@ -82,3 +82,8 @@ and enter the missing earlier gates before continuing.
 At session start: read the current plan file (if mid-task) before touching
 code. At session end or context handoff: update the plan file with real
 status — what's done (with evidence), what's next, what's blocked.
+
+Repos that adopted the state plane (`state-plane/STATE.md`) additionally
+hydrate from `.doctrine/state/` at session start and write a checkpoint +
+distillate at session end — the plan file records intent; the state plane
+records verified session state.

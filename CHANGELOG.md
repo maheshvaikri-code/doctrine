@@ -6,6 +6,32 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-12
+
+### Added
+- **FDE integrated as a first-class role**: `roles/fde.md` (frontmatter
+  normalized to the role-card convention), skills
+  `floci-{provision,seed,parity,promote}.md` under `skills/`, plus
+  `rubrics/discovery.rubric.md`, `schemas/parity-ledger.schema.json`,
+  `examples/floci.manifest.yaml`. Role index and routing table now route
+  customer prototype/demo/PoC asks to it.
+- **ponytail + graphify shims integrated**: `skills/ponytail.md` (brevity
+  ladder, added to the "Any code at all" routing row) and
+  `skills/graphify.md` (graph-before-grep, new structure-questions routing
+  row); human-facing setup docs under `integrations/`.
+- **State plane wired in**: routing row for session start/end/handoff;
+  `01-workflow.md` session discipline references checkpoint + hydration.
+- `integrations/` index with per-pack overview docs (fde, ponytail,
+  graphify); AGENTS.md compression regenerated per the `04` sync rule.
+
+### Changed
+- Role count 14 → 15, skill count 14 → 20 (README layout and
+  `02-role-protocol.md` updated); FDE added to the roles that stay in the
+  main thread (`03-parallel-execution.md §5`) — its P1/P6 gates are
+  human-interactive.
+- Former pack folders `.Doctrine/FDE/` and `.Doctrine/graphify_PonyTail/`
+  dissolved into the standard tree (all moves history-preserving renames).
+
 ## [0.1.2] - 2026-07-12
 
 ### Added

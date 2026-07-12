@@ -61,9 +61,10 @@ must **not** be told what the author believes the code does.
 
 ## 5. Roles that never run as subagents
 
-Product Owner, Chief Architect, UX Designer, Release Manager stay in the
-main thread — their work is interactive (human escalations, decisions,
-publishing) and must not happen in a detached context.
+Product Owner, Chief Architect, UX Designer, Release Manager, and FDE stay
+in the main thread — their work is interactive (human escalations, decisions,
+publishing, the P1/P6 sign-offs) and must not happen in a detached context.
+(FDE's P4 build and P5 instrumentation harness may still fan out as workers.)
 
 ## 6. Provided agents
 

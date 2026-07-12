@@ -1,8 +1,9 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: fourteen roles, fourteen skill playbooks, six standards, a gated
-workflow, and templates for every artifact the workflow produces.
+repository: fifteen roles, twenty skill playbooks, six standards, a gated
+workflow, integrations, a state plane, and templates for every artifact the
+workflow produces.
 
 ## Layout
 
@@ -15,10 +16,16 @@ workflow, and templates for every artifact the workflow produces.
 ├── 03-parallel-execution.md  Subagent fan-out: workers, verifiers, reconcile
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              14 role cards (who does what, with checklists)
-├── skills/             14 discipline playbooks (incl. loop-engineering, cloud via floci)
+├── roles/              15 role cards (who does what, with checklists; incl. FDE)
+├── skills/             20 discipline playbooks (incl. loop-engineering, cloud via
+│                       floci, floci-provision/seed/parity/promote, ponytail, graphify)
 ├── standards/          6 hard standards (dos/don'ts, code, git, API, errors, deps)
-└── templates/          7 artifact templates (brief, ADR, plan, reviews, release, retro)
+├── templates/          7 artifact templates (brief, ADR, plan, reviews, release, retro)
+├── integrations/       Third-party tool wiring: FDE/floci overview, ponytail, graphify
+├── rubrics/            Authority documents for interview-style gates (FDE discovery)
+├── schemas/            JSON Schemas for machine-checked artifacts (parity ledger)
+├── examples/           Worked examples (floci.manifest.yaml)
+└── state-plane/        Session statefulness: checkpoint protocol, distillates, hydration
 .claude/agents/         10 ready subagents (5 parallel workers, 5 fresh-context verifiers)
 ```
 

@@ -6,6 +6,15 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-12
+
+### Changed
+- The five previously orphaned skills (no role Loaded them) now have
+  owners: `backend-engineer` loads `observability.md` and `performance.md`
+  conditionally; `devops-engineer` loads `cloud-<provider>.md` per the
+  brief's recorded `Cloud target` and its Activates-when now names cloud
+  deploy/IaC work.
+
 ## [0.1.3] - 2026-07-12
 
 ### Added

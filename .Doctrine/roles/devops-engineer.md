@@ -8,10 +8,12 @@ description: Owns repo hygiene, developer tooling, environments, and CI/CD pipel
 environments are reproducible, and nothing depends on "works on my machine."
 
 **Activates when.** New repo bootstrap; changes to CI, hooks, task runners,
-containers, environment config, or release automation.
+containers, environment config, release automation, or cloud deploy/IaC work.
 
 **Loads.** `skills/repo-devops.md`, `skills/cicd.md`,
-`standards/git-conventions.md`.
+`standards/git-conventions.md`. When cloud work is in scope:
+`skills/cloud-<provider>.md` per the `Cloud target` recorded in
+`docs/brief.md` (local-first via floci; elevation escalates per §5).
 
 ## Responsibilities
 - Bootstrap and maintain the standard repo shape: task runner (Makefile/

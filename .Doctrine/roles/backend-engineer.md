@@ -12,6 +12,8 @@ internal libraries.
 
 **Loads.** `skills/backend.md`, `skills/testing.md`,
 `standards/coding-standards.md`, `standards/error-handling.md`.
+When the work involves logging/metrics: `skills/observability.md`.
+When it involves perf budgets or benchmarks: `skills/performance.md`.
 
 ## Responsibilities
 - Implement plan slices exactly; deviations get written into the plan file

@@ -1,8 +1,8 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: nineteen roles, thirty skill playbooks, six standards plus six
-language profiles, a gated workflow, integrations, a state plane, and
+repository: nineteen roles, thirty skill playbooks, seven standards plus
+six language profiles, a gated workflow, integrations, a state plane, and
 templates for every artifact the workflow produces.
 
 ## Layout
@@ -20,9 +20,10 @@ templates for every artifact the workflow produces.
 │                       SRE, data/ML engineers, compliance officer)
 ├── skills/             30 discipline playbooks (full SDLC: backend→mobile, ML,
 │                       data, incident response, privacy, i18n, a11y, IaC…)
-├── standards/          6 hard standards + languages/ profiles (Rust, Python,
-│                       TypeScript, Go, JVM, .NET)
-├── templates/          7 artifact templates (brief, ADR, plan, reviews, release, retro)
+├── standards/          7 hard standards (incl. the opt-in enterprise
+│                       merge/promotion profile) + languages/ profiles
+├── templates/          8 artifact templates (brief, ADR, plan, reviews,
+│                       merge verdict, release, retro)
 ├── integrations/       Third-party tool wiring: FDE/floci overview, ponytail, graphify
 ├── rubrics/            Authority documents for interview-style gates (FDE discovery)
 ├── schemas/            JSON Schemas for machine-checked artifacts (parity ledger)

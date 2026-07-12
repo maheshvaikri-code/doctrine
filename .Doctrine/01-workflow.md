@@ -70,6 +70,10 @@ and enter the missing earlier gates before continuing.
   audit, DoD audit) — see `roles/project-reviewer.md`.
 - **Do:** version per semver, changelog, tag, build artifacts, publish
   **only with explicit human approval**, post-release verification.
+- **Enterprise profile** (`Merge profile: enterprise` in the brief):
+  release-bound merges additionally require the Merge Council verdict and
+  deployment happens only from a hash-chained Gold Build record —
+  `standards/merge-and-promotion.md`.
 - **Exit:** `templates/release-checklist.md` fully checked.
 
 ### G7 — Retrospective (owner: Project Reviewer)

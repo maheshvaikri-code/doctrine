@@ -52,3 +52,23 @@ additive; reverting the tag removes them cleanly.
    HYDRATION.md notes the reference implementation.
 10. **[QA] tests** for --if-present and all --emit-agents paths;
     then G4/G5 fan-out on the delta.
+
+## v0.4.0 slice — enterprise merge & promotion profile (2026-07-12, Class M)
+OPT-IN profile (activated by `Merge profile: enterprise` in docs/brief.md);
+the default gates stay unchanged for non-enterprise repos.
+11. **[Docs] `standards/merge-and-promotion.md`**: Merge Council (unanimous
+    independent sign-offs for protected-branch merges of Class L /
+    release-bound work), permission matrix (role → merge/tag/promote/
+    deploy rights → enforcement mechanism), Gold Build ladder
+    (candidate → soak → gold record with hash-chained provenance;
+    deploy only from gold; rollback = previous gold record).
+12. **[Docs] `templates/merge-verdict.md`** (council verdict record) and
+    **[Interop] `schemas/gold-build.schema.json`** (additionalProperties
+    false, prev_gold_sha256 chain like checkpoints).
+13. **[Backend] `tools/doctrine_gold.py`**: `record --input` (stamps
+    at_commit from the tag, hashes artifacts, chains to previous gold,
+    refuses missing sign-offs/verdict/human approval) and `check --tag`
+    (schema + re-hash + chain + referenced-files + tag/commit match).
+    Reuses canonical_bytes/validate/load_json from doctrine_state.
+14. **[QA] tests**; wiring (routing row, G6 enterprise note, README
+    counts); delta G4/G5; tag v0.4.0; checkpoint 3.

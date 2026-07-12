@@ -1,9 +1,9 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: fifteen roles, twenty skill playbooks, six standards, a gated
-workflow, integrations, a state plane, and templates for every artifact the
-workflow produces.
+repository: nineteen roles, thirty skill playbooks, six standards plus six
+language profiles, a gated workflow, integrations, a state plane, and
+templates for every artifact the workflow produces.
 
 ## Layout
 
@@ -16,10 +16,12 @@ workflow produces.
 ├── 03-parallel-execution.md  Subagent fan-out: workers, verifiers, reconcile
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              15 role cards (who does what, with checklists; incl. FDE)
-├── skills/             20 discipline playbooks (incl. loop-engineering, cloud via
-│                       floci, floci-provision/seed/parity/promote, ponytail, graphify)
-├── standards/          6 hard standards (dos/don'ts, code, git, API, errors, deps)
+├── roles/              19 role cards (who does what, with checklists; incl. FDE,
+│                       SRE, data/ML engineers, compliance officer)
+├── skills/             30 discipline playbooks (full SDLC: backend→mobile, ML,
+│                       data, incident response, privacy, i18n, a11y, IaC…)
+├── standards/          6 hard standards + languages/ profiles (Rust, Python,
+│                       TypeScript, Go, JVM, .NET)
 ├── templates/          7 artifact templates (brief, ADR, plan, reviews, release, retro)
 ├── integrations/       Third-party tool wiring: FDE/floci overview, ponytail, graphify
 ├── rubrics/            Authority documents for interview-style gates (FDE discovery)

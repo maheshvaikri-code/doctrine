@@ -5,7 +5,9 @@
 - **S** — no behavior change → G3 + self-review checklist from `roles/code-reviewer.md`.
 - **M** — feature/bugfix/refactor in one module → G2→G5, then merge (G6 only if releasing).
 - **L** — new project/module, public API or schema change, cross-cutting → G0→G7.
-- **HOTFIX** — prod repair → G3→G4→G5-lite→G6, mandatory G7 within the same day.
+- **HOTFIX** — prod repair → G3→G4→G5-lite→G6, mandatory G7 within the same
+  day. The SRE wears Incident Commander throughout (`roles/sre.md`):
+  mitigate first, coordinate, don't type.
 
 When a task grows mid-flight (an M reveals a schema change), stop, reclassify,
 and enter the missing earlier gates before continuing.
@@ -56,8 +58,12 @@ and enter the missing earlier gates before continuing.
   inputs, edge cases, regression sweep; verify by running, never by reading.
 - **Security:** secrets scan, input-boundary audit, dependency audit,
   unsafe-pattern check per `skills/security.md`. **Security holds a veto.**
-- **Exit:** QA Report filed; security sign-off recorded. G5-lite (HOTFIX):
-  targeted tests on the fix + secrets/dep scan only.
+- **Compliance:** joins G5 when the task touches personal data, regulated
+  domains, or new third-party data flows (`roles/compliance-officer.md`);
+  can block pending human legal review.
+- **Exit:** QA Report filed; security sign-off recorded (compliance
+  sign-off where engaged). G5-lite (HOTFIX): targeted tests on the fix +
+  secrets/dep scan only.
 
 ### G6 — Release (owner: Release Manager; entry signed by Project Reviewer)
 - **Entry:** Project Reviewer confirms the brief was actually built (scope

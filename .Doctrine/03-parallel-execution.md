@@ -68,8 +68,9 @@ publishing, the P1/P6 sign-offs) and must not happen in a detached context.
 
 ## 6. Provided agents
 
-`.claude/agents/` ships with: five parallel **workers** (backend, frontend,
-database, interop, devops engineers) and five fresh-context **verifiers**
-(code-reviewer, security-reviewer, qa-engineer, project-reviewer,
-tech-writer). Each is a thin shell that Reads its `.Doctrine/roles/` card —
-the doctrine stays the single source of truth.
+`.claude/agents/` ships with: eight parallel **workers** (backend, frontend,
+database, interop, devops engineers, sre, data-engineer, ml-engineer) and
+six fresh-context **verifiers** (code-reviewer, security-reviewer,
+qa-engineer, project-reviewer, tech-writer, compliance-officer). Each is a
+thin shell that Reads its `.Doctrine/roles/` card — the doctrine stays the
+single source of truth.

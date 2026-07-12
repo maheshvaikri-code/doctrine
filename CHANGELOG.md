@@ -6,6 +6,28 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-12
+
+### Added
+- **Ten new skill playbooks** closing the enterprise-coverage gaps:
+  `privacy-compliance`, `incident-response`, `resilience`, `concurrency`,
+  `ml-engineering`, `data-engineering`, `iac`, `mobile`, `i18n`,
+  `accessibility` — all in the house format (Principles/Defaults/Do/
+  Don't/checklist/failure modes), 45–70 lines each.
+- **Four new roles**: SRE (SLOs/error budgets; wears Incident Commander on
+  HOTFIX, may freeze releases on budget burn), Data Engineer, ML Engineer
+  (no prompt/model change without eval evidence), Compliance Officer
+  (fresh-context verifier; can block ship pending human legal review).
+- **Four new subagents** in `.claude/agents/` (sre, data-engineer,
+  ml-engineer workers; compliance-officer verifier) — now 14 total:
+  8 workers + 6 verifiers.
+
+### Changed
+- Routing table: eleven new rows (privacy, incidents, resilience,
+  concurrency, ML, data, IaC, mobile, i18n, a11y).
+- G5 gains conditional Compliance participation; HOTFIX names the SRE as
+  Incident Commander; role counts updated everywhere (19 roles, 30 skills).
+
 ## [0.1.4] - 2026-07-12
 
 ### Changed

@@ -9,6 +9,10 @@
 | 1 | | | | | todo/doing/done+evidence |
 | 2 | | | | | |
 
+## Threat sketch (required for Class L)
+Assets touched: … · Entry points / untrusted inputs: … · Worst plausible
+abuse: …
+
 ## Risks & rollback points
 - Risk: … → mitigation … → rollback: …
 

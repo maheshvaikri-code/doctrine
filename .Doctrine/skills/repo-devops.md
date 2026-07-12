@@ -47,6 +47,9 @@ src/|<crate|pkg>/   tests/   docs/{adr,plans,reviews,qa,retro}/
   take `--help`.
 - Keep generated files out of the repo (or clearly marked and
   regenerated in CI); never hand-edit generated code or lockfiles.
+- Top-level (especially dotted) directory names must be case-insensitively
+  unique: `.doctrine/` silently merges into `.Doctrine/` on Windows/macOS,
+  and git records paths a POSIX clone can't find.
 - Commit the doctrine and CLAUDE.md — agent configuration is code.
 
 ## Don't

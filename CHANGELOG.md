@@ -6,6 +6,29 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-12
+
+### Added
+- **G7 retrospective filed** (`docs/retro/2026-07-12-state-tooling.md`)
+  by the Project Reviewer: 5-whys on the two deepest escaped defects,
+  honest-negatives section, eight doctrine amendments — all applied:
+  transactional append-only artifacts (backend), failure-path tests
+  assert absence of side effects + valid×invalid cross-products
+  (testing), own-state identifiers are a path trust boundary (security),
+  required Threat sketch for Class L plans (template), ASCII-safe
+  terminal output (python profile), OS-constraint ⇒ CI matrix leg
+  (cicd), case-insensitively unique top-level dirs (repo-devops),
+  "fixed" requires the re-executed original probe (dos-and-donts §7).
+- `integrations/floci.md` — **floci verified real** (floci.io,
+  github.com/floci-io, MIT): the cloud skills' emulator dependency
+  resolves; documented fallbacks (LocalStack — auth-gated since 2026-03,
+  Azurite, gcloud emulators).
+
+### Changed
+- CI: actions pinned to full commit SHAs (H-2 condition closed);
+  `windows-latest` matrix leg added — the cp1252 output class is now
+  covered by environment, not only by unit test.
+
 ## [0.2.0] - 2026-07-12
 
 ### Added

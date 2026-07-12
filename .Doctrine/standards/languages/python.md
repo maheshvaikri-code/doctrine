@@ -24,6 +24,9 @@
 - Package-rooted exception hierarchy; catch narrowly; `raise X from err`
   to preserve cause; library code raises, application edges decide.
 - `logging`, never `print`, in importable code.
+- Terminal output ASCII-safe (or reconfigure stream encoding at entry):
+  Windows cp1252 pipes crash on printed Unicode punctuation even when
+  file I/O is correctly UTF-8.
 
 ## Testing
 - `pytest` with output shown; `hypothesis` where the logic has algebra;

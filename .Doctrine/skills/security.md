@@ -16,7 +16,9 @@ constructs, and failure posture — for applications and libraries alike.
    grep error/log paths for token-shaped leakage.
 2. **Injection:** SQL (parameterized only), shell (no string-built
    commands; use exec arrays), path (canonicalize + prefix-check),
-   template/HTML (encode on output).
+   template/HTML (encode on output). Any identifier that becomes part of
+   a path — including ids from your OWN state/config files — is a trust
+   boundary: charset-constrain at parse AND resolve()+prefix-check at use.
 3. **Deserialization:** no `pickle`/`eval`/`exec` on untrusted data;
    `yaml.safe_load`; JSON parsed with size/depth bounds.
 4. **Dependencies:** `cargo audit` / `pip-audit` / `npm audit` — run,

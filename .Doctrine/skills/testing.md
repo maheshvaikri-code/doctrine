@@ -34,8 +34,12 @@ testing — the evidence layer for every other skill.
 ## Do
 - Write the failure-path tests first — errors, timeouts, malformed input —
   they're where production pain lives.
+- Failure-path tests assert the ABSENCE of side effects, not just the
+  error code: after a rejected input, prove state files, logs, and stores
+  are byte-identical to before.
 - Test at limits: empty, one, many, max, max+1, unicode, zero, negative,
-  concurrent, interrupted.
+  concurrent, interrupted — and cross valid×invalid parts of one input
+  (a valid distillate inside an invalid checkpoint still writes nothing).
 - Keep unit tests <100ms each; move slow suites behind an explicit target
   that CI still runs.
 - Run the suite before every "done"; paste real output into the report.

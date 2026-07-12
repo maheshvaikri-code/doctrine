@@ -39,6 +39,8 @@ automation, artifact builds, and release automation to registries.
 - Pin action versions; least-privilege `permissions:` per workflow.
 - Make required checks required — branch protection mirrors the gates.
 - Time-bound everything; a hung job fails loudly.
+- An OS named as a constraint in the brief gets a CI matrix leg — a unit
+  test emulating that OS's behavior is a stopgap, not a substitute.
 
 ## Don't
 - Don't put secrets in workflow files or echo them into logs.

@@ -30,6 +30,9 @@ libraries — the code between the boundary and the store.
   functions that don't know HTTP exists.
 - Make invariants explicit — assert them, test them (property tests where
   the logic has algebra: roundtrips, ordering, idempotence).
+- Treat append-only/hash-chained artifacts as transactions: compute
+  content and hashes prospectively in memory, touch disk only after ALL
+  validation passes — a rejected input leaves zero mutations.
 - Bound every queue, buffer, and cache. Unbounded = incident scheduled.
 - Log at boundaries with correlation IDs; keep logic layers quiet.
 

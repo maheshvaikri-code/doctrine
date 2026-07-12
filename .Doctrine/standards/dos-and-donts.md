@@ -78,4 +78,6 @@ changelog entries when the change lands.
 **Don't:** don't ask the human what the codebase can answer · don't bury
 the lede (status first, story second) · don't mark a gate passed with its
 checklist unticked · don't let "quick fixes" bypass the pipeline twice in a
-row without a retro asking why.
+row without a retro asking why · don't mark a finding "fixed" without
+re-executing the original failing probe and referencing its output —
+"fixed" from memory of intent is a §1 honesty violation.

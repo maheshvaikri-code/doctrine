@@ -23,6 +23,21 @@ src/|<crate|pkg>/   tests/   docs/{adr,plans,reviews,qa,retro}/
 - Python: `pyproject.toml` as the single source (project, deps, tool
   config), `uv.lock`/lockfile committed, `src/` layout.
 
+## Monorepo
+- Use the ecosystem's native workspace (cargo workspace, uv workspace,
+  pnpm workspaces — add turborepo/nx only when task graphs earn it);
+  one toolchain pin and one formatter config at the root, inherited.
+- CI is path-filtered: a package's pipeline runs when that package (or a
+  dependency of it) changes — whole-repo builds on every commit don't scale.
+- Ownership explicit: CODEOWNERS per package; cross-package changes name
+  every owner in review.
+- Per-package `AGENTS.md` pointers (two lines) route agents to the root
+  doctrine — nested files win closest-to-file (see `04-agent-adapters.md`).
+- Internal packages version together or via a changeset tool — decide
+  once, in an ADR; mixed strategies rot fast.
+- Splitting to a monorepo (or out of one) is a Class-L decision with an
+  ADR, not a Friday refactor.
+
 ## Do
 - `.env.example` documents every variable's name and shape — never values.
 - Pre-commit hooks for fmt + lint + secrets scan; installing them is part

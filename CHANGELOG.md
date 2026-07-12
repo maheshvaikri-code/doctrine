@@ -6,6 +6,26 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-07-12
+
+### Added
+- **Language profiles** (`standards/languages/`): Rust, Python, TypeScript
+  (extracted from the old coding-standards sections and expanded with
+  Testing/Dependencies), plus first-class Go, JVM (Java 21+/Kotlin), and
+  .NET (C# 12+) profiles — the doctrine is no longer a Rust/Python/TS-only
+  shop.
+- **Five new adapters**: Cline (`.clinerules/`), Roo Code (`.roo/rules/`),
+  Amazon Q (`.amazonq/rules/`), Continue (`.continue/rules/`), JetBrains
+  Junie (`.junie/guidelines.md`); install map updated in
+  `04-agent-adapters.md`.
+- **Monorepo section** in `skills/repo-devops.md`: native workspaces,
+  path-filtered CI, CODEOWNERS, nested AGENTS.md pointers.
+
+### Changed
+- `standards/coding-standards.md` rewritten as a language-neutral core +
+  profile routing table; unprofiled languages get General rules + the
+  ecosystem's canonical toolchain, with new profiles proposed via G7.
+
 ## [0.1.5] - 2026-07-12
 
 ### Added

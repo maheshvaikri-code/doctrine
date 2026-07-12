@@ -1,6 +1,8 @@
 # Standard: Coding Standards
 
-General rules first; language sections override where they speak.
+The General rules below are language-neutral and always bind. Everything
+ecosystem-specific lives in a language profile — load the profile(s) for
+the languages actually in play, nothing else.
 
 ## General
 - Optimize for the reader. Code is read ~10× more than written; the reader
@@ -17,41 +19,23 @@ General rules first; language sections override where they speak.
 - Formatting is the formatter's job, enforced in CI. Nobody debates
   whitespace in review, ever.
 - Public surface documented; internal helpers earn docs when non-obvious.
+- Parse, don't validate: raw input becomes typed structures once, at the
+  boundary; everything inward trusts the types.
+- Errors follow `standards/error-handling.md`; tests follow
+  `skills/testing.md` — in every language.
 
-## Rust
-- Toolchain: `rustfmt` (check in CI) · `clippy --all-targets -- -D warnings`
-  · MSRV declared in `Cargo.toml` and tested in CI.
-- Errors: `Result` everywhere fallible. Libraries: `thiserror` enums with
-  meaningful variants. Binaries: `anyhow` with `.context()` at each layer.
-- **No `.unwrap()`/`.expect()` in library code paths.** Permitted in tests,
-  examples, and `main` startup where failure is unrepresentable — with
-  `expect("why this cannot fail")` phrasing.
-- `unsafe` is a loan against review time: minimal block, `// SAFETY:`
-  comment stating the upheld invariants, Security-Reviewer eyes at G5.
-- Ownership idioms: borrow before clone; `&str`/`&[T]` in APIs over owned
-  where possible; `impl Trait` params for flexibility; avoid lifetime
-  gymnastics a small redesign would erase.
-- No `panic!` for expected conditions; panics are for broken invariants.
-- Prefer exhaustive `match` over `_` arms on your own enums — let the
-  compiler find your missed cases when variants grow.
+## Language profiles (`standards/languages/`)
 
-## Python
-- Target modern supported minors (declare in `pyproject.toml`).
-- Tooling: `ruff` for lint **and** format · `pyright` (or mypy strict) —
-  clean on new/changed code; legacy debt tracked, not ignored inline.
-- Type hints required on all public functions and encouraged everywhere;
-  `Any` is a flagged exception, not a habit.
-- Data at boundaries: `dataclasses` (internal) / `pydantic` (parsing
-  external input); dicts don't cross module boundaries as pseudo-objects.
-- Idioms: `pathlib` over `os.path` · f-strings · context managers for every
-  resource · comprehensions until they stop being readable · no mutable
-  default arguments · explicit `__all__` or underscore-private convention.
-- Exceptions: package-rooted hierarchy; catch narrowly; `raise X from err`
-  to preserve cause; library code raises, application edges decide.
-- `logging`, never `print`, in importable code.
+| Language in play        | Load                        |
+|-------------------------|-----------------------------|
+| Rust                    | `languages/rust.md`         |
+| Python                  | `languages/python.md`       |
+| TypeScript / JavaScript | `languages/typescript.md`   |
+| Go                      | `languages/go.md`           |
+| Java / Kotlin (JVM)     | `languages/jvm.md`          |
+| C# (.NET)               | `languages/dotnet.md`       |
 
-## TypeScript / UI code
-- `strict: true`; no `any` without an inline justification comment.
-- Types at the data boundary (parse/validate responses); interfaces for
-  public props; discriminated unions over boolean flags.
-- ESLint + Prettier in CI, same as everything else: enforced, not debated.
+A language without a profile is not banned — apply the General rules plus
+the ecosystem's canonical toolchain (formatter, linter, test runner,
+audit), and propose a new profile via a G7 retrospective if the language
+recurs.

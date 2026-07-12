@@ -158,3 +158,89 @@ recorded in this file.
 Hands off to: Builder (remediate P-1/CI-1 and follow-ups), then re-review.
 
 -- Security Reviewer, 2026-07-12
+
+---
+
+# RE-AUDIT (post-remediation, commit f86a02a) - 2026-07-12
+
+Re-audited the working tree at d:\Doctrine\Doctrine-System after the coordinator
+reported all G4/G5 findings remediated. State root moved to .doctrine-state/ (QA
+case-collision finding). Baseline re-run: 38 tests pass (was 21; new regression
+test_property_names_traversal_rejected present), doctrine_lint corpus clean (exit 0).
+All original probes re-run below with real output.
+
+## Blocker re-verification
+
+P-1 (path traversal) - CLOSED. Defense confirmed at three layers with the original
+../TOPSECRET repro:
+  - Layer 1 (schema): validator now rejects ../TOPSECRET as an active_intents item -
+    $.control.active_intents[0]: does not match ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$
+    ($defs/intent_id applied via items AND via propertyNames on state_index.intents;
+    the validator gained propertyNames support, lines 156-159).
+  - Layer 2 (runtime): safe_intent_path() raises StateError on the unsafe id and does
+    resolve()+prefix-check against the intents dir (lines 228-238).
+  - Layer 3 (integrity): even after tampering BOTH checkpoint.json and its history copy
+    with canonical bytes, hydrate refuses (rc=1, no bundle, secret NOT leaked) because
+    verify runs first and the schema violation is a finding.
+
+CI-1 (least privilege) - CLOSED. .github/workflows/doctrine.yml now carries
+permissions: contents: read (top-level) and timeout-minutes: 10 on the job.
+
+## Required follow-up re-verification
+
+P-2 (hydrate/status trust) - CLOSED. cmd_hydrate calls verify_findings first and
+refuses on any finding (refusing to hydrate: chain verification failed). cmd_status
+prints WARNING ... Status below is UNVERIFIED on a broken chain. Both reproduced.
+
+R-1 (unbounded JSON) - CLOSED. All state parsing routes through load_json(): a
+60k-deep nested document raises StateError (RecursionError caught), and a >5MB file is
+rejected by the MAX_STATE_FILE_BYTES (5,000,000) bound. Both reproduced -> clean
+StateError -> exit 2 via main.
+
+F-1 (stray file crash) - CLOSED. Strict CHECKPOINT_FILE_RE; verify_findings reports
+[stray file in checkpoints/: evil.json] as a finding instead of crashing (reproduced:
+verify_findings returned findings, stray reported True, no exception).
+
+S-1 (secrets in state) - CLOSED for the checkpoint writer. _scan_secrets() rejects
+AKIA*, ghp_* and password=... distillate content fail-closed at checkpoint time (all
+three reproduced -> StateError, nothing written). State files are committed, so this is
+the right gate location.
+
+F-2 / H-1 (git hardening) - CLOSED. git resolved once via shutil.which() at import
+(_GIT); all invocations pass timeout=GIT_TIMEOUT (30s); TimeoutExpired handled in main.
+
+## H-2 disposition (Actions SHA-pinning) - ACCEPTED
+
+Deferral accepted as an accept-with-reason disposition per standards/dependency-policy.md
+(findings dispositioned in writing: fix / upgrade / accept-with-reason). Actions remain
+pinned to major tags (checkout@v4, setup-python@v5), which is common acceptable practice;
+guessing a SHA offline could pin to a wrong or non-existent commit, which is worse.
+Condition: convert to full-length commit SHAs when network access is available, and
+track it so the deferral does not become permanent.
+
+## Residual notes (minor, non-blocking - no new finding rises to a blocker)
+
+- NDJSON parsing: _unresolved_effect_entries and the decisions slice in
+  build_bundle_body (json.loads(raw), around line 701) read effects/decisions logs via
+  read_text without the load_json byte bound, and the decisions-slice line parse is not
+  wrapped. verify only hashes decisions.ndjson (does not parse lines), so a malformed
+  line added by someone with commit access would pass verify then raise an uncaught
+  JSONDecodeError inside hydrate. Fail-loud, low severity. Recommend routing these logs
+  through the bounded/hardened parse too. Tracked as a follow-up, not a ship blocker.
+- Intent-file content (title/acceptance_criteria) pulled into the bundle is not
+  secret-scanned; only distillate content is. The intent/RIR writer is out of scope per
+  docs/brief.md non-goals, so this is a documented trust boundary, not a defect.
+- Secret-detection and intent_id regexes were reviewed for ReDoS: all linear, no
+  catastrophic backtracking; inputs are length-bounded by the schema. Clean.
+- Secrets scan of the six changed files: 0 real-secret hits (SECRET_RES entries are
+  detection patterns; the test vector is the AWS-docs EXAMPLE key).
+
+## VERDICT: SIGN-OFF (release cleared)
+
+All six findings from the initial audit (P-1, CI-1, P-2, R-1, F-1, S-1) plus the two
+git-hardening items (F-2, H-1) are remediated and independently re-verified by
+execution; H-2 is dispositioned accept-with-reason. The residual notes are minor,
+fail-loud, and tracked as follow-ups; none trusts the untrustable or leaks. The prior
+VETO is lifted.
+
+-- Security Reviewer, 2026-07-12

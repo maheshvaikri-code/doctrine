@@ -76,13 +76,13 @@ class StateError(ValueError):
 
 # ---------------------------------------------------------------- canonical
 
-def canonical_bytes(obj) -> bytes:
+def canonical_bytes(obj: object) -> bytes:
     text = json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=2,
                       separators=(",", ": "))
     return (text + "\n").encode("utf-8")
 
 
-def canonical_line(obj) -> str:
+def canonical_line(obj: object) -> str:
     return json.dumps(obj, ensure_ascii=False, sort_keys=True,
                       separators=(",", ":"))
 
@@ -110,13 +110,27 @@ def load_json(path: Path, what: str = "state file"):
         raise StateError(f"{what} {path}: unparseable ({exc})") from exc
 
 
+def read_ndjson_text(path: Path, what: str) -> str:
+    """Bounded, decode-hardened read of an NDJSON state log."""
+    try:
+        if path.stat().st_size > MAX_STATE_FILE_BYTES:
+            raise StateError(f"{what} {path}: exceeds the "
+                             f"{MAX_STATE_FILE_BYTES}-byte state-file bound")
+        return path.read_text("utf-8")
+    except UnicodeDecodeError as exc:
+        raise StateError(f"{what} {path}: not valid UTF-8 ({exc})") from exc
+    except OSError as exc:
+        raise StateError(f"{what} {path}: {exc}") from exc
+
+
 # ------------------------------------------------------- minimal validator
 
 class SchemaError(ValueError):
     pass
 
 
-def validate(instance, schema, root=None, path="$"):
+def validate(instance: object, schema: dict, root: dict | None = None,
+             path: str = "$") -> None:
     """Minimal JSON-Schema validator covering the constructs used by the
     state-plane schemas (incl. propertyNames). Raises SchemaError with a
     JSON-path on first failure."""
@@ -263,7 +277,20 @@ def now_utc() -> str:
 
 # ---------------------------------------------------------------- commands
 
+def _warn_legacy_layout(plane: Plane) -> None:
+    """Planes created by pre-0.2.0 builds lived at .doctrine/state/ (which
+    case-insensitive filesystems merge into .Doctrine/state/)."""
+    for legacy in (plane.repo / ".doctrine" / "state",
+                   plane.repo / ".Doctrine" / "state"):
+        if (legacy / "checkpoint.json").exists():
+            print(f"warning: legacy state plane found at {legacy} - "
+                  f"move it to {plane.state} (spec 0.2.0 renamed the "
+                  "state root)", file=sys.stderr)
+            return
+
+
 def cmd_init(plane: Plane) -> int:
+    _warn_legacy_layout(plane)
     for d in (plane.checkpoints, plane.intents, plane.decisions.parent,
               plane.effects, plane.distillates, plane.local):
         d.mkdir(parents=True, exist_ok=True)
@@ -286,7 +313,7 @@ def _unresolved_effect_entries(plane: Plane) -> list[dict]:
     entries: list[dict] = []
     if plane.effects.exists():
         for f in sorted(plane.effects.glob("*.effects.ndjson")):
-            for line in f.read_text("utf-8").splitlines():
+            for line in read_ndjson_text(f, "effects log").splitlines():
                 if not line.strip():
                     continue
                 try:
@@ -695,10 +722,17 @@ def build_bundle_body(plane: Plane) -> tuple[str, list[str], list[str]]:
     active = set(control.get("active_intents", []))
     full_lines, deg_lines = [], []
     if plane.decisions.exists() and active:
-        for raw in plane.decisions.read_text("utf-8").splitlines():
+        raw_lines = read_ndjson_text(plane.decisions,
+                                     "decisions log").splitlines()
+        for n, raw in enumerate(raw_lines, 1):
             if not raw.strip():
                 continue
-            entry = json.loads(raw)
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise StateError(f"decisions log line {n} unparseable "
+                                 f"({exc}) - the log is hash-verified, so "
+                                 "this is committed corruption") from exc
             if active & set(entry.get("intents", [])):
                 full_lines.append(f"- (seq {entry['seq']}) {entry['claim']} "
                                   f"[{entry['evidence']}]")
@@ -802,6 +836,7 @@ def cmd_prune(plane: Plane, keep: int) -> int:
 
 
 def cmd_status(plane: Plane) -> int:
+    _warn_legacy_layout(plane)
     if not plane.checkpoint.exists():
         print("no state plane (run: init, then checkpoint)")
         return 0

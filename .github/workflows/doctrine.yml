@@ -18,5 +18,7 @@ jobs:
           python-version: "3.12"
       - name: Corpus lint (doctrine self-consistency gate)
         run: python tools/doctrine_lint.py
+      - name: Ruff (python profile lint)
+        run: pip install --quiet ruff && python -m ruff check tools tests
       - name: State-plane + lint test suite
         run: python -m unittest discover -s tests -v

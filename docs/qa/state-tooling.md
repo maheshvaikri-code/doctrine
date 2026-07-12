@@ -1,6 +1,8 @@
 # QA + Security Report — state-tooling (doctrine_state.py + doctrine_lint.py)
 <!-- G5 artifact. File as docs/qa/state-tooling.md -->
 
+> **RE-TEST 2026-07-12 (commit f86a02a): all findings remediated and re-verified by execution — final verdict PASS. See the Re-test section at the end of this report.** The sections below document the original FAIL pass against build 08c9bc94/7eb661b.
+
 **QA Engineer** (fresh-context verifier) · **Security Reviewer:** same pass ·
 **Date:** 2026-07-12
 **Build under test:** working tree is not a git repo — identified by content hash:
@@ -111,3 +113,98 @@ least detection or documentation). L1-L5 at author's discretion. Everything else
 chain integrity, tamper detection (9/9 scenarios), canonicalization, unicode,
 determinism, budgets/trim/stale flags, prune-merge semantics, lint positive and
 negative paths, the 21-test suite — held up under the full adversarial matrix.
+
+---
+
+# Re-test — remediation commit f86a02a (2026-07-12)
+
+**Build under test:** commit `f86a02a71a682b13dd45bc987f611d6dfe7a6765`
+("fix(tools): remediate all G4/G5 findings from the verifier fan-out");
+`tools/doctrine_state.py` sha256 `5c7bbe4fc07b67f86b3130e3e5eec459a15b783da6bcec02127d9c634bd91e79`
+(`doctrine_lint.py` unchanged). Spec amended: STATE.md 0.2.0 — state root is now
+`.doctrine-state/`; checkpoint schema gains `intent_id` pattern + `propertyNames`;
+CI workflow gains `permissions: contents: read` + `timeout-minutes`; `.gitignore`
+updated. All re-tests executed in fresh scratch git repos.
+
+## Finding-by-finding re-verification
+
+| Finding | Re-test executed | Evidence (real output) | Status |
+|---------|------------------|------------------------|--------|
+| #1 High — rejected proposal corrupted decisions log | Exact original repro: good checkpoint w/ decision_ref → verify OK; re-submit with unknown control field; also the 9-intents vector | rejection: `error: $.control: unknown field 'oops' rejected` exit 2; `verify OK` exit 0 after BOTH rejections; DECISIONS.ndjson sha256 `ab3dd0145c0b...` byte-identical before/after, still 1 line; no stray checkpoint/distillate files | FIXED |
+| #2 Medium — prune crash / status mojibake under cp1252 pipe | prune (nothing to prune) and status piped with `stdout enc: cp1252`, no PYTHONUTF8/PYTHONIOENCODING | `nothing to prune (1 distillate(s) <= keep 5)` exit 0; `distillates: 1 (pipe) unresolved effects: 0` exit 0 — ASCII only, no traceback, no mojibake | FIXED |
+| #3 Medium — case-collision, state lost on POSIX clone | init + checkpoint + `git add -A && git commit` in a repo containing `.Doctrine/`; inspect `git ls-files` | all state recorded as `.doctrine-state/...`; zero paths under `.Doctrine/state/`; spec amendment in STATE.md 0.2.0 documents the rename | FIXED |
+| L1 — tracebacks on malformed/missing proposal | not-JSON file; nonexistent file | `error: proposal nj.json: unparseable (Expecting value: ...)` exit 2; `error: proposal nope.json: [WinError 2] ...` exit 2 — no tracebacks | FIXED |
+| L2 — decisions slice ignored empty active_intents | hydrate with `active_intents: []` | Decisions section reads `(no active intents - decisions omitted)` | FIXED |
+| L3 — control block never STALE-flagged | checkpoint, then `git commit` moves HEAD, hydrate | Control line prefixed `STALE@911dfb8e4727`; header `"stale":["control","distillate","intent:t-100"]` | FIXED |
+| L4 — prune keep=0 false message | `prune --keep 0`, `checkpoint --keep 0` | both: `error: --keep must be >= 1` exit 2 | FIXED |
+| L5 — flat clip instead of degrade-to forms | distillate maxed at every schema cap (12 learned x 280 + 8 dead_ends + 6 threads + 6 actions; full form > 6400 chars) | `trimmed: distillate` in bundle + header; degraded section keeps all 8 dead_ends + 6 open_threads, drops learned (0 lines) and next_actions (0 lines) — exactly HYDRATION.md's "dead_ends + open_threads only"; `hydrate --check OK ... stable` on the degraded body | FIXED |
+
+## New hardening since the first pass — verified by execution
+
+| Behavior | Executed | Observed |
+|----------|----------|----------|
+| hydrate refuses unverified chain | tamper seq-1 history copy, run hydrate | `refusing to hydrate: chain verification failed (1 finding(s); run verify)` exit 1 |
+| status warns on broken chain | same tampered plane | `WARNING: chain verification fails (1 finding(s)) - run verify. Status below is UNVERIFIED.` |
+| secret-like distillate content rejected | AWS AKIA key in claim; password assignment; ghp_ token in dead_end | all three: `error: distillate text matches a secret pattern (...)` exit 2, nothing written |
+| deep JSON bounded | 3000-deep nested array as proposal | `error: proposal deep.json: unparseable (maximum recursion depth exceeded ...)` exit 2, no traceback |
+| oversized state file bounded | 6 MB proposal | `error: ... 6000017 bytes exceeds the 5000000-byte state-file bound` exit 2 |
+| path traversal via intent ids | active_intents `../../evil` and `..` | `error: unsafe intent id in control: '../../evil'` exit 2; plane unmodified, verify still OK |
+| unsafe intent filename on disk | `bad name!.intent.json` dropped into intent/ | `error: unsafe intent filename: bad name!.intent.json` exit 2 |
+| history wipe detected | delete checkpoints/*.json, keep checkpoint.json | `checkpoint.json exists but checkpoints/ history is empty - history wiped or never copied` exit 1 |
+| stray file in checkpoints/ | drop evil.txt into checkpoints/ | `stray file in checkpoints/: evil.txt` exit 1 (reported, no crash) |
+| graph re-hashed at verify | index graph.json at checkpoint, then modify it; then delete it | `state_index.graph hash desync (graph.json changed since checkpoint)` exit 1; `state_index.graph.sha256 set but graph.json missing` exit 1 |
+| checkpoint prints STATE.md step-4 command | every checkpoint | `remember (STATE.md step 4): git add .doctrine-state && git commit -m "state: checkpoint N"` |
+
+## Regression sweep on the new build (all re-executed)
+
+Happy path init → checkpoint → verify → status → hydrate --check → hydrate: all
+green in a fresh scratch repo. Caps at limit+1 still reject (`13 items exceeds
+maxItems 12`, `longer than 280` — exit 2); at-limit accepted (12x280-char claims,
+8/6/6 arrays written at max). Unicode (emoji/CJK/accents) round-trips canonically
+and hydrates. Tamper battery re-run: mid-chain forge, deleted distillate, forged
+decision line, diverged checkpoint.json — all detected, exit 1; restored plane
+verifies OK. keep=1 checkpoint pruned 4 distillates, merged dead_ends forward
+with the documented cap-8 oldest-first drop note. Effects counting (confirmed /
+pending / malformed) still 2 unresolved. Determinism: two hydrates diff to
+BODIES IDENTICAL; --check stable including on stale-flagged and degraded
+bundles. Empty-state commands degrade gracefully.
+
+Suite and lint on the real repo:
+
+```
+Ran 38 tests in 9.053s
+
+OK
+(suite exit=0)
+
+doctrine_lint: corpus clean
+(lint exit=0)
+```
+
+Regression tests for the findings exist in tests/test_doctrine_state.py:
+test_rejected_proposal_leaves_no_trace (#1), test_ascii_only_terminal_output
+(#2), test_keep_below_one_rejected (L4), test_decisions_omitted_without_
+active_intents (L2), test_degrade_keeps_dead_ends_drops_learned (L5),
+test_refuses_broken_chain, test_secretlike_claim_rejected,
+test_deep_json_bounded, test_traversal_intent_rejected_at_checkpoint,
+test_property_names_traversal_rejected, test_history_wipe_detected,
+test_stray_file_reported_not_crash, test_invalid_proposal_rejected_nothing_
+written. Bug #3's fix is structural (STATE_DIRNAME + spec 0.2.0) with no
+explicit collision test — acceptable; noted for completeness.
+
+## Residual observations (non-blocking, informational)
+
+- A plane initialized by the pre-fix build under `.doctrine/state/` is silently
+  invisible to the new tool (no legacy-layout detection/migration hint). Only
+  affects planes created during the window the old build existed.
+- CI remains ubuntu-only; the cp1252 class of bug is now covered by
+  test_ascii_only_terminal_output rather than a Windows CI runner. Acceptable.
+
+**Security verdict (re-test):** SIGN-OFF — the Bug #1 atomicity seam is closed
+(decisions hashed prospectively, written only after both validations); traversal,
+secrets, and resource bounds all fail closed under adversarial input.
+
+**QA verdict (re-test): PASS.** Every original finding re-verified fixed by its
+exact reproduction steps; every claimed new hardening behavior demonstrated by
+execution; full adversarial matrix re-run green on commit f86a02a; 38/38 tests,
+corpus lint clean.

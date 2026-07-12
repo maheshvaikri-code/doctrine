@@ -6,6 +6,43 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-12
+
+### Added
+- **The doctrine is now mechanically enforced.** `tools/doctrine_state.py`:
+  stdlib-only reference implementation of the state plane — init /
+  checkpoint (propose→dispose, hash-chained, secret-scanned) / verify
+  (chain + state_index re-hash incl. graph) / hydrate (budgeted bundle
+  with per-section degrade-to forms, refuses unverified chains) / prune
+  (dead_ends merge forward) / status. `tools/doctrine_lint.py`: 8-check
+  corpus CI gate (references, formats, counts, version sync, canonical
+  examples) — on its first run it caught real drift in the corpus.
+  38 unit tests; Makefile (`make verify`) + GitHub Actions
+  (least-privilege, ruff + corpus lint + suite).
+- **First full dogfood of the doctrine's own process**: brief (G0), plan
+  (G2), build (G3), then the G4/G5 verifier fan-out with its own
+  subagents. Round 1: code review REQUEST-CHANGES (1 blocker, 7 major),
+  security VETO (reproduced path traversal), QA FAIL (state-corrupting
+  ordering bug). All findings remediated with regression tests; round 2:
+  APPROVE-WITH-NITS + security SIGN-OFF + QA PASS. Artifacts under
+  `docs/reviews/` and `docs/qa/`.
+
+### Changed
+- **State-plane spec 0.2.0**: state root renamed `.doctrine/state/` →
+  `.doctrine-state/` (case-insensitive filesystems merge `.doctrine/`
+  into `.Doctrine/`, landing runtime state inside the corpus — found by
+  QA); checkpoint schema gains `$defs/intent_id` (path-traversal defense
+  on `active_intents` and `state_index.intents` keys); examples
+  re-serialized to canonical bytes (they violated their own no-trailing-
+  whitespace rule).
+
+### Security
+- Round-1 veto findings all closed and re-verified by the original
+  exploits: intent-id traversal (3 layers), CI token scope, unverified-
+  chain hydration, unbounded JSON, stray-file crash, secret-like state
+  content (fail-closed scan), git subprocess hardening. Actions
+  SHA-pinning deferred with recorded rationale.
+
 ## [0.1.6] - 2026-07-12
 
 ### Added

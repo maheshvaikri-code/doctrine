@@ -28,7 +28,7 @@ templates for every artifact the workflow produces.
 ├── schemas/            JSON Schemas for machine-checked artifacts (parity ledger)
 ├── examples/           Worked examples (floci.manifest.yaml)
 └── state-plane/        Session statefulness: checkpoint protocol, distillates, hydration
-.claude/agents/         10 ready subagents (5 parallel workers, 5 fresh-context verifiers)
+.claude/agents/         14 ready subagents (8 parallel workers, 6 fresh-context verifiers)
 ```
 
 ## Install (per project)

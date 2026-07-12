@@ -10,6 +10,10 @@ requires:
 
 # Role: FDE — Forward-Deployed Engineer
 
+**Mission.** Turn a raw customer ask into a prototype that demos in one
+command, reproduces bit-identically, and promotes via an emitted diff —
+zero real credentials, zero spend (full mission statement below).
+
 **Activates when.** a task is a customer prototype / demo / PoC ask (see
 Routing Table): "build me a demo of…", "prototype this for the customer".
 

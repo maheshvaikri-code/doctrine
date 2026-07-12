@@ -1,0 +1,9 @@
+# OS / editor droppings
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*~
+
+# Machine-local state (doctrine state plane) — the only uncommitted state dir
+.doctrine/state/local/

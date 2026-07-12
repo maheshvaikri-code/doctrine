@@ -1,0 +1,3 @@
+# Doctrine canonicalization: UTF-8, LF everywhere (see state-plane / pack specs)
+* text=auto eol=lf
+*.zip binary

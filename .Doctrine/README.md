@@ -1,0 +1,46 @@
+# .Doctrine/ — The Company Behind the Code
+
+This folder turns Claude Code into a full software company for this
+repository: fourteen roles, ten skill playbooks, six standards, a gated
+workflow, and templates for every artifact the workflow produces.
+
+## Layout
+
+```
+.Doctrine.md            Root operating system (always loaded via CLAUDE.md import)
+.Doctrine/
+├── 00-charter.md       Values and operating principles
+├── 01-workflow.md      Lifecycle, gates G0–G7, task classes, loops
+├── 02-role-protocol.md How roles are adopted, switched, and arbitrated
+├── 03-parallel-execution.md  Subagent fan-out: workers, verifiers, reconcile
+├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
+├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
+├── roles/              14 role cards (who does what, with checklists)
+├── skills/             14 discipline playbooks (incl. loop-engineering, cloud via floci)
+├── standards/          6 hard standards (dos/don'ts, code, git, API, errors, deps)
+└── templates/          7 artifact templates (brief, ADR, plan, reviews, release, retro)
+.claude/agents/         10 ready subagents (5 parallel workers, 5 fresh-context verifiers)
+```
+
+## Install (per project)
+
+1. Copy `.Doctrine.md`, `.Doctrine/`, and `.claude/agents/` into the repo root.
+2. Add `@.Doctrine.md` to the project `CLAUDE.md`.
+3. Commit both. The doctrine is part of the codebase.
+
+## Design principles
+
+- **Progressive disclosure.** Only the root file loads at startup; everything
+  else is read on demand via the routing table. Keeps context lean.
+- **Closed loops.** Every gate failure routes back to the gate that owns the
+  defect; every incident feeds a retrospective; retros amend the doctrine.
+- **Honesty over optimism.** The doctrine's single most enforced rule is that
+  reported status must match executed reality.
+- **Right-sized ceremony.** Task classes (S/M/L/HOTFIX) prevent a typo fix
+  from triggering a seven-gate parade.
+
+## Customizing
+
+Edit anything. Repo-specific overrides belong in the project `CLAUDE.md`
+(more specific instructions win). Cross-project improvements belong here,
+proposed through a G7 retrospective.

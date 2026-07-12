@@ -1,0 +1,1 @@
+{"at_commit":"b5b8717b535ded8ab1af0f99627e7aad7b49f5fb","claim":"Actions pinned to commit SHAs fetched live from the GitHub API; windows-latest CI leg added so the cp1252 class is covered by environment.","created_at":"2026-07-12T20:36:05Z","evidence":".github/workflows/doctrine.yml","intents":["state-tooling"],"seq":1,"session_id":"s-2026-07-12-a"}

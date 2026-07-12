@@ -6,6 +6,24 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-12
+
+### Added
+- `.Doctrine/state-plane/` — the doctrine-state-plane pack (checkpoint
+  protocol, distillate schema, hydration compiler spec) extracted into the
+  tree; it previously existed only as two redundant zips at the repo root.
+
+### Removed
+- All packaging debris from the raw pack drops, every removed copy verified
+  byte-identical to the kept canonical first (originals reachable at
+  `v0.1.0`): four root-level export zips, inner pack zips, flattened
+  top-level duplicates in `FDE/` and `graphify_PonyTail/`, partial
+  `mnt/user-data/outputs/` export copies, and the literal
+  `{brace-expansion}` scaffold directories.
+- Canonical single copies now: `.Doctrine/FDE/fde-floci-pack/`,
+  `.Doctrine/graphify_PonyTail/doctrine-integrations/`,
+  `.Doctrine/state-plane/`.
+
 ## [0.1.1] - 2026-07-12
 
 ### Fixed

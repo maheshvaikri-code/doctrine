@@ -6,6 +6,19 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-12
+
+### Added
+- `tools/doctrine_metrics.py enrich` — bridges the doctrine's review
+  artifacts to CodeMonk: scans `docs/reviews|qa|merges` for commit
+  references, verifies each against the repo (hex-validated before git
+  argv, ancestor-of-HEAD only), and emits the enrichment overlay.
+  **Verified end-to-end on this repo: HITL 0% → 27.3%** — the nine
+  review-round commits now count as reviewed, with the fidelity label
+  stated in the output (verifier fan-out, human-arbitrated). Enriched
+  snapshot filed alongside the baseline; wired into pyproject
+  (`doctrine-metrics`); 4 new tests (86 total).
+
 ## [0.6.0] - 2026-07-12
 
 ### Added

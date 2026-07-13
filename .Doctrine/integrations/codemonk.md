@@ -44,9 +44,12 @@ enrichment before it means anything.
   cost joins to landed outcomes.
 - **HITL truth:** git carries no review data, so HITL reads 0. The
   doctrine's review reality lives in `docs/reviews/` and `docs/qa/` —
-  feed it via the enrichment overlay (`--dump-enrich` shape); a review
-  round-trip (VETO → fix → SIGN-OFF) is high-intensity HITL and should
-  count as such.
+  `python tools/doctrine_metrics.py enrich` extracts the commits those
+  artifacts reference (verified against the repo) and emits the overlay;
+  consume with `analyze --enrich docs/metrics/enrichment.json`.
+  Verified on this repo: HITL 0% → 27.3%. Fidelity label: "reviewed"
+  means covered by the verifier fan-out (adversarial agent review,
+  human-arbitrated) — quote it as such.
 - **Token capture:** `codemonk wrap --otel claude` (verified upstream on
   a real Claude Code run) or point the harness's OTel export at
   `codemonk collect`. Status attrs (`codemonk.status`) make TCR precise.

@@ -126,6 +126,10 @@ def check_version(root: Path, findings: list[str]) -> None:
         (root / "pyproject.toml", r'version = "(\d+\.\d+\.\d+)"'),
         (root / "tools" / "doctrine_mcp.py",
          r'"version":\s*"(\d+\.\d+\.\d+)"'),
+        # the README's static version badge (dynamic shields can't see a
+        # private repo, so the badge is static and lint-enforced instead)
+        (root / "README.md",
+         r'shields\.io/badge/version-v(\d+\.\d+\.\d+)-'),
     ]
     for path, pattern in carriers:
         if not path.exists():

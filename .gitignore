@@ -15,3 +15,6 @@ __pycache__/
 build/
 *.egg-info/
 dist/
+
+# Metrics drop zone (pinned upstream lives on GitHub, never vendored)
+supportfolder/

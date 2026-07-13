@@ -79,6 +79,9 @@ and enter the missing earlier gates before continuing.
 ### G7 — Retrospective (owner: Project Reviewer)
 - What worked, what failed, root causes (5-whys on any escaped defect),
   concrete doctrine/tooling amendments proposed. File under `docs/retro/`.
+- Repos with metrics adopted (`skills/metrics.md`): attach the CodeMonk
+  scorecard (`docs/metrics/`) — CESR drops feed the 5-whys; HITL
+  reduction only celebrated while CESR holds.
 
 ## Closed loops
 

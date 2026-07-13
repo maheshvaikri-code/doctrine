@@ -6,6 +6,25 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-12
+
+### Added
+- **The Doctrine measures itself** — closes self-measurement, gap #2 of
+  the fully-equipped-EOS audit. New `skills/metrics.md` (measure the
+  process; HITL reduction only counts while CESR holds; metrics are G7
+  inputs, never weapons; the honesty law applies to numbers) and
+  `integrations/codemonk.md` — **CodeMonk 0.10.0** pinned as the
+  metrology subsystem (CESR, agent engagement, HITL gated on CESR,
+  token churn, cost per landed change; golden-vector metric spec, zero
+  runtime deps). Verified by execution on this repo: 31 agent changes
+  detected via commit trailers, CESR 100% (zero reverts — accurate);
+  baseline filed at `docs/metrics/2026-07-12-baseline.md` with fidelity
+  notes (git-only HITL reads 0 until review enrichment is wired).
+- Routing row for process measurement; G7 attaches the scorecard where
+  metrics are adopted; Project Reviewer conditionally loads the skill.
+- `supportfolder/` gitignored (drop zone; upstream is pinned, never
+  vendored — per the integrations rule).
+
 ## [0.5.0] - 2026-07-12
 
 ### Added

@@ -11,7 +11,8 @@ the thing that was asked for — all of it, and only it?
 retrospectives; periodic scope-drift audits on long-running work.
 
 **Loads.** The original brief, the plan, all review/QA reports,
-`templates/retrospective.md`.
+`templates/retrospective.md`. When the repo has adopted metrics:
+`skills/metrics.md` — the G7 scorecard is this role's instrument.
 
 ## Method
 - Take the brief's acceptance criteria one by one; demand evidence each is

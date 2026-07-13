@@ -1,0 +1,51 @@
+{
+  "at_commit": "8bf1141e6231d595441d91cd8e820098db2849cb",
+  "created_at": "2026-07-13T16:41:32Z",
+  "dead_ends": [
+    {
+      "approach": "lease check on prune and merge with --steal everywhere",
+      "why_failed": "blocked the solo maintenance path for an hour after every checkpoint; guarding non-append operations added ceremony without protection"
+    },
+    {
+      "approach": "split-on-first-END marker replacement in emit_agents_block",
+      "why_failed": "a body containing a literal END marker compounds corruption on every re-emit; strict one-ordered-pair integrity plus body token refusal replaced it"
+    },
+    {
+      "approach": "Path.read_text for AGENTS.md before splicing",
+      "why_failed": "universal-newline translation rewrote CRLF files wholesale, violating compiler-owns-only-the-block; raw bytes decode preserves outside content exactly"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.6.7: Startup profile ships seven founder-ops roles (growth, content, sales-gtm, support, finance-ops, legal-ops, IR) under two iron laws - draft-never-send and the honesty law beyond code. Role count 26.",
+      "confidence": "verified",
+      "evidence": ".Doctrine/roles/; routing table startup rows",
+      "kind": "fact"
+    },
+    {
+      "claim": "The version-sync lint refused a carrier bump made before its CHANGELOG entry existed - the gate caught its own author mid-release, order is entry-then-bump (or same commit).",
+      "confidence": "verified",
+      "evidence": "lint finding: v0.6.7 != CHANGELOG 0.6.6",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "Startup roles are all main-thread: everything they produce points outward and external sends belong to the human - the same reasoning that keeps Release Manager out of subagents.",
+      "confidence": "verified",
+      "evidence": "03-parallel-execution.md section 5",
+      "kind": "decision_ref"
+    }
+  ],
+  "next_actions": [
+    "Remaining audit gaps: runbook validator, sign-off signing, installer --upgrade",
+    "First real startup-profile use: draft the doctrine's own launch post via content-marketer when the repo goes public"
+  ],
+  "open_threads": [
+    "Push pending: v0.6.6 + v0.6.7 (git push --follow-tags)"
+  ],
+  "seq": 12,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "startup-profile"
+  ]
+}

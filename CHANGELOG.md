@@ -6,6 +6,26 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-07-13
+
+### Added
+- `tools/doctrine_verify.py` — the one-command gate suite,
+  cross-platform (stock Windows has no `make`; a Windows-first consumer
+  hit exactly that). Runs lint → ruff (skipped with a note when not
+  installed) → tests → state-chain verify (skipped before `state
+  init`); `make verify` now delegates to it. Verified live: 4 gates
+  green through the single command. Plugin /doctrine-verify and
+  installer next-steps updated.
+
+### Fixed
+- **Escaped packaging defect**: `doctrine_metrics.py` (added v0.6.1)
+  was never in the installer's `TOOL_FILES`, so consumer repos lacked
+  it while their copied SessionStart hook referenced it unguarded —
+  every session in an installed repo opened with a hook error. Now
+  shipped, with a regression test asserting every `tools/doctrine_*.py`
+  is in `TOOL_FILES` (the class, not the instance). Existing installs:
+  re-run the installer. Tests 109 → 110.
+
 ## [0.6.5] - 2026-07-13
 
 ### Changed

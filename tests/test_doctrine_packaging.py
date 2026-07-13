@@ -98,6 +98,15 @@ class TestInstaller(unittest.TestCase):
                                     False, False, False), 2)
         self.assertFalse((REPO / "consumer").exists())
 
+    def test_installer_ships_every_tool(self):
+        """Regression: doctrine_metrics.py was added in v0.6.1 but never
+        joined TOOL_FILES — consumer installs lacked it while their
+        copied hooks referenced it. Any tools/doctrine_*.py not shipped
+        by the installer is a packaging defect."""
+        on_disk = {p.name for p in (REPO / "tools").glob("doctrine_*.py")}
+        self.assertEqual(on_disk, set(di.TOOL_FILES),
+                         "installer TOOL_FILES out of sync with tools/")
+
     def test_installed_target_lints_clean(self):
         """Regression: PD-1 — a consumer repo must verify out of the box
         (no CHANGELOG, no plugin/ — source-repo-only checks skip)."""

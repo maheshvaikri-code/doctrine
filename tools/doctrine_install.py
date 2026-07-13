@@ -41,7 +41,8 @@ ADAPTERS: dict[str, list[tuple[str, str]]] = {
 CLAUDE_IMPORTS = ["@.Doctrine.md",
                   "@.doctrine-state/local/hydration.bundle.md"]
 TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
-              "doctrine_mcp.py", "doctrine_install.py"]
+              "doctrine_mcp.py", "doctrine_install.py",
+              "doctrine_metrics.py", "doctrine_verify.py"]
 GITIGNORE_LINES = [".doctrine-state/local/", "__pycache__/"]
 
 
@@ -188,8 +189,9 @@ def install(source: Path, target: Path, tools: list[str],
                      target)
 
     report.show()
-    print("next steps: python tools/doctrine_state.py init && "
-          "make verify; MCP + per-tool wiring: .Doctrine/05-packaging.md")
+    print("next steps: python tools/doctrine_state.py init, then "
+          "python tools/doctrine_verify.py (= make verify, no Make "
+          "needed); MCP + per-tool wiring: .Doctrine/05-packaging.md")
     return 1 if report.skipped_diff else 0
 
 

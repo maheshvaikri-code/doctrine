@@ -1,4 +1,5 @@
 # One-command truth (skills/repo-devops.md): same entry points local and CI.
+# No make on Windows? Same thing: python tools/doctrine_verify.py
 .PHONY: test lint ruff verify
 
 test:
@@ -10,4 +11,5 @@ lint:
 ruff:
 	python -m ruff check tools tests
 
-verify: lint ruff test
+verify:
+	python tools/doctrine_verify.py

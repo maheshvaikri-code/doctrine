@@ -44,11 +44,14 @@ import hashlib
 import json
 import re
 import shutil
+import socket
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 DEFAULT_KEEP = 5
+LEASE_TTL_SECONDS = 3600
 TOKEN_CHARS = 4  # 1 token ~ 4 chars, per HYDRATION.md budget accounting
 MAX_STATE_FILE_BYTES = 5_000_000  # bound on any parsed state artifact
 GIT_TIMEOUT = 30
@@ -284,6 +287,50 @@ def now_utc() -> str:
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# ------------------------------------------------------------------- lease
+# Same-worktree write coordination. The lease lives in local/ (gitignored),
+# so it never travels between clones — cross-clone concurrency surfaces as
+# a chain FORK at pull time and is handled by verify + merge instead.
+
+def check_lease(plane: Plane, session_id: str | None,
+                steal: bool = False) -> None:
+    """Refuse writes while another session's unexpired lease holds."""
+    path = plane.local / "lease.json"
+    if not path.exists():
+        return
+    try:
+        lease = json.loads(path.read_text("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        print("warning: corrupt lease file - overwriting", file=sys.stderr)
+        return
+    holder = lease.get("session_id")
+    expires = lease.get("expires_at", 0)
+    if holder == session_id or expires <= time.time():
+        return
+    if steal:
+        print(f"warning: lease STOLEN from session '{holder}' "
+              f"(held until {lease.get('expires_human', '?')})",
+              file=sys.stderr)
+        return
+    raise StateError(
+        f"state plane is leased by session '{holder}' until "
+        f"{lease.get('expires_human', '?')} - concurrent writers fork "
+        "the chain; wait, or pass --steal to take over deliberately")
+
+
+def write_lease(plane: Plane, session_id: str | None) -> None:
+    plane.local.mkdir(parents=True, exist_ok=True)
+    expires = time.time() + LEASE_TTL_SECONDS
+    (plane.local / "lease.json").write_bytes(canonical_bytes({
+        "session_id": session_id or "(anonymous)",
+        "host": socket.gethostname(),
+        "acquired_at": now_utc(),
+        "expires_at": expires,
+        "expires_human": _dt.datetime.fromtimestamp(
+            expires, _dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }))
+
+
 # ---------------------------------------------------------------- commands
 
 def _warn_legacy_layout(plane: Plane) -> None:
@@ -400,13 +447,14 @@ def _scan_secrets(distillate: dict) -> None:
 
 
 def cmd_checkpoint(plane: Plane, proposal_path: Path,
-                   keep: int = DEFAULT_KEEP) -> int:
+                   keep: int = DEFAULT_KEEP, steal: bool = False) -> int:
     if keep < 1:
         raise StateError("--keep must be >= 1")
     proposal = load_json(proposal_path, "proposal")
     for field in ("session_id", "control", "distillate"):
         if field not in proposal:
             raise StateError(f"proposal missing '{field}'")
+    check_lease(plane, proposal["session_id"], steal)
 
     at_commit = head_commit(plane.repo)
     created = now_utc()
@@ -500,6 +548,7 @@ def cmd_checkpoint(plane: Plane, proposal_path: Path,
     plane.checkpoints.mkdir(parents=True, exist_ok=True)
     plane.checkpoint.write_bytes(cp_bytes)
     (plane.checkpoints / f"{seq}-{cp_sha[:12]}.json").write_bytes(cp_bytes)
+    write_lease(plane, session)
 
     print(f"checkpoint {seq} written at {at_commit[:12]} "
           f"({cp_sha[:12]}); distillate {dist_sha[:12]}"
@@ -515,11 +564,27 @@ def verify_findings(plane: Plane) -> list[str]:
     files: list[Path] = []
     if plane.checkpoints.exists():
         for p in sorted(plane.checkpoints.iterdir()):
+            if p.is_dir() and p.name == "forks":
+                continue  # merge-archived fork heads, out of the chain
             if CHECKPOINT_FILE_RE.match(p.name):
                 files.append(p)
             elif p.name != ".gitignore":
                 findings.append(f"stray file in checkpoints/: {p.name}")
     files.sort(key=lambda p: int(p.name.split("-", 1)[0]))
+
+    # fork detection: concurrent writers (usually two clones reunited by
+    # git) produce duplicate seq numbers and/or duplicate predecessors
+    by_seq: dict[int, list[str]] = {}
+    for f in files:
+        by_seq.setdefault(int(f.name.split("-", 1)[0]), []).append(f.name)
+    forked = {seq: names for seq, names in by_seq.items()
+              if len(names) > 1}
+    if forked:
+        for seq, names in sorted(forked.items()):
+            findings.append(
+                f"CHAIN FORKED at seq {seq}: {', '.join(sorted(names))} - "
+                "resolve with: doctrine_state merge --loser <file>")
+        return findings  # a linear walk is meaningless on a fork
 
     if plane.checkpoint.exists() and not files:
         findings.append("checkpoint.json exists but checkpoints/ history "
@@ -896,6 +961,8 @@ def cmd_hydrate(plane: Plane, check: bool = False,
 
 
 def cmd_prune(plane: Plane, keep: int) -> int:
+    # no lease check: prune only stages pending dead-ends, which are
+    # consumed by the next (lease-guarded) checkpoint
     if keep < 1:
         raise StateError("--keep must be >= 1")
     files = _distillate_files(plane)
@@ -913,6 +980,89 @@ def cmd_prune(plane: Plane, keep: int) -> int:
         print(f"  - {f.name}")
         f.unlink()
     print(f"merged negatives staged in {pending.name}")
+    return 0
+
+
+def cmd_merge(plane: Plane, loser_name: str) -> int:
+    """Resolve a leaf fork: archive the losing head (history preserved
+    under forks/, out of the chain scan), repoint checkpoint.json to the
+    winning head, and salvage the loser's dead_ends into the pending
+    file the next checkpoint consumes. The loser's learned/open_threads
+    are PRINTED for honest re-proposal — claims are never auto-grafted.
+    No lease check: a fork means the lease already failed its job."""
+    if not CHECKPOINT_FILE_RE.match(loser_name):
+        raise StateError(f"'{loser_name}' is not a checkpoint filename "
+                         "(<seq>-<12hex>.json)")
+    loser_path = plane.checkpoints / loser_name
+    if not loser_path.exists():
+        raise StateError(f"no such checkpoint: {loser_name}")
+    loser = load_json(loser_path, "checkpoint")
+    seq = loser["seq"]
+
+    files = [p for p in plane.checkpoints.iterdir()
+             if CHECKPOINT_FILE_RE.match(p.name)]
+    siblings = [p for p in files
+                if int(p.name.split("-", 1)[0]) == seq
+                and p.name != loser_name]
+    if not siblings:
+        raise StateError(f"seq {seq} is not forked - nothing to merge")
+    loser_sha = sha256_file(loser_path)
+    children = [p.name for p in files
+                if load_json(p, "checkpoint").get("prev_sha256")
+                == loser_sha]
+    if children:
+        raise StateError(f"{loser_name} has descendant(s) "
+                         f"{', '.join(sorted(children))} - forks merge "
+                         "from the LEAF; merge those first")
+
+    # archive the losing head + its distillate (never delete history)
+    forks = plane.checkpoints / "forks"
+    forks.mkdir(parents=True, exist_ok=True)
+    loser_path.rename(forks / loser_name)
+    dist_sha = loser["state_index"].get("latest_distillate_sha256")
+    salvage: dict = {}
+    for d in _distillate_files(plane):
+        if sha256_file(d) == dist_sha:
+            salvage = load_json(d, "distillate")
+            dist_forks = plane.distillates / "forks"
+            dist_forks.mkdir(parents=True, exist_ok=True)
+            d.rename(dist_forks / d.name)
+            break
+
+    # repoint checkpoint.json to the winning head if it named the loser
+    remaining = sorted(
+        (p for p in plane.checkpoints.iterdir()
+         if CHECKPOINT_FILE_RE.match(p.name)),
+        key=lambda p: int(p.name.split("-", 1)[0]))
+    head = remaining[-1] if remaining else None
+    if head and (not plane.checkpoint.exists()
+                 or plane.checkpoint.read_bytes() != head.read_bytes()):
+        plane.checkpoint.write_bytes(head.read_bytes())
+
+    # salvage: dead_ends survive mechanically via the pending file
+    ends = salvage.get("dead_ends", [])
+    if ends:
+        pending = plane.distillates / "pending-dead-ends.json"
+        existing = load_json(pending, "pending dead-ends").get(
+            "dead_ends", []) if pending.exists() else []
+        merged, _ = _merge_dead_ends(existing + ends, [], cap=10 ** 6)
+        pending.write_bytes(canonical_bytes({"dead_ends": merged}))
+
+    print(f"merged: {loser_name} archived under checkpoints/forks/; "
+          f"chain head is {head.name if head else '(empty)'}"
+          + (f"; {len(ends)} dead_end(s) staged for the next checkpoint"
+             if ends else ""))
+    for key in ("learned", "open_threads", "next_actions"):
+        items = salvage.get(key, [])
+        if items:
+            print(f"loser's {key} (re-propose honestly in your next "
+                  "checkpoint if still true):")
+            for item in items:
+                text = item.get("claim", item) if isinstance(item, dict) \
+                    else item
+                print(f"  - {text}")
+    print("run: verify (the chain must be linear again), then commit "
+          "the merge")
     return 0
 
 
@@ -948,7 +1098,13 @@ def main(argv: list[str] | None = None) -> int:
     p_cp = sub.add_parser("checkpoint")
     p_cp.add_argument("--proposal", type=Path, required=True)
     p_cp.add_argument("--keep", type=int, default=DEFAULT_KEEP)
+    p_cp.add_argument("--steal", action="store_true",
+                      help="take over another session's unexpired lease")
     sub.add_parser("verify")
+    p_mg = sub.add_parser("merge")
+    p_mg.add_argument("--loser", required=True,
+                      help="forked checkpoint filename to archive "
+                           "(<seq>-<12hex>.json)")
     p_hy = sub.add_parser("hydrate")
     p_hy.add_argument("--check", action="store_true")
     p_hy.add_argument("--if-present", action="store_true",
@@ -967,9 +1123,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             return cmd_init(plane)
         if args.command == "checkpoint":
-            return cmd_checkpoint(plane, args.proposal, args.keep)
+            return cmd_checkpoint(plane, args.proposal, args.keep,
+                                  args.steal)
         if args.command == "verify":
             return cmd_verify(plane)
+        if args.command == "merge":
+            return cmd_merge(plane, args.loser)
         if args.command == "hydrate":
             return cmd_hydrate(plane, args.check, args.if_present,
                                args.emit_agents)

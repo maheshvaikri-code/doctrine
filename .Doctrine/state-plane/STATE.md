@@ -1,6 +1,6 @@
 ---
 spec: doctrine-state-plane
-version: 0.2.0
+version: 0.3.0
 ---
 
 # STATE.md — the .Doctrine state plane
@@ -77,6 +77,30 @@ append-only, never rewritten.
 4. **Chain desync** → `prev_sha256` links + `state_index` hashes; `verify` in CI.
 5. **Cross-repo leakage** → the plane is repo-local; AceIQ360 imports are explicit and
    source-tagged, never silently merged.
+
+## Concurrency (spec 0.3.0)
+
+The chain is single-writer by design; concurrency is handled at two
+distinct boundaries:
+
+- **Same worktree — the lease.** `local/lease.json` (gitignored, never
+  travels) records the writing session and a TTL (default 3600s).
+  `checkpoint` refuses while another session's unexpired lease holds;
+  `--steal` takes over deliberately and loudly. The lease guards chain
+  APPEND only — prune stages material consumed by the next (guarded)
+  checkpoint, and merge operates on a chain where the lease has already
+  failed its job.
+- **Across clones — fork detection + merge.** Two clones checkpointing
+  independently reunite via git as duplicate seq files (same
+  predecessor). `verify` reports `CHAIN FORKED` naming both heads, and
+  `hydrate` refuses — a fork is a loud full stop, never silent
+  divergence. `merge --loser <file>` resolves a LEAF fork: the losing
+  head and its distillate are archived under `forks/` (history is never
+  deleted), `checkpoint.json` repoints to the winning head, the loser's
+  `dead_ends` are staged into the pending file the next checkpoint
+  consumes (negatives survive the merge mechanically), and the loser's
+  `learned`/`open_threads` are printed for honest re-proposal — claims
+  are never auto-grafted onto a chain their session didn't verify.
 
 ## Epistemics
 

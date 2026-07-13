@@ -66,10 +66,10 @@ class TempRepo(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def checkpoint(self, prop=None, keep=5):
+    def checkpoint(self, prop=None, keep=5, steal=False):
         p = self.root / "proposal.json"
         p.write_text(json.dumps(prop or proposal()), encoding="utf-8")
-        return ds.cmd_checkpoint(self.plane, p, keep=keep)
+        return ds.cmd_checkpoint(self.plane, p, keep=keep, steal=steal)
 
 
 class TestCanonical(unittest.TestCase):
@@ -343,6 +343,110 @@ class TestPrune(TempRepo):
         for ch in buf.getvalue():
             self.assertLess(ord(ch), 128,
                             f"non-ASCII {ch!r} in terminal output")
+
+
+class TestConcurrency(TempRepo):
+    def other_session(self, dead_ends=None):
+        prop = proposal(dead_ends=dead_ends)
+        prop["session_id"] = "s-test-2"
+        return prop
+
+    def test_lease_blocks_other_session(self):
+        """Audit gap #1: two same-machine sessions must not fork."""
+        self.checkpoint()
+        prop = self.other_session()
+        p = self.root / "p2.json"
+        p.write_text(json.dumps(prop), encoding="utf-8")
+        with self.assertRaises(ds.StateError) as ctx:
+            ds.cmd_checkpoint(self.plane, p)
+        self.assertIn("leased", str(ctx.exception))
+
+    def test_lease_steal_and_same_session_ok(self):
+        self.checkpoint()
+        self.checkpoint()  # same session: lease is ours, proceeds
+        prop = self.other_session()
+        p = self.root / "p2.json"
+        p.write_text(json.dumps(prop), encoding="utf-8")
+        self.assertEqual(ds.cmd_checkpoint(self.plane, p, steal=True), 0)
+
+    def test_expired_lease_allows(self):
+        self.checkpoint()
+        lease_path = self.plane.local / "lease.json"
+        lease = json.loads(lease_path.read_text("utf-8"))
+        lease["expires_at"] = 1.0
+        lease_path.write_bytes(ds.canonical_bytes(lease))
+        prop = self.other_session()
+        p = self.root / "p2.json"
+        p.write_text(json.dumps(prop), encoding="utf-8")
+        self.assertEqual(ds.cmd_checkpoint(self.plane, p), 0)
+
+    def make_fork(self):
+        """Simulate two clones checkpointing from the same head, then
+        reuniting via git: both seq-1 files land in checkpoints/."""
+        self.checkpoint()  # seq 0, shared head
+        head0 = self.plane.checkpoint.read_bytes()
+        self.checkpoint(proposal(dead_ends=[
+            {"approach": "clone-A-path", "why_failed": "a"}]))  # 1-aaa
+        # clone B never saw 1-aaa: rewind the head pointer and write B's
+        self.plane.checkpoint.write_bytes(head0)
+        prop = self.other_session(dead_ends=[
+            {"approach": "clone-B-path", "why_failed": "b"}])
+        p = self.root / "pb.json"
+        p.write_text(json.dumps(prop), encoding="utf-8")
+        ds.cmd_checkpoint(self.plane, p, steal=True)  # 1-bbb
+        ones = sorted(f.name for f in self.plane.checkpoints.glob("1-*"))
+        self.assertEqual(len(ones), 2, "fork precondition")
+        return ones
+
+    def test_fork_detected_hydrate_refuses_merge_heals(self):
+        """Audit gap #1 end-to-end: fork -> loud stop -> merge -> the
+        loser's negatives survive into the next checkpoint."""
+        ones = self.make_fork()
+        self.assertEqual(ds.cmd_verify(self.plane), 1)
+        self.assertEqual(ds.cmd_hydrate(self.plane), 1)
+        # current head is clone B's; archive it as the loser
+        current_sha = ds.sha256_bytes(self.plane.checkpoint.read_bytes())
+        loser_name = next(
+            n for n in ones
+            if ds.sha256_file(self.plane.checkpoints / n) == current_sha)
+        self.assertEqual(ds.cmd_merge(self.plane, loser_name), 0)
+        self.assertEqual(ds.cmd_verify(self.plane), 0)
+        self.assertTrue(
+            (self.plane.checkpoints / "forks" / loser_name).exists(),
+            "history archived, never deleted")
+        pending = json.loads(
+            (self.plane.distillates / "pending-dead-ends.json")
+            .read_text("utf-8"))
+        self.assertIn("clone-B-path",
+                      {e["approach"] for e in pending["dead_ends"]})
+        # post-merge, session A takes the lease back deliberately
+        self.checkpoint(steal=True)  # salvage consumed
+        latest = json.loads(
+            ds._distillate_files(self.plane)[-1].read_text("utf-8"))
+        self.assertIn("clone-B-path",
+                      {e["approach"] for e in latest["dead_ends"]},
+                      "the losing session's negatives must survive")
+
+    def test_merge_refuses_nonfork(self):
+        self.checkpoint()
+        name = next(self.plane.checkpoints.glob("0-*.json")).name
+        with self.assertRaises(ds.StateError):
+            ds.cmd_merge(self.plane, name)
+
+    def test_merge_refuses_non_leaf(self):
+        ones = self.make_fork()
+        # seq 2 chained on the current head (clone B); steal the lease
+        self.checkpoint(steal=True)
+        current_head_children = True
+        winner_with_child = next(
+            n for n in ones
+            if any(json.loads(f.read_text("utf-8")).get("prev_sha256")
+                   == ds.sha256_file(self.plane.checkpoints / n)
+                   for f in self.plane.checkpoints.glob("2-*.json")))
+        self.assertTrue(current_head_children)
+        with self.assertRaises(ds.StateError) as ctx:
+            ds.cmd_merge(self.plane, winner_with_child)
+        self.assertIn("descendant", str(ctx.exception))
 
 
 class TestHydrate(TempRepo):

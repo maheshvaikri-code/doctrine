@@ -104,3 +104,38 @@ plugin + MCP + installer. Publishing to any registry stays human-gated.
 20. **[QA] tests** (installer round-trip into temp repo; MCP protocol
     handshake + tool call over real stdio subprocess; parity lints);
     review round #4; tag v0.5.0; checkpoint 4.
+
+## v0.6.2 slice — state-plane concurrency (2026-07-12, Class M)
+Closes audit gap #1: the chain was linear with no lease/merge protocol.
+21. **[Backend] Session lease** (same-worktree writers):
+    `.doctrine-state/local/lease.json` {session_id, acquired_at,
+    expires_at, host}; `checkpoint` refuses while another session's
+    unexpired lease holds (TTL 3600s), refreshes on write, `--steal`
+    for deliberate takeover (logged loud). local/ is gitignored, so
+    leases never travel between clones - they guard same-machine
+    concurrency only.
+    *Deviation (2026-07-12): lease guards chain APPEND only. prune's
+    effects funnel through the next lease-guarded checkpoint; merge by
+    definition operates on a chain where the lease already failed -
+    guarding them would be ceremony without protection.*
+22. **[Backend] Fork detection** (cross-clone concurrency arrives via
+    git as duplicate files): verify() detects duplicate seq AND
+    duplicate prev_sha256 as explicit "CHAIN FORKED" findings naming
+    both heads; forks/ archive subdirs exempt from stray-file findings;
+    hydrate already refuses on any verify finding, so a fork is a loud
+    full stop, never silent divergence.
+23. **[Backend] `state merge --loser <file>`**: leaf-fork resolution -
+    archive the losing checkpoint + its distillate under forks/
+    (history preserved, out of chain scan), repoint checkpoint.json to
+    the winning head if needed, salvage the loser's dead_ends into
+    pending-dead-ends.json (consumed by the next checkpoint - negatives
+    survive the merge), and print the loser's learned/open_threads for
+    the operator to fold into the next proposal (claims are re-proposed
+    honestly, never auto-grafted). Deeper-than-leaf forks refuse with
+    iterate-from-the-leaf instructions.
+24. **[Docs] STATE.md spec 0.3.0**: Concurrency section (lease
+    semantics, fork-on-pull reality, merge protocol).
+25. **[QA] tests**: lease contention/expiry/steal; simulated two-clone
+    fork (copy plane, checkpoint both, reunite) detected; merge
+    restores a verifying chain with salvage staged; then verifier
+    fan-out; tag v0.6.2; checkpoint 7.

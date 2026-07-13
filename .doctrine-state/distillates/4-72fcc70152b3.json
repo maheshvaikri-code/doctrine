@@ -1,0 +1,54 @@
+{
+  "at_commit": "2ac41777b1db7bc59499b9cea588067caa6e772f",
+  "created_at": "2026-07-13T00:32:01Z",
+  "dead_ends": [
+    {
+      "approach": "existence-based version echo of client protocolVersion in MCP initialize",
+      "why_failed": "echoing arbitrary client strings (even 9999-12-31) misrepresents capability; clamp to the known-protocol set instead"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.5.0 ships four distribution vehicles: doctrine_install (into any repo), doctrineos MCP server (any MCP agent), Claude Code plugin via marketplace.json, and the doctrineos wheel (publish human-gated).",
+      "confidence": "verified",
+      "evidence": ".Doctrine/05-packaging.md",
+      "kind": "fact"
+    },
+    {
+      "claim": "Source-repo checks and consumer-repo checks are different lint families: plugin parity and CHANGELOG sync must skip where those files legitimately do not exist, or every consumer starts red.",
+      "confidence": "verified",
+      "evidence": "docs/reviews/state-tooling.md PD-1",
+      "kind": "constraint"
+    },
+    {
+      "claim": "A fixed bug class recurred in NEW code (CRLF rewrite, v0.3.0 D-2 class, reappeared in the installer as PD-5): regression tests guard old sites only - the reviewer sweep is what catches recurrence.",
+      "confidence": "verified",
+      "evidence": "docs/reviews/state-tooling.md PD-5",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "MCP serve loops must treat every stdin line as hostile: non-object JSON, batch arrays, deep nesting, and oversized lines all reached crash paths before hardening.",
+      "confidence": "verified",
+      "evidence": "tests/test_doctrine_packaging.py PD-2 regressions",
+      "kind": "constraint"
+    },
+    {
+      "claim": "Remote wired to github.com/aroora-ai-labs/doctrine; push blocked at sandbox permission layer - the human pushes or approves.",
+      "confidence": "verified",
+      "evidence": "git remote -v",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "After push: create the GitHub release for v0.5.0 (human-gated); consider gold-record discipline for future doctrineos wheel publishes"
+  ],
+  "open_threads": [
+    "Push to origin pending human permission; tags v0.1.0-v0.5.0 ready"
+  ],
+  "seq": 4,
+  "session_id": "s-2026-07-12-a",
+  "task_refs": [
+    "packaging-distribution"
+  ]
+}

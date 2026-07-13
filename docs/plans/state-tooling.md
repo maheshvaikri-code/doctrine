@@ -72,3 +72,35 @@ the default gates stay unchanged for non-enterprise repos.
     Reuses canonical_bytes/validate/load_json from doctrine_state.
 14. **[QA] tests**; wiring (routing row, G6 enterprise note, README
     counts); delta G4/G5; tag v0.4.0; checkpoint 3.
+
+## v0.5.0 slice — packaging & distribution (2026-07-12, Class L)
+Doctrine CONTENT installs into repos (committed law); TOOLING ships as
+plugin + MCP + installer. Publishing to any registry stays human-gated.
+15. **[DevOps] `tools/doctrine_install.py`**: copy .Doctrine.md,
+    .Doctrine/, .claude/{agents,commands,settings.json}, CLAUDE.md,
+    AGENTS.md + selected adapter overlays into a target repo.
+    `--tool claude|codex|cursor|windsurf|copilot|gemini|cline|roo|
+    amazonq|continue|junie|all`, `--enterprise` seeds the brief line,
+    idempotent, refuses to clobber newer files without --force,
+    never overwrites an existing CLAUDE.md/AGENTS.md silently (append
+    import / marker block instead).
+16. **[Interop] `tools/doctrine_mcp.py`**: stdlib stdio MCP server
+    (newline-delimited JSON-RPC: initialize, tools/list, tools/call,
+    ping) exposing doctrine_lint, state_{status,verify,hydrate,
+    checkpoint}, gold_{check,record} — works in Claude Code, Codex,
+    Cursor, Windsurf, Copilot, Gemini via each tool's MCP config.
+17. **[DevOps] Claude Code plugin**: `plugin/` (.claude-plugin/
+    plugin.json, commands/, agents/, hooks/hooks.json, .mcp.json) +
+    root `.claude-plugin/marketplace.json` → `/plugin marketplace add
+    <repo>` + `/plugin install doctrine`. Drift hazard managed by NEW
+    lint parity checks: plugin/agents ≡ .claude/agents,
+    plugin/commands/checkpoint.md ≡ .claude/commands/checkpoint.md.
+18. **[Docs] `.Doctrine/05-packaging.md`**: install matrix per tool
+    (Claude plugin/manual, Codex AGENTS.md+MCP+prompts, Cursor/Windsurf
+    rules+MCP, Gemini extension, generic). README/§11 pointers.
+19. **[DevOps] `pyproject.toml`** (name `doctrineos` — see naming
+    decision; console scripts doctrine-state/-gold/-lint/-mcp/-install);
+    wheel build verified locally; PUBLISHING requires the human (§5).
+20. **[QA] tests** (installer round-trip into temp repo; MCP protocol
+    handshake + tool call over real stdio subprocess; parity lints);
+    review round #4; tag v0.5.0; checkpoint 4.

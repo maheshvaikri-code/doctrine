@@ -118,6 +118,47 @@ def check_templates(root: Path, findings: list[str]) -> None:
             findings.append(f"templates/{f.name}: no gate tag comment")
 
 
+def check_plugin_parity(root: Path, findings: list[str]) -> None:
+    """The Claude Code plugin ships byte-copies of the repo wiring; two
+    synced copies are a drift hazard, so parity is a hard gate."""
+    pairs = [(root / ".claude" / "agents", root / "plugin" / "agents"),
+             (root / ".claude" / "commands" / "checkpoint.md",
+              root / "plugin" / "commands" / "checkpoint.md")]
+    for canonical, copy in pairs:
+        if not copy.exists():
+            findings.append(f"plugin parity: {copy.relative_to(root)} "
+                            "missing")
+            continue
+        if canonical.is_dir():
+            canon_files = {p.name: p for p in canonical.glob("*.md")}
+            copy_files = {p.name: p for p in copy.glob("*.md")}
+            for name in sorted(canon_files.keys() | copy_files.keys()):
+                if name not in copy_files:
+                    findings.append(f"plugin parity: agents/{name} "
+                                    "missing from plugin")
+                elif name not in canon_files:
+                    findings.append(f"plugin parity: agents/{name} exists "
+                                    "only in plugin")
+                elif canon_files[name].read_bytes() != \
+                        copy_files[name].read_bytes():
+                    findings.append(f"plugin parity: agents/{name} "
+                                    "drifted from .claude/agents")
+        elif canonical.read_bytes() != copy.read_bytes():
+            findings.append("plugin parity: plugin/commands/checkpoint.md "
+                            "drifted from .claude/commands/checkpoint.md")
+    for ref in ("plugin/.claude-plugin/plugin.json",
+                ".claude-plugin/marketplace.json",
+                "plugin/hooks/hooks.json", "plugin/.mcp.json"):
+        p = root / ref
+        if not p.exists():
+            findings.append(f"plugin parity: {ref} missing")
+            continue
+        try:
+            json.loads(p.read_text("utf-8"))
+        except json.JSONDecodeError as exc:
+            findings.append(f"{ref}: invalid JSON ({exc})")
+
+
 def check_state_plane(root: Path, findings: list[str]) -> None:
     plane = root / ".Doctrine" / "state-plane"
     for name in ("checkpoint", "distillate"):
@@ -140,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     findings: list[str] = []
     for check in (check_references, check_roles, check_skills, check_agents,
                   check_counts, check_version, check_templates,
-                  check_state_plane):
+                  check_state_plane, check_plugin_parity):
         check(root, findings)
     if findings:
         print(f"doctrine_lint: {len(findings)} finding(s):")

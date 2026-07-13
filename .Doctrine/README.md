@@ -15,6 +15,7 @@ templates for every artifact the workflow produces.
 ├── 02-role-protocol.md How roles are adopted, switched, and arbitrated
 ├── 03-parallel-execution.md  Subagent fan-out: workers, verifiers, reconcile
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
+├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
 ├── roles/              19 role cards (who does what, with checklists; incl. FDE,
 │                       SRE, data/ML engineers, compliance officer)

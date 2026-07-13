@@ -1,0 +1,14 @@
+{
+  "name": "doctrine-marketplace",
+  "owner": {
+    "name": "Mahesh Vaikri",
+    "email": "mahesh.vaikri.ai@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "doctrine",
+      "source": "./plugin",
+      "description": "Gated engineering operating system for AI coding agents: roles, skills, adversarial review, hash-chained state, gold builds."
+    }
+  ]
+}

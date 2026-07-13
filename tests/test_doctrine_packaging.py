@@ -1,0 +1,153 @@
+"""Tests for tools/doctrine_install.py and tools/doctrine_mcp.py."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "tools"))
+
+import doctrine_install as di  # noqa: E402
+
+
+class TestInstaller(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.target = Path(self._tmp.name) / "consumer"
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def install(self, tools="claude", **kw):
+        return di.install(REPO, self.target,
+                          [t for t in tools.split(",")],
+                          kw.get("enterprise", False), kw.get("ci", False),
+                          kw.get("force", False))
+
+    def test_claude_install_round_trip(self):
+        self.assertEqual(self.install("claude,cursor"), 0)
+        for rel in (".Doctrine.md", ".Doctrine/00-charter.md",
+                    ".Doctrine/skills/backend.md",
+                    "tools/doctrine_state.py", "tools/doctrine_mcp.py",
+                    ".claude/agents/code-reviewer.md",
+                    ".claude/commands/checkpoint.md",
+                    ".claude/settings.json", "CLAUDE.md", "AGENTS.md",
+                    ".cursor/rules/doctrine.mdc", "Makefile",
+                    "tests/test_doctrine_state.py"):
+            self.assertTrue((self.target / rel).exists(), rel)
+        claude_md = (self.target / "CLAUDE.md").read_text("utf-8")
+        self.assertIn("@.Doctrine.md", claude_md)
+        gitignore = (self.target / ".gitignore").read_text("utf-8")
+        self.assertIn(".doctrine-state/local/", gitignore)
+
+    def test_idempotent(self):
+        self.install()
+        first = sorted(p.relative_to(self.target).as_posix()
+                       for p in self.target.rglob("*") if p.is_file())
+        self.assertEqual(self.install(), 0)
+        second = sorted(p.relative_to(self.target).as_posix()
+                        for p in self.target.rglob("*") if p.is_file())
+        self.assertEqual(first, second)
+
+    def test_existing_claude_md_appended_not_replaced(self):
+        self.target.mkdir(parents=True)
+        (self.target / "CLAUDE.md").write_text(
+            "# My project rules\nkeep me\n", encoding="utf-8")
+        self.install()
+        text = (self.target / "CLAUDE.md").read_text("utf-8")
+        self.assertIn("keep me", text)
+        self.assertIn("@.Doctrine.md", text)
+
+    def test_differing_file_skipped_without_force(self):
+        self.install()
+        marker = self.target / ".Doctrine" / "00-charter.md"
+        marker.write_text("locally edited\n", encoding="utf-8")
+        self.assertEqual(self.install(), 1)  # nonzero: skipped diffs
+        self.assertEqual(marker.read_text("utf-8"), "locally edited\n")
+        self.assertEqual(self.install(force=True), 0)
+        self.assertNotEqual(marker.read_text("utf-8"), "locally edited\n")
+
+    def test_existing_agents_md_untouched(self):
+        self.target.mkdir(parents=True)
+        (self.target / "AGENTS.md").write_text("mine\n", encoding="utf-8")
+        self.install()
+        self.assertEqual((self.target / "AGENTS.md").read_text("utf-8"),
+                         "mine\n")
+
+    def test_enterprise_seeds_brief(self):
+        self.install(enterprise=True)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Merge profile: enterprise", brief)
+
+    def test_unknown_tool_refused(self):
+        self.assertEqual(self.install("notatool"), 2)
+
+    def test_source_equals_target_refused(self):
+        self.assertEqual(di.install(REPO, REPO, ["claude"], False, False,
+                                    False), 2)
+
+
+class TestMcpServer(unittest.TestCase):
+    """Protocol-level test over a real stdio subprocess against this repo
+    (read-only tools only)."""
+
+    def test_handshake_list_and_calls(self):
+        proc = subprocess.Popen(
+            [sys.executable, str(REPO / "tools" / "doctrine_mcp.py"),
+             "--root", str(REPO)],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, encoding="utf-8")
+        try:
+            def rpc(payload):
+                proc.stdin.write(json.dumps(payload) + "\n")
+                proc.stdin.flush()
+                return json.loads(proc.stdout.readline())
+
+            init = rpc({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                        "params": {"protocolVersion": "2025-06-18",
+                                   "capabilities": {},
+                                   "clientInfo": {"name": "t"}}})
+            self.assertEqual(init["result"]["serverInfo"]["name"],
+                             "doctrineos")
+            proc.stdin.write(json.dumps(
+                {"jsonrpc": "2.0",
+                 "method": "notifications/initialized"}) + "\n")
+            proc.stdin.flush()
+
+            tools = rpc({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+            names = {t["name"] for t in tools["result"]["tools"]}
+            self.assertLessEqual(
+                {"doctrine_lint", "state_verify", "gold_check"}, names)
+
+            status = rpc({"jsonrpc": "2.0", "id": 3, "method": "tools/call",
+                          "params": {"name": "state_status",
+                                     "arguments": {}}})
+            self.assertFalse(status["result"]["isError"])
+            self.assertIn("checkpoint seq",
+                          status["result"]["content"][0]["text"])
+
+            gold = rpc({"jsonrpc": "2.0", "id": 4, "method": "tools/call",
+                        "params": {"name": "gold_check",
+                                   "arguments": {"tag": "v0.4.0"}}})
+            self.assertTrue(gold["result"]["isError"])
+            self.assertIn("no gold record",
+                          gold["result"]["content"][0]["text"])
+
+            unknown = rpc({"jsonrpc": "2.0", "id": 5, "method": "tools/call",
+                           "params": {"name": "nope", "arguments": {}}})
+            self.assertIn("error", unknown)
+
+            bad = rpc({"jsonrpc": "2.0", "id": 6, "method": "no/such"})
+            self.assertEqual(bad["error"]["code"], -32601)
+        finally:
+            proc.stdin.close()
+            proc.wait(timeout=15)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "doctrineos": {
+      "command": "python",
+      "args": ["tools/doctrine_mcp.py"]
+    }
+  }
+}

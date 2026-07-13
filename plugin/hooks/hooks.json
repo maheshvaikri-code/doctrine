@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import os,subprocess,sys; sys.exit(subprocess.call([sys.executable,'tools/doctrine_state.py','hydrate','--if-present']) if os.path.exists('tools/doctrine_state.py') else 0)\""
+          }
+        ]
+      }
+    ]
+  }
+}

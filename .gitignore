@@ -10,3 +10,8 @@ Desktop.ini
 
 # Python
 __pycache__/
+
+# Python build artifacts
+build/
+*.egg-info/
+dist/

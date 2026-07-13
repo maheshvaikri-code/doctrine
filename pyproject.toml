@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doctrineos"
+version = "0.5.0"
+description = "The Doctrine System: a gated engineering operating system for AI coding agents - roles, skills, adversarial review gates, hash-chained session state, gold-build deployment."
+readme = ".Doctrine/README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Mahesh Vaikri", email = "mahesh.vaikri.ai@gmail.com" }]
+keywords = ["ai-agents", "agents-md", "engineering-process", "claude-code", "mcp"]
+
+[project.scripts]
+doctrine-state = "doctrine_state:main"
+doctrine-lint = "doctrine_lint:main"
+doctrine-gold = "doctrine_gold:main"
+doctrine-mcp = "doctrine_mcp:main"
+doctrine-install = "doctrine_install:main"
+
+[tool.setuptools]
+package-dir = { "" = "tools" }
+py-modules = [
+  "doctrine_state",
+  "doctrine_lint",
+  "doctrine_gold",
+  "doctrine_mcp",
+  "doctrine_install",
+]
+
+[tool.ruff]
+line-length = 88

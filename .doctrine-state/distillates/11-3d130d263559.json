@@ -1,0 +1,38 @@
+{
+  "at_commit": "388cfea3aec4ce8b8006a1177ed55b91b68bdb11",
+  "created_at": "2026-07-13T15:47:25Z",
+  "dead_ends": [],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.6.6: doctrine_verify.py is the cross-platform one-command gate suite (make verify without Make); verified live, 4 gates green through the single command.",
+      "confidence": "verified",
+      "evidence": "tools/doctrine_verify.py; verify run bla0x6hh8",
+      "kind": "fact"
+    },
+    {
+      "claim": "Escaped packaging defect: doctrine_metrics.py never joined the installer's TOOL_FILES, so consumer repos (first real consumer: D:/Contegrity) lacked it while their copied unguarded SessionStart hook referenced it. Regression test now asserts tools/doctrine_*.py == TOOL_FILES.",
+      "confidence": "verified",
+      "evidence": "tests/test_doctrine_packaging.py test_installer_ships_every_tool",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "First external consumer exists: the doctrine was installed into D:/Contegrity - proof-at-scale gap officially cracking open.",
+      "confidence": "verified",
+      "evidence": "user's make verify attempt in D:/Contegrity",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "Remaining audit gaps: runbook validator, sign-off signing, installer --upgrade with manifest (the Contegrity re-run is exactly the upgrade story that feature would formalize)"
+  ],
+  "open_threads": [
+    "Contegrity needs: re-run installer (--force fine on fresh installs) to receive doctrine_metrics.py + doctrine_verify.py + updated Makefile",
+    "Push pending: v0.6.6 (git push --follow-tags)"
+  ],
+  "seq": 11,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "consumer-verify-runner"
+  ]
+}

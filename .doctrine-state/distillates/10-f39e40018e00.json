@@ -1,0 +1,64 @@
+{
+  "at_commit": "4e2694345ef5cd9080ff4da2465577b5b8fb60e5",
+  "created_at": "2026-07-13T06:11:23Z",
+  "dead_ends": [
+    {
+      "approach": "naive commit-map parse + bare str.replace for sha remapping",
+      "why_failed": "the map's 'old new' header became a substring rule rewriting English words across eight docs; strict 40-hex validation + word-boundary regex replaced it"
+    },
+    {
+      "approach": "codemonk console script directly after pip install on this host",
+      "why_failed": "Scripts dir not on PATH in this shell; python -m codemonk is the reliable invocation and what the integration doc teaches"
+    },
+    {
+      "approach": "json.dumps with default separators for the canonical writer",
+      "why_failed": "emits a trailing space before every newline, violating the pack's own no-trailing-whitespace rule (the shipped examples had this bug)"
+    },
+    {
+      "approach": "existing[:-(keep-1)] slice to select prune victims",
+      "why_failed": "Python list[:-0] is empty, so keep=1 pruned nothing; compute the cut index explicitly"
+    },
+    {
+      "approach": ".doctrine/state/ as the state root per spec 0.1.0",
+      "why_failed": "case-insensitive filesystems merge .doctrine/ into .Doctrine/, landing runtime state inside the corpus; renamed to .doctrine-state/"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.6.5: history rewritten (trailers stripped, 44 commits, 17 tags); provenance migrated to the enrichment overlay via enrich --mark-authorship; CodeMonk reports 44 agent / 0 human trailer-free.",
+      "confidence": "verified",
+      "evidence": "docs/metrics/2026-07-13-post-rewrite.md",
+      "kind": "fact"
+    },
+    {
+      "claim": "git filter-repo's commit-map starts with a literal 'old new' header line: a naive parser turned it into a substring replacement that mangled prose (gold->gnew, holds->hnews). Parse hex-strictly and replace on word boundaries.",
+      "confidence": "verified",
+      "evidence": "tools remap script round 2; grep count 0 after revert",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "Post-rewrite repair order matters: revert corrupted files to HEAD first (filter-repo preserves file contents), then remap; state-plane at_commit anchors stay untouched because chain integrity is content-hashed, not git-anchored.",
+      "confidence": "verified",
+      "evidence": "doctrine_state verify OK post-rewrite",
+      "kind": "constraint"
+    },
+    {
+      "claim": "No more Co-Authored-By trailers in this repo's commits (operator rule); authorship travels in docs/metrics/enrichment.json instead.",
+      "confidence": "verified",
+      "evidence": "CHANGELOG 0.6.5",
+      "kind": "decision_ref"
+    }
+  ],
+  "next_actions": [
+    "Remaining audit gaps: runbook validator, sign-off signing, installer --upgrade"
+  ],
+  "open_threads": [
+    "FORCE-push required to publish the rewrite: git push --force --all && git push --force --tags (old history remains on origin until then)"
+  ],
+  "seq": 10,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "history-rewrite"
+  ]
+}

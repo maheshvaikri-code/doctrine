@@ -84,7 +84,8 @@ def collect(repo: Path, dirs: list[str]) -> tuple[dict[str, list[str]], int]:
     return {sha: sorted(files) for sha, files in referenced.items()}, scanned
 
 
-def cmd_enrich(repo: Path, dirs: list[str], out_rel: Path) -> int:
+def cmd_enrich(repo: Path, dirs: list[str], out_rel: Path,
+               mark_authorship: str | None = None) -> int:
     if not (repo / ".git").exists():
         raise StateError(f"{repo} is not a git repository")
     referenced, scanned = collect(repo, dirs)
@@ -92,14 +93,34 @@ def cmd_enrich(repo: Path, dirs: list[str], out_rel: Path) -> int:
         print("no review artifacts found under "
               f"{', '.join(dirs)} - nothing to enrich", file=sys.stderr)
         return 1
-    entries = [{"id": sha, "human_reviewed": True}
-               for sha in sorted(referenced)]
+    entries: list[dict] = [{"id": sha, "human_reviewed": True}
+                           for sha in sorted(referenced)]
+    if mark_authorship:
+        # operator-asserted provenance for repos whose commits carry no
+        # trailer (e.g. after a history rewrite): EVERY HEAD-reachable
+        # commit is marked with the given authorship. Only assert what
+        # is true for the whole history - this is a blanket claim.
+        allowed = {"agent_autonomous", "agent_assisted", "human"}
+        if mark_authorship not in allowed:
+            raise StateError(f"--mark-authorship must be one of "
+                             f"{sorted(allowed)}")
+        by_id = {e["id"]: e for e in entries}
+        for sha in git(repo, "rev-list", "HEAD").splitlines():
+            entry = by_id.setdefault(sha, {"id": sha})
+            entry["authorship"] = mark_authorship
+            if mark_authorship.startswith("agent"):
+                entry["agent_name"] = "claude"
+        entries = [by_id[k] for k in sorted(by_id)]
+        print(f"authorship '{mark_authorship}' asserted for "
+              f"{len(entries)} commit(s) (blanket operator claim)")
     out = repo / out_rel
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes((json.dumps(entries, indent=2, sort_keys=True) + "\n")
                     .encode("utf-8"))
+    reviewed = sum(1 for e in entries if e.get("human_reviewed"))
     print(f"enrichment written: {out_rel.as_posix()} - {len(entries)} "
-          f"reviewed commit(s) from {scanned} artifact file(s)")
+          f"entr{'ies' if len(entries) != 1 else 'y'}, {reviewed} "
+          f"reviewed, from {scanned} artifact file(s)")
     print("fidelity: 'reviewed' = referenced by the doctrine's verifier "
           "fan-out artifacts (adversarial agent review, human-arbitrated) "
           "- label HITL accordingly when quoting")
@@ -233,6 +254,9 @@ def main(argv: list[str] | None = None) -> int:
     p_en = sub.add_parser("enrich")
     p_en.add_argument("--dirs", nargs="*", default=ARTIFACT_DIRS)
     p_en.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    p_en.add_argument("--mark-authorship", default=None,
+                      help="assert authorship for ALL commits (blanket "
+                           "claim): agent_autonomous|agent_assisted|human")
     p_ga = sub.add_parser("gates")
     p_ga.add_argument("--out", type=Path, default=None,
                       help="write the report here instead of stdout")
@@ -241,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "enrich":
             return cmd_enrich(args.root.resolve(), list(args.dirs),
-                              args.out)
+                              args.out, args.mark_authorship)
         if args.command == "gates":
             return cmd_gates(args.root.resolve(), args.out)
         if args.command == "capture-hint":

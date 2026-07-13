@@ -1,7 +1,7 @@
 # QA + Security Report — state-tooling (doctrine_state.py + doctrine_lint.py)
 <!-- G5 artifact. File as docs/qa/state-tooling.md -->
 
-> **RE-TEST 2026-07-12 (commit f86a02a): all findings remediated and re-verified by execution — final verdict PASS. See the Re-test section at the end of this report.** The sections below document the original FAIL pass against build 08c9bc94/7eb661b.
+> **RE-TEST 2026-07-12 (commit e353bb9): all findings remediated and re-verified by execution — final verdict PASS. See the Re-test section at the end of this report.** The sections below document the original FAIL pass against build 08c9bc94/2e19c85.
 
 **QA Engineer** (fresh-context verifier) · **Security Reviewer:** same pass ·
 **Date:** 2026-07-12
@@ -116,9 +116,9 @@ negative paths, the 21-test suite — held up under the full adversarial matrix.
 
 ---
 
-# Re-test — remediation commit f86a02a (2026-07-12)
+# Re-test — remediation commit e353bb9 (2026-07-12)
 
-**Build under test:** commit `f86a02a71a682b13dd45bc987f611d6dfe7a6765`
+**Build under test:** commit `e353bb992b772d1da3f6a3fb505a1f13d1dd3e26`
 ("fix(tools): remediate all G4/G5 findings from the verifier fan-out");
 `tools/doctrine_state.py` sha256 `5c7bbe4fc07b67f86b3130e3e5eec459a15b783da6bcec02127d9c634bd91e79`
 (`doctrine_lint.py` unchanged). Spec amended: STATE.md 0.2.0 — state root is now
@@ -206,5 +206,5 @@ secrets, and resource bounds all fail closed under adversarial input.
 
 **QA verdict (re-test): PASS.** Every original finding re-verified fixed by its
 exact reproduction steps; every claimed new hardening behavior demonstrated by
-execution; full adversarial matrix re-run green on commit f86a02a; 38/38 tests,
+execution; full adversarial matrix re-run green on commit e353bb9; 38/38 tests,
 corpus lint clean.

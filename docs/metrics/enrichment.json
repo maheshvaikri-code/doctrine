@@ -1,38 +1,232 @@
 [
   {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
     "human_reviewed": true,
-    "id": "0c186523218d21db680971376385e9f12f95bebe"
+    "id": "04e2ee8344c0478829232d8a936d389058523bff"
   },
   {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
     "human_reviewed": true,
-    "id": "4d119406b2e100a452fdd0325a85622eedd6a68f"
+    "id": "2bb1204e9d67e2349339bcf05b61bc331ce3de10"
   },
   {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
     "human_reviewed": true,
-    "id": "73d6f80f25eb0c0e5c526f5f2edf663128e4857a"
+    "id": "2e19c8565a982a5127a675e31771b82d2f7d9622"
   },
   {
-    "human_reviewed": true,
-    "id": "7eb661b7c2e0e6fce3f759f646fc56b5c452f106"
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "354fff446d9a48251c55cf53f65e3bdea8d628d9"
   },
   {
-    "human_reviewed": true,
-    "id": "8a396e22dcf96343b776b09f0bac989767b0a1e1"
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "3724d7a219f9cf4fafbecbee0425bc0a42037121"
   },
   {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
     "human_reviewed": true,
-    "id": "b5b8717b535ded8ab1af0f99627e7aad7b49f5fb"
+    "id": "3776eb2dd40e81ff65491892f792f09f2b3d8b64"
   },
   {
-    "human_reviewed": true,
-    "id": "d5eab567a1ad2dd37557bbd97b06b7f8cbc0d32b"
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "3983ad9babd0cae190cf1ddf30928cbcfd75e960"
   },
   {
-    "human_reviewed": true,
-    "id": "f2ee5d5a22af09a1dd04efc8c45c391b9d382fd5"
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "48f802bd317316317332deb8cf501ee13eef9cc9"
   },
   {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "52b174c98eb8f46675946049ed532ef0ca3bde22"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "53823627ebfd6391c1633cc939b7d2f04581ed14"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "540fcbb061fcfa5cdfc6a355b4ce0fd638d3c78a"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "649fc8c4d9c6a12abdecd82391af98290bae21c4"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "6ee5a33e405be045d06d268bcc6f33279492fd68"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "747caf67802b32aa9ddde67672a0240b99ca715f"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "7cde6f897015659eb841642151dc31d865a40a12"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "8484483c372b66cd9c9d033149d805d871dfe51b"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "8651e27a4ce81a1e9625a3c0bfdcda33878d1ff6"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "88428942266f910b74841281477a0a048a50ac5b"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
     "human_reviewed": true,
-    "id": "f86a02a71a682b13dd45bc987f611d6dfe7a6765"
+    "id": "88520e584e6aee3e46fe4e68649849b3d452d7e1"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "8d05d0f68d50d4806d974d59c9d342fb42753f5a"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "8d9a560a66921e777a6fabc0536a55be2a298702"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "human_reviewed": true,
+    "id": "91dcdd93d8318ccd88ddb9f5ed39a13f59d7eeea"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "9c69d880f49e470100620d2f67507a21ebe2b5d7"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "a04fdc175238f153b938face066625de1cf26bb4"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "a09b836a3ffe747dbef6b23cc118783ad3e61b7e"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "af0ceffa7065ed9e9d292c882ab634590bd61492"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "b4f9765ba5d253ef64f5d432297bd78cf5244e2d"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "b783f6963615ff0fbc692b2f939c9562980114fc"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "bd5db67076c044d38ee53564b0e40f80747fc01d"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "c855182128a0dac4bbbf20ca9b68dd53a3b250ef"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "c89259dea7be9a6c0723b93568c8fdce019ade34"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "cc457d85c7b6851ead6313e958e1f7329af4c841"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "ccd045db92f2cee532b8139df315f4acb7aa5017"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "d03c8f6676e0ce3492491f03dd5db173fb47476b"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "human_reviewed": true,
+    "id": "d17849dfd2b4c295a77bfb0acca6dbfbe168e6af"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "d57a509d27b0eb5888f8d7ad3ac81701b8bcd84e"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "human_reviewed": true,
+    "id": "e353bb992b772d1da3f6a3fb505a1f13d1dd3e26"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "eb911af08a1396236f88fa1e97a517b9392c859c"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "efc9aeb8dfc8dcb4b79c6d5f51d032ac29637d3a"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "f24d48e97b7c02971953043b3936e192048b54a1"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "f35a67c937984bc54ec720e78c24ead2433741e7"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "human_reviewed": true,
+    "id": "f474b9ff3a72e4f7048eb96ebbec23da7e087f58"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "id": "f9f6a708dc45c925ee066d927f2c0773698ac772"
+  },
+  {
+    "agent_name": "claude",
+    "authorship": "agent_assisted",
+    "human_reviewed": true,
+    "id": "fa148d9cd29d67819e89aedbd13e92d707399f54"
   }
 ]

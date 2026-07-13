@@ -161,7 +161,7 @@ Hands off to: Builder (remediate P-1/CI-1 and follow-ups), then re-review.
 
 ---
 
-# RE-AUDIT (post-remediation, commit f86a02a) - 2026-07-12
+# RE-AUDIT (post-remediation, commit e353bb9) - 2026-07-12
 
 Re-audited the working tree at d:\Doctrine\Doctrine-System after the coordinator
 reported all G4/G5 findings remediated. State root moved to .doctrine-state/ (QA
@@ -247,7 +247,7 @@ VETO is lifted.
 
 ---
 
-# DELTA AUDIT (v0.3.0 session wiring, uncommitted vs HEAD b5b8717) - 2026-07-12
+# DELTA AUDIT (v0.3.0 session wiring, uncommitted vs HEAD 04e2ee8) - 2026-07-12
 
 Scoped pass on three security-relevant additions: hydrate --emit-agents (writes state
 into root AGENTS.md), the .claude/settings.json SessionStart hook, and
@@ -394,7 +394,7 @@ SessionStart hook, checkpoint.md), the v0.3.0 session-wiring delta is cleared fo
 
 ---
 
-# DELTA AUDIT (v0.4.0 gold-build provenance, commit d5eab56) - 2026-07-12
+# DELTA AUDIT (v0.4.0 gold-build provenance, commit fa148d9) - 2026-07-12
 
 Security pass on tools/doctrine_gold.py (record/check) and
 .Doctrine/schemas/gold-build.schema.json. Baseline: 61 tests pass (dedicated
@@ -496,7 +496,7 @@ root linearity check) and G-2 (hash-pin + non-empty verdict/sign-offs), then re-
 
 ---
 
-# DELTA RE-AUDIT (G-1/G-2 remediation, commit 0c18652) - 2026-07-12
+# DELTA RE-AUDIT (G-1/G-2 remediation, commit 2bb1204) - 2026-07-12
 
 Re-audited doctrine_gold after the fix. Baseline: 70 tests pass (was 61),
 doctrine_lint clean. Every prior break probe re-run against live code, plus the new
@@ -577,7 +577,7 @@ on doctrine_gold is LIFTED. Combined with all earlier sign-offs, the release is 
 
 ---
 
-# DELTA AUDIT (v0.5.0 packaging, commit 73d6f80) - 2026-07-12
+# DELTA AUDIT (v0.5.0 packaging, commit 91dcdd9) - 2026-07-12
 
 Security pass on the packaging surface: doctrine_install.py (writes into other repos),
 doctrine_mcp.py (executes tools on agent request), plugin/hooks/hooks.json (session-start
@@ -691,7 +691,7 @@ cleared.
 
 ---
 
-# DELTA AUDIT (v0.6.2 state-plane concurrency, commit 4c18431) - 2026-07-12
+# DELTA AUDIT (v0.6.2 state-plane concurrency, commit f474b9f) - 2026-07-12
 
 Security pass on the lease + fork-detection + merge (concurrency) additions to
 doctrine_state.py and the STATE.md 0.3.0 concurrency section. All probes run against

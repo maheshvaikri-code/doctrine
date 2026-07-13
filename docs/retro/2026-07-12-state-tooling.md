@@ -7,13 +7,13 @@
 verify / hydrate / prune / status), `tools/doctrine_lint.py` (8-check corpus
 gate), 38 unit tests, Makefile, GitHub Actions workflow; state-plane spec
 amended to 0.2.0 (state root `.doctrine-state/`, `$defs/intent_id` traversal
-defense, examples re-canonicalized). Tagged `v0.2.0` at `1b3fef2`.
+defense, examples re-canonicalized). Tagged `v0.2.0` at `8d9a560`.
 
 **Duration / gates walked:** one day (2026-07-12), full Class-L arc
 G0→G7 — the first complete dogfood of the doctrine's own pipeline on real
-code. Commits: `7eb661b` (G3 build, 21 tests green) → `fdb37f8` (G4/G5
-reports) → `f86a02a` (remediation + 17 regression tests) → `1b3fef2`
-(re-review residuals, changelog, tag) → `65170c5` (state checkpoint 0).
+code. Commits: `2e19c85` (G3 build, 21 tests green) → `5382362` (G4/G5
+reports) → `e353bb9` (remediation + 17 regression tests) → `8d9a560`
+(re-review residuals, changelog, tag) → `c89259d` (state checkpoint 0).
 
 **Defects escaped past each gate:**
 - **G3 → G4/G5:** 26 distinct defects/findings (36 raw rows across the three
@@ -23,13 +23,13 @@ reports) → `f86a02a` (remediation + 17 regression tests) → `1b3fef2`
   (2 blockers incl. a reproduced path-traversal exploit —
   `docs/qa/state-tooling-security.md`), QA **FAIL** (state-corrupting
   ordering bug + 7 — `docs/qa/state-tooling.md`).
-- **Round 2 (re-review of `f86a02a`):** 3 residuals (R-1 raw traceback on
+- **Round 2 (re-review of `e353bb9`):** 3 residuals (R-1 raw traceback on
   non-UTF-8 effects file; R-2 header at_commit NIT; R-3 finding-15
-  "claimed fixed but is not"). R-1 and R-3 landed at `1b3fef2` before the
+  "claimed fixed but is not"). R-1 and R-3 landed at `8d9a560` before the
   tag; R-2 dispositioned author's-call in writing.
 - **Past release:** none known as of this retro.
 
-**Verified this session at HEAD (`65170c5`), real output:**
+**Verified this session at HEAD (`c89259d`), real output:**
 ```
 $ python tools/doctrine_lint.py
 doctrine_lint: corpus clean        (exit 0)
@@ -54,7 +54,7 @@ the deferral does not silently become permanent.
   exfiltrated into the hydration bundle) and a state-corruption BLOCKER on
   the tool's *everyday* rejection path. Separation of duties worked
   mechanically, not rhetorically.
-- **Regression test per finding.** 17 tests added at `f86a02a`, each named
+- **Regression test per finding.** 17 tests added at `e353bb9`, each named
   for its finding (`test_rejected_proposal_leaves_no_trace`,
   `test_traversal_intent_rejected_at_checkpoint`, ...). Suite 21→38; all
   still green at HEAD, re-executed this session.
@@ -90,15 +90,15 @@ the deferral does not silently become permanent.
   that says "Windows + POSIX"; the cp1252 pipe crash (QA Bug #2) was
   structurally invisible to it.
 - **A remediation claim overshot reality.** Finding 15 (type hints + ruff)
-  was recorded fixed at `f86a02a` and was not (R-3). Caught by re-review,
-  corrected at `1b3fef2` — but it is a near-miss on the cardinal honesty
+  was recorded fixed at `e353bb9` and was not (R-3). Caught by re-review,
+  corrected at `8d9a560` — but it is a near-miss on the cardinal honesty
   rules and earned its own amendment below.
 - **The spec seeded three of the defects.** Schema with no charset on
   intent ids; shipped examples violating their own canonicalization rule;
   the `.doctrine/` naming. The tool faithfully implemented spec bugs —
   implementing a spec is also reviewing it.
 - Hygiene: `__pycache__/` committed in the G3 build commit (purged at
-  `f86a02a`, `.gitignore` fixed at `1b3fef2`).
+  `e353bb9`, `.gitignore` fixed at `8d9a560`).
 
 ## Root causes (5-whys on every escaped defect)
 
@@ -190,7 +190,7 @@ self-testing can replace independent verification.
 | 5 | New bullet under **Errors**: "CLI/terminal output stays ASCII-safe (or reconfigure stdout/stderr with `errors='replace'` at entry): Windows pipes default to cp1252 and *crash* on stray Unicode punctuation even when all file I/O is correctly UTF-8." | `.Doctrine/standards/languages/python.md` | proposed — not yet filed |
 | 6 | Generalize the OS-matrix rule out of the Rust bullet: "If the brief names an OS as a constraint, CI runs a matrix leg on it; a unit test emulating the environment is a stopgap, not a substitute." (The in-flight workflow diff adding `windows-latest` implements this for this repo.) | `.Doctrine/skills/cicd.md` | proposed — not yet filed |
 | 7 | New repo-layout bullet: "New top-level directories (especially dotted ones) must differ from existing ones by more than letter case — case-insensitive filesystems (Windows, default macOS) silently merge `.doctrine/` into `.Doctrine/`, and git records the merged path." | `.Doctrine/skills/repo-devops.md` | proposed — not yet filed |
-| 8 | New §7 rule: "A remediation report marks a finding fixed only with the re-executed original probe/command referenced per finding; 'fixed' from memory of intent is a §1 honesty violation." (Evidence: finding 15 claimed fixed at f86a02a, disproven by re-review R-3.) | `.Doctrine/standards/dos-and-donts.md` | proposed — not yet filed |
+| 8 | New §7 rule: "A remediation report marks a finding fixed only with the re-executed original probe/command referenced per finding; 'fixed' from memory of intent is a §1 honesty violation." (Evidence: finding 15 claimed fixed at e353bb9, disproven by re-review R-3.) | `.Doctrine/standards/dos-and-donts.md` | proposed — not yet filed |
 
 All eight are Class-S doctrine edits; none is filed by this retro (the
 Project Reviewer does not edit doctrine). Route each through the normal

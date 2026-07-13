@@ -6,6 +6,26 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-07-13
+
+### Changed
+- **History rewritten** (operator decision): `Co-Authored-By` trailers
+  stripped from all 44 commits via git-filter-repo; all 17 tags
+  rewritten in place. Requires `git push --force --all && git push
+  --force --tags`; stale clones must be re-cloned. Pre-rewrite history
+  preserved in a local bundle.
+- **Provenance migrated from trailers to the enrichment overlay**:
+  `doctrine_metrics enrich --mark-authorship agent_assisted` asserts
+  authorship for every HEAD-reachable commit (a blanket operator claim,
+  documented as such). Verified live: CodeMonk again reports
+  44 agent / 0 human without any trailer. Commit shas quoted in the
+  audit trail (reviews/QA/retro) re-mapped to the rewritten history via
+  the filter-repo commit-map (strict 40-hex parsing, word-boundary
+  replacement); state-plane `at_commit` anchors are content-hash-chained
+  and stay untouched — pre-rewrite anchors are historical.
+- Post-rewrite metrics snapshot filed; enrichment message now reports
+  entries vs reviewed separately. Tests 107 → 109.
+
 ## [0.6.4] - 2026-07-13
 
 ### Added

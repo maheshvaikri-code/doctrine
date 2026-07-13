@@ -69,6 +69,23 @@ class TestEnrich(unittest.TestCase):
             (self.root / dm.DEFAULT_OUT).read_text("utf-8"))
         self.assertEqual(entries, [], "unreachable commits must not count")
 
+    def test_mark_authorship_blankets_all_commits(self):
+        """Post-trailer-strip provenance: every HEAD-reachable commit
+        gets the asserted authorship; reviewed flags are preserved."""
+        self.write_review(f"Reviewed at {self.sha[:12]}.\n")
+        self.assertEqual(dm.cmd_enrich(self.root, ["docs/reviews"],
+                                       dm.DEFAULT_OUT,
+                                       mark_authorship="agent_assisted"), 0)
+        entries = json.loads(
+            (self.root / dm.DEFAULT_OUT).read_text("utf-8"))
+        self.assertEqual(len(entries), 1)  # one commit in this repo
+        self.assertEqual(entries[0]["authorship"], "agent_assisted")
+        self.assertEqual(entries[0]["agent_name"], "claude")
+        self.assertTrue(entries[0]["human_reviewed"])
+        with self.assertRaises(dm.StateError):
+            dm.cmd_enrich(self.root, ["docs/reviews"], dm.DEFAULT_OUT,
+                          mark_authorship="robot_overlord")
+
     def test_no_artifacts_is_a_clean_refusal(self):
         self.assertEqual(dm.cmd_enrich(self.root, ["docs/reviews"],
                                        dm.DEFAULT_OUT), 1)

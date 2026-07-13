@@ -1,0 +1,38 @@
+{
+  "at_commit": "174ead9848cb7515e2bbc07d49788001b2e9bcde",
+  "created_at": "2026-07-13T04:29:28Z",
+  "dead_ends": [],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.6.1: doctrine_metrics enrich bridges review artifacts to CodeMonk - HITL measured 0% -> 27.3% on this repo, the nine fan-out-reviewed commits attributed from docs/reviews|qa references.",
+      "confidence": "verified",
+      "evidence": "docs/metrics/2026-07-12-enriched.md",
+      "kind": "fact"
+    },
+    {
+      "claim": "Versioning cadence per the human: y-incremental (x.x.y) bumps from here; every bump still syncs the four lint-enforced carriers.",
+      "confidence": "verified",
+      "evidence": "CHANGELOG.md 0.6.1",
+      "kind": "decision_ref"
+    },
+    {
+      "claim": "Word-bounded 7-40 hex regex cannot match inside a 64-hex sha256 token - safe way to mine commit refs from prose without picking up content hashes.",
+      "confidence": "verified",
+      "evidence": "tests/test_doctrine_metrics.py",
+      "kind": "gotcha"
+    }
+  ],
+  "next_actions": [
+    "Attach the enriched scorecard to the next G7 retro",
+    "Consider enrichment in CI so HITL trend stays current per push"
+  ],
+  "open_threads": [
+    "Push pending: README, v0.6.0, checkpoint 5, v0.6.1, checkpoint 6 + two tags (human: git push --follow-tags)"
+  ],
+  "seq": 6,
+  "session_id": "s-2026-07-12-a",
+  "task_refs": [
+    "metrics-integration"
+  ]
+}

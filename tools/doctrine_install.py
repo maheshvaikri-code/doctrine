@@ -65,6 +65,13 @@ class Report:
 def copy_file(src: Path, dest: Path, target: Path, report: Report,
               force: bool) -> None:
     data = src.read_bytes()
+    if dest.is_symlink():
+        # never write through a link we didn't create
+        if not force:
+            report.skipped_diff.append(dest.relative_to(target).as_posix()
+                                       + " (symlink)")
+            return
+        dest.unlink()
     if dest.exists():
         if dest.read_bytes() == data:
             report.skipped_same += 1
@@ -88,18 +95,23 @@ def copy_tree(src_dir: Path, dest_dir: Path, target: Path, report: Report,
 
 def append_lines(path: Path, lines: list[str], header: str | None,
                  report: Report, target: Path) -> None:
-    """Append only the missing lines; never rewrite existing content."""
-    existing = path.read_text("utf-8") if path.exists() else ""
-    missing = [ln for ln in lines if ln not in existing.splitlines()]
+    """Append only the missing lines; existing content is preserved
+    byte-exactly, including its newline style (CRLF files stay CRLF)."""
+    existing = path.read_bytes().decode("utf-8") if path.exists() else ""
+    nl = "\r\n" if "\r\n" in existing else "\n"
+    present = {ln.strip("\r") for ln in existing.splitlines()}
+    missing = [ln for ln in lines if ln not in present]
     if not missing:
         report.skipped_same += 1
         return
-    block = ("" if not existing else "\n") if existing.endswith("\n") or \
-        not existing else "\n"
-    text = existing + block
+    text = existing
+    if text and not text.endswith(("\n",)):
+        text += nl
+    if text:
+        text += nl  # one blank line before the appended block
     if header and header not in existing:
-        text += header + "\n"
-    text += "\n".join(missing) + "\n"
+        text += header + nl
+    text += nl.join(missing) + nl
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(text.encode("utf-8"))
     report.copied.append(path.relative_to(target).as_posix())
@@ -111,8 +123,14 @@ def install(source: Path, target: Path, tools: list[str],
         print(f"error: {source} is not a doctrine source tree "
               "(.Doctrine.md missing)", file=sys.stderr)
         return 2
-    if source.resolve() == target.resolve():
+    src_res, tgt_res = source.resolve(), target.resolve()
+    if src_res == tgt_res:
         print("error: target is the source tree itself", file=sys.stderr)
+        return 2
+    if src_res in tgt_res.parents or tgt_res in src_res.parents:
+        print("error: source and target must not nest (installing into a "
+              "subdirectory of the source re-ingests itself on rerun)",
+              file=sys.stderr)
         return 2
     unknown = [t for t in tools if t not in ADAPTERS and t != "all"]
     if unknown:

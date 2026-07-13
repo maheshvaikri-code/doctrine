@@ -6,6 +6,34 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-12
+
+### Added
+- **Packaged distribution** (`.Doctrine/05-packaging.md`):
+  `tools/doctrine_install.py` installs the law + enforcement suite into
+  any repo (idempotent, append-never-replace, never clobbers without
+  `--force`, per-tool adapters, `--enterprise`/`--ci`);
+  `tools/doctrine_mcp.py` — stdlib stdio MCP server exposing
+  lint/state/gold tools to Claude Code, Codex, Cursor, Windsurf,
+  Copilot, Gemini and any MCP-capable agent; **Claude Code plugin**
+  (`/plugin marketplace add` → `/plugin install doctrine`) with
+  /doctrine-init, /doctrine-verify, /gold-check, /checkpoint, 14
+  subagents, guarded SessionStart hook, bundled MCP config — plugin
+  wiring is byte-parity with `.claude/`, enforced by new lint checks;
+  `pyproject.toml` builds the `doctrineos` wheel (publish human-gated).
+- LICENSE (MIT). Version-sync lint: plugin manifest, pyproject, and MCP
+  serverInfo must match the `.Doctrine.md` header.
+
+### Fixed (review round #4: security SIGN-OFF; code REQUEST-CHANGES → fixed)
+- Consumer repos now verify clean out of the box: lint skips
+  source-repo-only checks (plugin parity, CHANGELOG sync) where those
+  files don't exist, survives missing files as findings not crashes.
+- MCP server no longer dies on malformed input: non-object lines/params/
+  arguments and unknown/missing tool args are JSON-RPC errors; raw-line
+  RecursionError caught; 5 MB line bound; serve-loop catch-all.
+- Installer: refuses nested source/target (self-ingestion), preserves
+  CRLF in appended files, never writes through symlinks without --force.
+
 ## [0.4.0] - 2026-07-12
 
 ### Added

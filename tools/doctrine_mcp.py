@@ -31,8 +31,12 @@ import doctrine_lint  # noqa: E402
 import doctrine_state  # noqa: E402
 
 PROTOCOL_VERSION = "2025-06-18"
+KNOWN_PROTOCOLS = {"2024-11-05", "2025-03-26", "2025-06-18"}
 SERVER_INFO = {"name": "doctrineos", "version": "0.5.0"}
+MAX_LINE_BYTES = 5_000_000
 NO_ARGS = {"type": "object", "properties": {}, "additionalProperties": False}
+REQUIRED_ARGS = {"state_checkpoint": ["proposal_json"],
+                 "gold_record": ["proposal_json"], "gold_check": ["tag"]}
 
 TOOLS = [
     {"name": "doctrine_lint",
@@ -137,9 +141,12 @@ def handle(root: Path, message: dict) -> dict | None:
     method = message.get("method")
     msg_id = message.get("id")
     if method == "initialize":
+        params = message.get("params")
+        client_proto = params.get("protocolVersion") \
+            if isinstance(params, dict) else None
         return {"jsonrpc": "2.0", "id": msg_id, "result": {
-            "protocolVersion": message.get("params", {}).get(
-                "protocolVersion", PROTOCOL_VERSION),
+            "protocolVersion": client_proto
+            if client_proto in KNOWN_PROTOCOLS else PROTOCOL_VERSION,
             "capabilities": {"tools": {}},
             "serverInfo": SERVER_INFO}}
     if method in ("notifications/initialized", "notifications/cancelled"):
@@ -149,14 +156,26 @@ def handle(root: Path, message: dict) -> dict | None:
     if method == "tools/list":
         return {"jsonrpc": "2.0", "id": msg_id, "result": {"tools": TOOLS}}
     if method == "tools/call":
-        params = message.get("params", {})
+        params = message.get("params")
+        if not isinstance(params, dict):
+            return {"jsonrpc": "2.0", "id": msg_id, "error": {
+                "code": -32602, "message": "params must be an object"}}
         name = params.get("name", "")
-        try:
-            code, text = call_tool(root, name,
-                                   params.get("arguments") or {})
-        except KeyError:
+        args = params.get("arguments") or {}
+        if not isinstance(args, dict):
+            return {"jsonrpc": "2.0", "id": msg_id, "error": {
+                "code": -32602, "message": "arguments must be an object"}}
+        if name not in {t["name"] for t in TOOLS}:
             return {"jsonrpc": "2.0", "id": msg_id, "error": {
                 "code": -32602, "message": f"unknown tool: {name}"}}
+        missing = [a for a in REQUIRED_ARGS.get(name, [])
+                   if not isinstance(args.get(a), str)]
+        if missing:
+            return {"jsonrpc": "2.0", "id": msg_id, "error": {
+                "code": -32602,
+                "message": f"{name}: missing/invalid argument(s): "
+                           f"{', '.join(missing)}"}}
+        code, text = call_tool(root, name, args)
         return {"jsonrpc": "2.0", "id": msg_id, "result": {
             "content": [{"type": "text",
                          "text": text.strip() or f"(exit {code})"}],
@@ -173,14 +192,30 @@ def serve(root: Path) -> int:
         line = line.strip()
         if not line:
             continue
+        if len(line.encode("utf-8", "replace")) > MAX_LINE_BYTES:
+            print(json.dumps({"jsonrpc": "2.0", "id": None, "error": {
+                "code": -32700,
+                "message": f"line exceeds {MAX_LINE_BYTES} bytes"}}),
+                flush=True)
+            continue
         try:
             message = json.loads(line)
-        except json.JSONDecodeError:
-            reply = {"jsonrpc": "2.0", "id": None, "error": {
-                "code": -32700, "message": "parse error"}}
-            print(json.dumps(reply), flush=True)
+        except (json.JSONDecodeError, RecursionError):
+            print(json.dumps({"jsonrpc": "2.0", "id": None, "error": {
+                "code": -32700, "message": "parse error"}}), flush=True)
             continue
-        reply = handle(root, message)
+        if not isinstance(message, dict):
+            # includes JSON-RPC batch arrays, which MCP stdio does not use
+            print(json.dumps({"jsonrpc": "2.0", "id": None, "error": {
+                "code": -32600,
+                "message": "request must be a single JSON object"}}),
+                flush=True)
+            continue
+        try:
+            reply = handle(root, message)
+        except Exception as exc:  # the serve loop itself never dies
+            reply = {"jsonrpc": "2.0", "id": message.get("id"), "error": {
+                "code": -32603, "message": f"internal error: {exc!r}"}}
         if reply is not None:
             print(json.dumps(reply), flush=True)
     return 0

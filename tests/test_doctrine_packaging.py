@@ -13,6 +13,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 
 import doctrine_install as di  # noqa: E402
+import doctrine_lint as dl  # noqa: E402
 
 
 class TestInstaller(unittest.TestCase):
@@ -91,6 +92,28 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(di.install(REPO, REPO, ["claude"], False, False,
                                     False), 2)
 
+    def test_nested_source_target_refused(self):
+        """Regression: PD-4/IN-2 — self-ingestion on rerun."""
+        self.assertEqual(di.install(REPO, REPO / "consumer", ["claude"],
+                                    False, False, False), 2)
+        self.assertFalse((REPO / "consumer").exists())
+
+    def test_installed_target_lints_clean(self):
+        """Regression: PD-1 — a consumer repo must verify out of the box
+        (no CHANGELOG, no plugin/ — source-repo-only checks skip)."""
+        self.assertEqual(self.install(), 0)
+        self.assertEqual(dl.main([str(self.target)]), 0)
+
+    def test_append_preserves_crlf(self):
+        """Regression: PD-5 — same class as v0.3.0's D-2."""
+        self.target.mkdir(parents=True)
+        (self.target / "CLAUDE.md").write_bytes(
+            b"# Mine\r\n\r\nkeep-crlf\r\n")
+        self.install()
+        raw = (self.target / "CLAUDE.md").read_bytes()
+        self.assertIn(b"keep-crlf\r\n", raw)
+        self.assertIn(b"@.Doctrine.md\r\n", raw)
+
 
 class TestMcpServer(unittest.TestCase):
     """Protocol-level test over a real stdio subprocess against this repo
@@ -128,8 +151,9 @@ class TestMcpServer(unittest.TestCase):
                           "params": {"name": "state_status",
                                      "arguments": {}}})
             self.assertFalse(status["result"]["isError"])
-            self.assertIn("checkpoint seq",
-                          status["result"]["content"][0]["text"])
+            text = status["result"]["content"][0]["text"]
+            self.assertTrue("checkpoint seq" in text
+                            or "no state plane" in text, text)
 
             gold = rpc({"jsonrpc": "2.0", "id": 4, "method": "tools/call",
                         "params": {"name": "gold_check",
@@ -144,6 +168,27 @@ class TestMcpServer(unittest.TestCase):
 
             bad = rpc({"jsonrpc": "2.0", "id": 6, "method": "no/such"})
             self.assertEqual(bad["error"]["code"], -32601)
+
+            # Regression: PD-2/MCP-1 — malformed input never kills the loop
+            for raw in ("[]", '"just a string"', "42", "null",
+                        "[" * 3000 + "]" * 3000):
+                proc.stdin.write(raw + "\n")
+                proc.stdin.flush()
+                reply = json.loads(proc.stdout.readline())
+                self.assertIn("error", reply, raw[:20])
+            string_params = rpc({"jsonrpc": "2.0", "id": 7,
+                                 "method": "tools/call",
+                                 "params": "state_status"})
+            self.assertEqual(string_params["error"]["code"], -32602)
+            missing_arg = rpc({"jsonrpc": "2.0", "id": 8,
+                               "method": "tools/call",
+                               "params": {"name": "gold_check",
+                                          "arguments": {}}})
+            self.assertEqual(missing_arg["error"]["code"], -32602)
+            self.assertIn("tag", missing_arg["error"]["message"])
+            alive = rpc({"jsonrpc": "2.0", "id": 9, "method": "ping"})
+            self.assertEqual(alive.get("result"), {},
+                             "server must survive all of the above")
         finally:
             proc.stdin.close()
             proc.wait(timeout=15)

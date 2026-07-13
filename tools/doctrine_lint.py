@@ -46,8 +46,8 @@ def check_references(root: Path, findings: list[str]) -> None:
                 continue
             if not ((doctrine / ref).exists()
                     or (doctrine / "standards" / ref).exists()):
-                findings.append(f"{f.relative_to(root)}: broken reference "
-                                f"`{ref}`")
+                findings.append(f"{f.relative_to(root).as_posix()}: "
+                                f"broken reference `{ref}`")
 
 
 def check_roles(root: Path, findings: list[str]) -> None:
@@ -100,16 +100,40 @@ def check_counts(root: Path, findings: list[str]) -> None:
 
 
 def check_version(root: Path, findings: list[str]) -> None:
-    head = (root / ".Doctrine.md").read_text("utf-8").splitlines()[0]
-    m_doc = re.search(r"v(\d+\.\d+\.\d+)", head)
-    m_log = re.search(r"^## \[(\d+\.\d+\.\d+)\]",
-                      (root / "CHANGELOG.md").read_text("utf-8"),
-                      re.MULTILINE)
-    if not m_doc or not m_log:
-        findings.append("version: header or CHANGELOG release not found")
-    elif m_doc.group(1) != m_log.group(1):
-        findings.append(f"version desync: .Doctrine.md v{m_doc.group(1)} "
-                        f"!= CHANGELOG {m_log.group(1)}")
+    doctrine = root / ".Doctrine.md"
+    if not doctrine.exists():
+        findings.append("version: .Doctrine.md missing at repo root")
+        return
+    m_doc = re.search(r"v(\d+\.\d+\.\d+)",
+                      doctrine.read_text("utf-8").splitlines()[0])
+    if not m_doc:
+        findings.append("version: no vX.Y.Z in the .Doctrine.md header")
+        return
+    version = m_doc.group(1)
+    # CHANGELOG sync — only when the repo keeps one (consumers may not yet)
+    changelog = root / "CHANGELOG.md"
+    if changelog.exists():
+        m_log = re.search(r"^## \[(\d+\.\d+\.\d+)\]",
+                          changelog.read_text("utf-8"), re.MULTILINE)
+        if m_log and m_log.group(1) != version:
+            findings.append(f"version desync: .Doctrine.md v{version} "
+                            f"!= CHANGELOG {m_log.group(1)}")
+    # packaging manifests sync (05-packaging versioning rule) — each
+    # checked only where present (source repo has them, consumers may not)
+    carriers = [
+        (root / "plugin" / ".claude-plugin" / "plugin.json",
+         r'"version":\s*"(\d+\.\d+\.\d+)"'),
+        (root / "pyproject.toml", r'version = "(\d+\.\d+\.\d+)"'),
+        (root / "tools" / "doctrine_mcp.py",
+         r'"version":\s*"(\d+\.\d+\.\d+)"'),
+    ]
+    for path, pattern in carriers:
+        if not path.exists():
+            continue
+        m = re.search(pattern, path.read_text("utf-8"))
+        if m and m.group(1) != version:
+            findings.append(f"version desync: {path.name} {m.group(1)} "
+                            f"!= .Doctrine.md v{version}")
 
 
 def check_templates(root: Path, findings: list[str]) -> None:
@@ -121,6 +145,9 @@ def check_templates(root: Path, findings: list[str]) -> None:
 def check_plugin_parity(root: Path, findings: list[str]) -> None:
     """The Claude Code plugin ships byte-copies of the repo wiring; two
     synced copies are a drift hazard, so parity is a hard gate."""
+    if not (root / "plugin").exists() and \
+            not (root / ".claude-plugin").exists():
+        return  # consumer repo: the plugin ships from the source repo only
     pairs = [(root / ".claude" / "agents", root / "plugin" / "agents"),
              (root / ".claude" / "commands" / "checkpoint.md",
               root / "plugin" / "commands" / "checkpoint.md")]
@@ -162,9 +189,13 @@ def check_plugin_parity(root: Path, findings: list[str]) -> None:
 def check_state_plane(root: Path, findings: list[str]) -> None:
     plane = root / ".Doctrine" / "state-plane"
     for name in ("checkpoint", "distillate"):
-        schema = json.loads(
-            (plane / "schemas" / f"{name}.schema.json").read_text("utf-8"))
+        schema_path = plane / "schemas" / f"{name}.schema.json"
         example = plane / "examples" / f"{name}.example.json"
+        if not schema_path.exists() or not example.exists():
+            findings.append(f"state-plane: {name} schema or example "
+                            "missing")
+            continue
+        schema = json.loads(schema_path.read_text("utf-8"))
         raw = example.read_bytes()
         data = json.loads(raw.decode("utf-8"))
         try:
@@ -182,7 +213,10 @@ def main(argv: list[str] | None = None) -> int:
     for check in (check_references, check_roles, check_skills, check_agents,
                   check_counts, check_version, check_templates,
                   check_state_plane, check_plugin_parity):
-        check(root, findings)
+        try:
+            check(root, findings)
+        except Exception as exc:  # a crashed check is a finding, not a crash
+            findings.append(f"internal: {check.__name__} crashed: {exc!r}")
     if findings:
         print(f"doctrine_lint: {len(findings)} finding(s):")
         for msg in findings:

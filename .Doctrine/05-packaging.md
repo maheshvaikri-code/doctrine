@@ -41,7 +41,9 @@ is a deliberate act. `--enterprise` seeds the merge/promotion profile.
 
 `pyproject.toml` builds a `doctrineos` wheel with console scripts
 (`doctrine-state`, `doctrine-lint`, `doctrine-gold`, `doctrine-mcp`,
-`doctrine-install`) for `pipx install` distribution. **Publishing to
+`doctrine-install`) for `pipx install` distribution. The wheel carries
+the TOOLS only — the law travels by repo: `doctrine-install` needs a
+doctrine source tree (`--source <clone of this repo>`). **Publishing to
 PyPI or any registry is an external action: explicit human go required**
 (`.Doctrine.md` section 5), through the G6 release checklist — and on an
 enterprise repo, from a gold record.

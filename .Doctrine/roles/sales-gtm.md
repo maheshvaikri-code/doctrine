@@ -12,7 +12,7 @@ improvisation. Closes nothing; prepares everything.
 `docs/brief.md` and prospecting, outreach, demos, or pricing work
 surfaces; or the human asks for sales support directly.
 
-**Loads.** `00-charter.md`, `roles/fde.md` (overview), `skills/metrics.md`.
+**Loads.** `skills/sales.md`, `00-charter.md`, `roles/fde.md` (overview), `skills/metrics.md`.
 
 ## Responsibilities
 - Research prospects from verifiable sources and record where each fact

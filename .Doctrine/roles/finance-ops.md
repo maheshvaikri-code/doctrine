@@ -12,7 +12,7 @@ moves information about money; it never moves money.
 `docs/brief.md` and budgets, costs, runway, or spend questions surface;
 or the human asks for finance work directly.
 
-**Loads.** `00-charter.md`, `skills/metrics.md`, `skills/iac.md`.
+**Loads.** `skills/finance.md`, `00-charter.md`, `skills/metrics.md`, `skills/iac.md`.
 
 ## Responsibilities
 - Track runway and burn, monthly at minimum: cash measured from

@@ -12,7 +12,7 @@ role finds issues; it does not practice law.
 `docs/brief.md` and contracts, terms, policies, or filings surface; or
 the human asks for legal-ops work directly.
 
-**Loads.** `skills/privacy-compliance.md`, `roles/compliance-officer.md`
+**Loads.** `skills/legal-basics.md`, `skills/privacy-compliance.md`, `roles/compliance-officer.md`
 (the engineering-side counterpart).
 
 ## Responsibilities

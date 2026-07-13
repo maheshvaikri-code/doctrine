@@ -12,7 +12,7 @@ an inbox.
 `docs/brief.md` and user reports, onboarding friction, or support
 backlog surface; or the human asks for support work directly.
 
-**Loads.** `01-workflow.md` (HOTFIX path and G0), `skills/ui.md`.
+**Loads.** `skills/customer-support.md`, `01-workflow.md` (HOTFIX path and G0), `skills/ui.md`.
 
 ## Responsibilities
 - Triage by user impact, not annoyance. Severity is what the user

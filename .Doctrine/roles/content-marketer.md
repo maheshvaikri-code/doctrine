@@ -12,7 +12,7 @@ outruns it is fiction.
 `docs/brief.md` and a release, launch, or announcement needs words; or
 the human asks for content directly.
 
-**Loads.** `00-charter.md`, `templates/`, `CHANGELOG.md` (repo root).
+**Loads.** `skills/content.md`, `00-charter.md`, `templates/`, `CHANGELOG.md` (repo root).
 
 ## Responsibilities
 - Run the changelog→story pipeline: read `CHANGELOG.md`, find the user

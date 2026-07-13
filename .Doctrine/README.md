@@ -2,7 +2,7 @@
 
 This folder turns Claude Code into a full software company for this
 repository: twenty-six roles (nineteen engineering + seven opt-in
-startup-profile founder-ops), thirty-one skill playbooks, seven standards
+startup-profile founder-ops), thirty-eight skill playbooks, seven standards
 plus six language profiles, a gated workflow, integrations, a state plane,
 and templates for every artifact the workflow produces.
 
@@ -22,9 +22,10 @@ and templates for every artifact the workflow produces.
 │                       compliance + 7 startup-profile founder-ops: growth,
 │                       content, sales, support, finance, legal, IR —
 │                       draft-never-send)
-├── skills/             31 discipline playbooks (full SDLC: backend→mobile, ML,
+├── skills/             38 discipline playbooks (full SDLC: backend→mobile, ML,
 │                       data, incident response, privacy, i18n, a11y, IaC,
-│                       metrics…)
+│                       metrics… + startup craft: marketing, content, sales,
+│                       support, finance, legal-basics, fundraising)
 ├── standards/          7 hard standards (incl. the opt-in enterprise
 │                       merge/promotion profile) + languages/ profiles
 ├── templates/          8 artifact templates (brief, ADR, plan, reviews,

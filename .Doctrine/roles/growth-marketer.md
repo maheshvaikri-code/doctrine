@@ -12,7 +12,7 @@ labeled a hypothesis — never neither.
 `docs/brief.md` and positioning, channel, launch, or funnel work
 surfaces; or the human asks for marketing strategy directly.
 
-**Loads.** `00-charter.md`, `skills/metrics.md`.
+**Loads.** `skills/marketing.md`, `skills/content.md`, `00-charter.md`, `skills/metrics.md`.
 
 ## Responsibilities
 - Write positioning that survives contact with the product: what it

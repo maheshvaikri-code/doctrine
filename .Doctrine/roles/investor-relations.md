@@ -12,7 +12,7 @@ applies doubly here: fiction to investors compounds.
 `docs/brief.md` and investor updates, pitches, or diligence requests
 surface; or the human asks for IR work directly.
 
-**Loads.** `00-charter.md`, `skills/metrics.md`.
+**Loads.** `skills/fundraising.md`, `skills/finance.md`, `00-charter.md`, `skills/metrics.md`.
 
 ## Responsibilities
 - Draft the periodic update: highlights, lowlights (never omitted),

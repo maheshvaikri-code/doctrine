@@ -6,6 +6,23 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-07-13
+
+### Added
+- **Startup craft skills** — the discipline layer under the v0.6.7
+  founder-ops roles, house format, seven playbooks: `marketing`
+  (positioning is one sentence; a launch is a release, apology draft
+  pre-written), `content` (write from the CHANGELOG outward; every
+  claim carries a claims-table row for pre-send review), `sales`
+  (FDE-scripted demos rehearsed to hash-stable; verbatim CRM notes;
+  lost-deal truth feeds G0), `customer-support` (severity = user
+  impact; reproduce before routing), `finance` (runway from measured
+  burn, never hope-math; measured|estimated|projected labels survive
+  quotation), `legal-basics` (obligations register; policy must match
+  the actual data map; never practices law), `fundraising` (KPIs
+  defined once and stable; lowlights as prominent as highlights).
+  Role Loads wired; skill count 31 → 38.
+
 ## [0.6.7] - 2026-07-13
 
 ### Added

@@ -688,3 +688,103 @@ no injection, no unauthorized-publish path. Combined with all prior sign-offs, v
 cleared.
 
 -- Security Reviewer, 2026-07-12
+
+---
+
+# DELTA AUDIT (v0.6.2 state-plane concurrency, commit 4c18431) - 2026-07-12
+
+Security pass on the lease + fork-detection + merge (concurrency) additions to
+doctrine_state.py and the STATE.md 0.3.0 concurrency section. All probes run against
+live code on temp git repos.
+
+## 1. Advisory lease - honest, but the corrupt-lease path can crash
+
+- Honesty: STATE.md 0.3.0 scopes the lease correctly - local/lease.json is
+  [gitignored, never travels], guards [chain APPEND only], is same-worktree, and
+  cross-clone concurrency is explicitly framed as fork+merge; --steal is [deliberate
+  and loud]. The code comments match (same-worktree coordination; cross-clone surfaces
+  as a fork). It never claims to stop a hostile writer. Not oversold. (Nit: the literal
+  word "advisory" would make it even clearer, but the substance is honest.)
+- Finding LE-1 (dispositioned, non-blocking): check_lease parses lease.json with raw
+  json.loads catching only JSONDecodeError/UnicodeDecodeError - NOT via the hardened
+  load_json. A crafted deep-nested lease crashed the check path with an uncaught
+  RecursionError (reproduced), and the file is read unbounded (no 5 MB cap). Severity is
+  low: lease.json lives in local/ (gitignored), so it never arrives via a clone/PR - a
+  malicious lease needs local filesystem write access, and the failure is loud (crash,
+  not silent). Fix is trivial and matches the rest of the codebase: route check_lease
+  through load_json (which bounds size and catches RecursionError).
+
+## 2. cmd_merge - filename-gated, history-preserving, human-authoritative
+
+- Crafted --loser: CHECKPOINT_FILE_RE gates loser_name FIRST; every traversal/malformed
+  input (../../etc/passwd, /etc/x, 0-XYZ.json, evil.json, trailing /..) was rejected
+  before any path use. No traversal.
+- Empty-remaining repoint: guarded by [if head ...]; siblings are guaranteed non-empty
+  (else [not forked] StateError), so no crash.
+- Forged-head question: merge archives the LOSER under forks/ (history never deleted)
+  and repoints checkpoint.json to the surviving head WITHOUT authenticity checks - it
+  only PRINTS [run: verify] and does not run verify itself (confirmed by source). The
+  winner's authenticity is NOT established by merge, and verify cannot distinguish a
+  forged-but-well-formed head from an honest one (both are valid canonical hash-chains):
+  the authority is the operator's merge choice plus git provenance. This is an inherent,
+  honestly-documented limitation of leaf-fork resolution - merge grants no capability an
+  attacker with write access lacks (they could delete files directly), and it preserves
+  the loser auditable under forks/. Defense in depth: hydrate (the state consumer)
+  mandatorily re-runs verify and REFUSES on any finding, so unverified state never
+  reaches an agent through the normal path.
+- Recommendations (non-blocking): (a) have merge run verify_findings itself after
+  repointing and print a loud PASS/FAIL instead of only advising - make the safety step
+  mandatory; (b) merge should skip archiving a distillate still referenced by the
+  surviving head. On a crafted/degenerate fork where the loser shares the winner's
+  distillate sha, merge archived the still-referenced distillate -> state_index desync;
+  this FAILS CLOSED (verify rc=1, hydrate refuses), and real independent forks carry
+  distinct distillates (verified: a clean independent fork merges to a linear chain,
+  post-merge verify rc=0, winner distillate intact, hydrate rc=0).
+
+## 3. Fork early-return before schema/canonical checks - safe
+
+verify_findings appends the CHAIN FORKED finding and early-returns BEFORE the per-file
+canonical/schema/chain checks (a linear walk is meaningless on a fork). Confirmed nothing
+downstream trusts the unvalidated forked content: on a fork, verify rc=1, cmd_hydrate
+calls verify_findings first and REFUSES ([refusing to hydrate: chain verification
+failed]) with NO bundle written; build_bundle_body is unreachable while forked; status
+prints UNVERIFIED. A fork is a loud full stop.
+
+## 4. Salvage path - poisoned loser content re-scanned at the consuming checkpoint
+
+merge stages the loser's dead_ends into pending-dead-ends.json (written WITHOUT scanning
+at merge time). The NEXT checkpoint loads pending, merges it into the new distillate, and
+runs validate + _scan_secrets (SECRET_RES + MARKER_RES) over the merged dead_ends.
+Confirmed: a poisoned salvaged dead_end (an AKIA secret and an HTML-comment marker) was
+REJECTED at re-checkpoint, nothing was written (fail-closed). pending-dead-ends.json is
+excluded from the hydration bundle (DISTILLATE_FILE_RE requires a <seq> prefix), so the
+poison cannot reach the bundle before it is scanned. The guard holds through the salvage
+path. Minor: a poisoned pending file soft-locks future checkpoints until it is cleared
+(self-inflicted, fail-closed); recommend merge scan/quarantine salvaged dead_ends at
+merge time too, so the poison is rejected earlier rather than deferred.
+
+## Residual findings register (all non-blocking)
+
+| ID    | Sev  | Area        | Disposition                                                  |
+|-------|------|-------------|--------------------------------------------------------------|
+| LE-1  | Low  | Robustness  | Route check_lease through load_json (bounds size, catches RecursionError). Local-only (gitignored lease); fail-loud. |
+| MG-1  | Low  | Merge/UX    | merge should run verify itself (loud PASS/FAIL), not only advise; document that it trusts the operator's winner choice. |
+| MG-2  | Low  | Merge       | merge should skip archiving a distillate the surviving head still references (fail-closed today). |
+| SV-1  | Info | Salvage     | Optionally scan/quarantine salvaged dead_ends at merge time to avoid the pending soft-lock. |
+
+## VERDICT: SIGN-OFF (v0.6.2 concurrency delta cleared)
+
+The concurrency model is sound and honest. The lease is accurately documented as
+same-worktree, gitignored, append-guarding coordination - it does not pretend to stop a
+hostile writer. Fork detection is a loud full stop that hydrate mandatorily honors, so no
+unvalidated forked content is ever consumed. cmd_merge is filename-gated (no traversal),
+never deletes history (loser archived under forks/), and is an honest human-in-the-loop
+resolver whose winner is re-verified by the hydrate consumer. The salvage path re-scans
+poisoned loser content at the consuming checkpoint and rejects secrets/markers
+fail-closed. The four residual items (LE-1 lease hardening; MG-1 mandatory post-merge
+verify; MG-2 shared-distillate archive guard; SV-1 earlier salvage scan) are low-severity
+hardening/robustness improvements, all fail-closed today, none blocking release. No
+traversal, no injection, no unvalidated-state consumption, no dishonest documentation.
+Combined with all prior sign-offs, v0.6.2 is cleared.
+
+-- Security Reviewer, 2026-07-12

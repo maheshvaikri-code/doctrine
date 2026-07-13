@@ -119,9 +119,9 @@ Closes audit gap #1: the chain was linear with no lease/merge protocol.
     definition operates on a chain where the lease already failed -
     guarding them would be ceremony without protection.*
 22. **[Backend] Fork detection** (cross-clone concurrency arrives via
-    git as duplicate files): verify() detects duplicate seq AND
-    duplicate prev_sha256 as explicit "CHAIN FORKED" findings naming
-    both heads; forks/ archive subdirs exempt from stray-file findings;
+    git as duplicate files): verify() detects duplicate seq as explicit
+    "CHAIN FORKED" findings naming both heads (same-head reunions
+    always collide on seq — SC-2 corrected this slice's wording); forks/ archive subdirs exempt from stray-file findings;
     hydrate already refuses on any verify finding, so a fork is a loud
     full stop, never silent divergence.
 23. **[Backend] `state merge --loser <file>`**: leaf-fork resolution -

@@ -427,6 +427,56 @@ class TestConcurrency(TempRepo):
                       {e["approach"] for e in latest["dead_ends"]},
                       "the losing session's negatives must survive")
 
+    def test_merge_refuses_malformed_loser(self):
+        """Regression: SC-1 — merge is run on damaged chains; it must
+        StateError, never raw-KeyError."""
+        ones = self.make_fork()
+        victim = self.plane.checkpoints / ones[0]
+        victim.write_bytes(ds.canonical_bytes({"not": "a checkpoint"}))
+        with self.assertRaises(ds.StateError):
+            ds.cmd_merge(self.plane, ones[0])
+
+    def test_deep_lease_warns_and_proceeds(self):
+        """Regression: LE-1 — a crafted lease must not crash the
+        (advisory) check path."""
+        self.checkpoint()
+        (self.plane.local / "lease.json").write_text(
+            "[" * 3000 + "]" * 3000, encoding="utf-8")
+        self.assertEqual(self.checkpoint(), 0)
+
+    def test_poisoned_pending_fails_closed(self):
+        """Regression: SV-1 context — a poisoned pending file blocks the
+        consuming checkpoint loudly (and merge now filters at source)."""
+        self.checkpoint()
+        pending = self.plane.distillates / "pending-dead-ends.json"
+        pending.write_bytes(ds.canonical_bytes({"dead_ends": [
+            {"approach": "leak AKIAIOSFODNN7EXAMPLE key",
+             "why_failed": "x"}]}))
+        with self.assertRaises(ds.StateError):
+            self.checkpoint()
+
+    def test_shared_distillate_not_archived_on_merge(self):
+        """Regression: MG-2 — a distillate the surviving head still
+        references stays in place; no state_index desync."""
+        ones = self.make_fork()
+        current_sha = ds.sha256_bytes(self.plane.checkpoint.read_bytes())
+        loser_name = next(
+            n for n in ones
+            if ds.sha256_file(self.plane.checkpoints / n) == current_sha)
+        winner_name = next(n for n in ones if n != loser_name)
+        winner = json.loads(
+            (self.plane.checkpoints / winner_name).read_text("utf-8"))
+        loser_path = self.plane.checkpoints / loser_name
+        loser = json.loads(loser_path.read_text("utf-8"))
+        loser["state_index"]["latest_distillate_sha256"] = \
+            winner["state_index"]["latest_distillate_sha256"]
+        loser_path.write_bytes(ds.canonical_bytes(loser))
+        before = len(ds._distillate_files(self.plane))
+        self.assertEqual(ds.cmd_merge(self.plane, loser_name), 0)
+        self.assertEqual(len(ds._distillate_files(self.plane)), before,
+                         "shared distillate must not be archived")
+        self.assertEqual(ds.cmd_verify(self.plane), 0)
+
     def test_merge_refuses_nonfork(self):
         self.checkpoint()
         name = next(self.plane.checkpoints.glob("0-*.json")).name

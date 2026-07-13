@@ -299,9 +299,13 @@ def check_lease(plane: Plane, session_id: str | None,
     if not path.exists():
         return
     try:
-        lease = json.loads(path.read_text("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
+        lease = load_json(path, "lease")  # bounded, decode-hardened
+    except StateError:
         print("warning: corrupt lease file - overwriting", file=sys.stderr)
+        return
+    if not isinstance(lease, dict):
+        print("warning: malformed lease file - overwriting",
+              file=sys.stderr)
         return
     holder = lease.get("session_id")
     expires = lease.get("expires_at", 0)
@@ -569,7 +573,8 @@ def verify_findings(plane: Plane) -> list[str]:
             if CHECKPOINT_FILE_RE.match(p.name):
                 files.append(p)
             elif p.name != ".gitignore":
-                findings.append(f"stray file in checkpoints/: {p.name}")
+                kind = "directory" if p.is_dir() else "file"
+                findings.append(f"stray {kind} in checkpoints/: {p.name}")
     files.sort(key=lambda p: int(p.name.split("-", 1)[0]))
 
     # fork detection: concurrent writers (usually two clones reunited by
@@ -961,8 +966,9 @@ def cmd_hydrate(plane: Plane, check: bool = False,
 
 
 def cmd_prune(plane: Plane, keep: int) -> int:
-    # no lease check: prune only stages pending dead-ends, which are
-    # consumed by the next (lease-guarded) checkpoint
+    # no lease check: prune removes retained distillates (chain-safe -
+    # they are not chain links) and stages their dead_ends into the
+    # pending file consumed by the next (lease-guarded) checkpoint
     if keep < 1:
         raise StateError("--keep must be >= 1")
     files = _distillate_files(plane)
@@ -997,6 +1003,12 @@ def cmd_merge(plane: Plane, loser_name: str) -> int:
     if not loser_path.exists():
         raise StateError(f"no such checkpoint: {loser_name}")
     loser = load_json(loser_path, "checkpoint")
+    if not isinstance(loser, dict) \
+            or not isinstance(loser.get("seq"), int) \
+            or not isinstance(loser.get("state_index"), dict):
+        raise StateError(f"{loser_name} is not a well-formed checkpoint - "
+                         "merge cannot reason about it; repair or remove "
+                         "it by hand")
     seq = loser["seq"]
 
     files = [p for p in plane.checkpoints.iterdir()
@@ -1007,9 +1019,12 @@ def cmd_merge(plane: Plane, loser_name: str) -> int:
     if not siblings:
         raise StateError(f"seq {seq} is not forked - nothing to merge")
     loser_sha = sha256_file(loser_path)
-    children = [p.name for p in files
-                if load_json(p, "checkpoint").get("prev_sha256")
-                == loser_sha]
+
+    def _prev_of(p: Path) -> str | None:
+        data = load_json(p, "checkpoint")
+        return data.get("prev_sha256") if isinstance(data, dict) else None
+
+    children = [p.name for p in files if _prev_of(p) == loser_sha]
     if children:
         raise StateError(f"{loser_name} has descendant(s) "
                          f"{', '.join(sorted(children))} - forks merge "
@@ -1020,14 +1035,27 @@ def cmd_merge(plane: Plane, loser_name: str) -> int:
     forks.mkdir(parents=True, exist_ok=True)
     loser_path.rename(forks / loser_name)
     dist_sha = loser["state_index"].get("latest_distillate_sha256")
+    survivors = [p for p in plane.checkpoints.iterdir()
+                 if CHECKPOINT_FILE_RE.match(p.name)]
+    still_referenced = any(
+        (lambda d: isinstance(d, dict) and d.get("state_index", {})
+         .get("latest_distillate_sha256") == dist_sha)(
+            load_json(p, "checkpoint")) for p in survivors)
     salvage: dict = {}
-    for d in _distillate_files(plane):
-        if sha256_file(d) == dist_sha:
-            salvage = load_json(d, "distillate")
-            dist_forks = plane.distillates / "forks"
-            dist_forks.mkdir(parents=True, exist_ok=True)
-            d.rename(dist_forks / d.name)
-            break
+    if still_referenced:
+        print("note: loser's distillate is shared with a surviving head - "
+              "left in place, nothing to salvage")
+    else:
+        for d in _distillate_files(plane):
+            if sha256_file(d) == dist_sha:
+                salvage = load_json(d, "distillate")
+                dist_forks = plane.distillates / "forks"
+                dist_forks.mkdir(parents=True, exist_ok=True)
+                d.rename(dist_forks / d.name)
+                break
+        else:
+            print("note: loser's distillate not found (already pruned?) - "
+                  "nothing to salvage")
 
     # repoint checkpoint.json to the winning head if it named the loser
     remaining = sorted(
@@ -1039,8 +1067,18 @@ def cmd_merge(plane: Plane, loser_name: str) -> int:
                  or plane.checkpoint.read_bytes() != head.read_bytes()):
         plane.checkpoint.write_bytes(head.read_bytes())
 
-    # salvage: dead_ends survive mechanically via the pending file
-    ends = salvage.get("dead_ends", [])
+    # salvage: dead_ends survive mechanically via the pending file —
+    # scanned NOW so a poisoned loser cannot soft-lock future checkpoints
+    ends, rejected = [], 0
+    for end in salvage.get("dead_ends", []):
+        try:
+            _scan_secrets({"dead_ends": [end]})
+            ends.append(end)
+        except StateError:
+            rejected += 1
+    if rejected:
+        print(f"warning: {rejected} salvaged dead_end(s) REJECTED by the "
+              "secret/marker scan and NOT staged", file=sys.stderr)
     if ends:
         pending = plane.distillates / "pending-dead-ends.json"
         existing = load_json(pending, "pending dead-ends").get(
@@ -1061,8 +1099,14 @@ def cmd_merge(plane: Plane, loser_name: str) -> int:
                 text = item.get("claim", item) if isinstance(item, dict) \
                     else item
                 print(f"  - {text}")
-    print("run: verify (the chain must be linear again), then commit "
-          "the merge")
+    # post-merge verify is mandatory, not advisory (security MG-1)
+    post = verify_findings(plane)
+    if post:
+        print(f"MERGE VERIFY FAILED ({len(post)}):")
+        for msg in post:
+            print(f"  - {msg}")
+        return 1
+    print("merge verify OK - chain is linear again; commit the merge")
     return 0
 
 

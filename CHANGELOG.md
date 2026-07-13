@@ -6,6 +6,31 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-12
+
+### Added
+- **State-plane concurrency** (spec 0.3.0) — closes audit gap #1, the
+  linear-chain assumption. Same worktree: an advisory session lease
+  (`local/lease.json`, TTL 1h, gitignored) guards chain append;
+  `checkpoint --steal` takes over loudly. Across clones: `verify`
+  reports `CHAIN FORKED` naming both heads (hydrate refuses — a fork is
+  a loud full stop); `merge --loser` archives the losing head +
+  distillate under `forks/` (history never deleted), repoints to the
+  winning head, salvages the loser's dead_ends into the next
+  checkpoint's pending file (scanned at merge time — a poisoned loser
+  cannot soft-lock the plane), prints learned/open_threads for honest
+  re-proposal, and runs a MANDATORY post-merge verify. Leaf-only;
+  descendants refuse with iterate-from-the-leaf guidance.
+
+### Fixed (review round #5: APPROVE-WITH-NITS + security SIGN-OFF)
+- All findings landed: merge StateErrors cleanly on malformed losers
+  (SC-1), lease parse hardened via load_json (LE-1), post-merge verify
+  mandatory (MG-1), shared distillates never archived (MG-2), salvage
+  scanned at merge (SV-1), plan wording corrected (SC-2), empty salvage
+  and stray-directory messages honest (SC-3/SC-5), prune comment
+  accurate (SC-4). Tests 92 → 96 incl. a genuine two-clone fork
+  simulation and three-way-fork coverage by the reviewer's probes.
+
 ## [0.6.1] - 2026-07-12
 
 ### Added

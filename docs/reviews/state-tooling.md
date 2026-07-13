@@ -677,3 +677,94 @@ checkpointed-plane messages.
   now runs its own advertised verify green end-to-end (82/82 + clean
   lint in the consumer). One cosmetic as_posix leftover noted above.
   v0.5.0 packaging/distribution is good to land.
+
+---
+
+# Delta review — v0.6.2 state-plane concurrency @ 4c18431 — 2026-07-13
+
+**Reviewer role:** Code Reviewer (fresh pass). **Scope:** plan slices 21-25:
+session lease (`check_lease`/`write_lease`, TTL 3600s, `--steal`), fork
+detection in `verify_findings`, `cmd_merge` leaf-fork resolution,
+STATE.md spec 0.3.0 Concurrency section, 6 new tests.
+
+**Executed** (real output):
+
+```
+$ python tools/doctrine_lint.py        -> doctrine_lint: corpus clean (0)
+$ python -m ruff check tools tests     -> All checks passed! (0)
+$ python -m unittest discover -s tests -> Ran 92 tests ... OK
+```
+
+Probes (temp git repos; clones simulated by snapshot/checkpoint/reunite
+- the same union of files a git merge produces):
+
+```
+F1 fork at seq 0 (two genesis files):
+   "CHAIN FORKED at seq 0: <both files> - resolve with: merge --loser"
+   exit 1; merge -> verify OK                              -> PASS
+F2 three-way fork at one seq: finding names all three; first merge
+   leaves a two-way fork (still exit 1, names remaining two); second
+   merge -> verify OK; BOTH losers' dead_ends survived into the next
+   checkpoint's distillate                                 -> PASS
+F3 checkpoint.json stale (matches NEITHER head) + winner extended to
+   seq 2: merge repoints checkpoint.json to seq 2, verify OK; merging
+   the winner-side seq-1 refused                           -> PASS
+F4' ONLY the loser's distillate pruned: merge rc 0, graceful, chain
+   verifies afterwards                                     -> PASS
+F5' partial merge simulated (head file archived, checkpoint.json NOT
+   repointed -> matches no chain file): verify FAILS loudly -> PASS
+F5'' real merge of the file checkpoint.json points at: repointed,
+   verify OK                                               -> PASS
+F6 lease: expires_human == expires_at (honest), TTL in (3590,3600];
+   second session refused with holder+expiry named; corrupt lease ->
+   "warning: corrupt lease file - overwriting" + write proceeds;
+   --steal loud ("lease STOLEN from session 'sess-A'") and takes
+   ownership; expired lease allows                         -> PASS
+F7 junk file inside checkpoints/forks/: chain scan clean (exempt);
+   stray directory in checkpoints/: flagged, verify 1      -> PASS
+Malformed-loser probe: parseable JSON without seq/state_index ->
+   cmd_merge CRASHES with raw KeyError 'seq'               -> SC-1
+```
+
+## Findings (delta v0.6.2)
+
+| # | Sev | Location | Finding | Suggested fix | Resolution |
+|---|-----|----------|---------|---------------|------------|
+| SC-1 | [MINOR] | tools/doctrine_state.py:1000, 1020 (cmd_merge: `loser["seq"]`, `loser["state_index"]`) | A parseable-but-malformed loser file (missing `seq`/`state_index`) crashes merge with a raw KeyError traceback (probe-confirmed). Merge is precisely the tool an operator runs on a damaged chain; its failure paths should be clean StateError exit 2 like every other command. | Guard the field access (`loser.get(...)` + StateError naming the file as malformed), or schema-validate the loser first and report findings. | open |
+| SC-2 | [NIT] | docs/plans/state-tooling.md slice 22; commit message | Both claim fork detection covers "duplicate seq AND duplicate prev_sha256"; the implementation groups by seq only. Behavior is sound - same-head reunions always collide on seq, and the linear walk flags prev anomalies - but the stated mechanism overclaims. | Fix the wording, or add the dup-prev grouping to match it. | open |
+| SC-3 | [NIT] | tools/doctrine_state.py:1023-1030 (salvage loop) | When the loser's distillate is already pruned, merge succeeds with zero indication that nothing was salvaged - the loser's learned/open_threads vanish silently (probe F4'). One honest line ("loser distillate not found - nothing to salvage") fits the house style. | Print the note when salvage stays empty. | open |
+| SC-4 | [NIT] | tools/doctrine_state.py:962-963 (cmd_prune comment) | The no-lease rationale says prune "only stages pending dead-ends" - it also unlinks pruned distillate files. Chain-safe (keep >= 1 preserves the latest, which is the only one state_index pins), but the comment understates the operation. | Extend the comment with the unlink + why it is chain-safe. | open |
+| SC-5 | [NIT] | tools/doctrine_state.py:571 | A stray *directory* in checkpoints/ is reported as "stray file in checkpoints/: notadir". | Say "stray entry". | open |
+
+## What holds (verified by execution)
+
+Fork-on-reunion is a loud full stop end-to-end: verify names every head
+at the forked seq with the exact resolving command, hydrate refuses (via
+the existing verify-first gate), and merge restores a verifying chain in
+every probed topology - genesis fork, three-way fork (iteratively),
+stale-checkpoint.json repoint, winner-extended-past-the-fork, and merging
+the head-pointed file itself. History is never deleted: losers land under
+checkpoints/forks/ + distillates/forks/, both exempt from the chain scan
+(F7), and losers' negatives provably survive into the next checkpoint's
+distillate (F2). The partial-merge failure mode leaves a state verify
+catches loudly (F5'). Lease semantics all verified: honest expiry fields,
+clear refusal naming holder and deadline, corrupt-lease fail-open with a
+warning (correct for an advisory same-machine lock), loud --steal that
+transfers ownership, expired-lease pass-through. The non-leaf refusal
+with iterate-from-the-leaf guidance is test-covered; the leaf-only
+constraint held in all probes. The 6 new tests include a genuine
+two-clone fork simulation; the deviation (lease guards chain append only)
+is logged in the plan with a rationale I find sound - prune's staged
+output funnels through the next guarded checkpoint, and merge by
+definition runs where the lease already failed. STATE.md 0.3.0 matches
+the implementation.
+
+## Delta verdict (v0.6.2)
+
+- [x] **Pass - APPROVE-WITH-NITS.** No BLOCKER, no MAJOR. One MINOR
+  (SC-1: raw KeyError on a malformed loser file - land the guard as an
+  immediate follow-up) and four NITs (plan-wording overclaim, silent
+  empty salvage, prune comment, stray-dir message). The concurrency
+  core - lease, fork detection, merge - is correct in every topology
+  probed, and the loud-stop/never-delete/never-auto-graft design
+  decisions are exactly right for an integrity tool.

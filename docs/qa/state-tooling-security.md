@@ -574,3 +574,117 @@ tag/artifact/verdict/sign-off hashes - no more false provenance assurance. The p
 on doctrine_gold is LIFTED. Combined with all earlier sign-offs, the release is cleared.
 
 -- Security Reviewer, 2026-07-12
+
+---
+
+# DELTA AUDIT (v0.5.0 packaging, commit 73d6f80) - 2026-07-12
+
+Security pass on the packaging surface: doctrine_install.py (writes into other repos),
+doctrine_mcp.py (executes tools on agent request), plugin/hooks/hooks.json (session-start
+auto-run), pyproject/wheel (entry points + publish gating). Baseline: 79 tests pass,
+doctrine_lint clean. All probes run against live code.
+
+## 1. doctrine_install.py (cross-repo writer) - PASS with minor notes
+
+- Never-clobber-without---force: HOLDS. First install rc=0; after a local edit to
+  tools/doctrine_state.py a second install without --force preserved the edit and
+  returned rc=1 (skipped-diff signal); --force overwrote. Existing files with different
+  content are never silently clobbered.
+- Dest is always target/<fixed-rel> or dest_dir/src.relative_to(src_dir); copy_file
+  reports via dest.relative_to(target), which would raise on any escape - writes are
+  bounded to the target. --source is read-only and user-intent; the ADAPTERS map is
+  hardcoded and tool/test copies are bounded globs (test_doctrine_*.py, TOOL_FILES).
+- target == source refused (rc=2); a source without .Doctrine.md refused (rc=2).
+- target as a SUBDIR of source: completed rc=0 with no runaway recursion; source
+  .Doctrine.md untouched.
+- Minor note IN-1: copy_file does not check dest.is_symlink() before write_bytes, so a
+  pre-planted symlink at a dest path could be written THROUGH (to its target) under
+  --force. Could not create a symlink on this Windows host (WinError 1314, needs
+  privilege), so POSIX-only; low severity - the written bytes are fixed doctrine content
+  (not attacker-chosen), requires a pre-planted symlink + --force, and stays within the
+  user's own write scope. Recommend refusing to write through symlinked dests.
+- Minor note IN-2: target==source is guarded but target-UNDER-source is not; a target
+  inside source/.Doctrine/ could self-ingest during rglob. Pathological/user-chosen;
+  recommend also refusing target nested under source.
+
+## 2. doctrine_mcp.py (tool executor) - PASS with one dispositioned finding
+
+- Channel integrity: _run wraps every tool in redirect_stdout+redirect_stderr into a
+  StringIO. Verified this HOLDS when a tool prints THEN raises - the print did NOT reach
+  real stdout, the error was captured into the returned tool text, and stdout was
+  restored to the real object. A tool print can never corrupt the JSON-RPC stream.
+- Guard passthrough: every hardened guard holds through the MCP path - a secret-bearing
+  claim, an HTML-comment/marker open_thread, a bad enum, and an unsafe ../ intent id
+  were all rejected (isError=true) and checkpoint.json was NOT written. gold_check routes
+  the tag through require_tag_format; proposals route through the same
+  validate/_scan_secrets/chain-verify as the CLI. No bypass.
+- Tempfile flow: NamedTemporaryFile (0600 on POSIX) written then unlinked in a finally;
+  a rejected/malformed proposal left ZERO leftover temp files.
+- Finding MCP-1 (dispositioned, non-blocking): serve() catches json.JSONDecodeError but
+  NOT RecursionError, so a single deeply-nested raw JSON line crashes the server before
+  answering later messages (reproduced end-to-end: a following ping went unanswered).
+  This breaks the stated "never crashes on a bad call" contract. Severity is bounded:
+  the crash is reachable only by whoever controls the server's raw stdin (the MCP host's
+  serialization layer) - a deeply-nested value passed as a TOOL ARGUMENT does NOT crash
+  it, because the inner parse goes through the hardened load_json (verified: isError, no
+  crash). So a connected agent cannot crash the server via tool-call content. Recommend
+  catching RecursionError (and bounding line length) in serve() to honor the contract.
+- Minor: a missing required arg returns a misleading -32602 "unknown tool" message
+  (cosmetic, safe); initialize-before-call ordering is not enforced (permissive, not a
+  security issue).
+
+## 3. plugin/hooks/hooks.json (session-start auto-run) - PASS (documented trust boundary)
+
+The command is a fixed python one-liner: it runs tools/doctrine_state.py hydrate
+--if-present via subprocess.call([sys.executable, ...]) (a list, no shell) ONLY when
+os.path.exists('tools/doctrine_state.py'), else exits 0. No external/attacker data is
+interpolated into the command - zero injection surface in the hook string itself, and it
+is a clean no-op in repos without the tool. Residual (inherent, not a defect): enabling
+the plugin globally means opening ANY repo that ships a tools/doctrine_state.py will
+auto-run THAT repo's copy at session start - the os.path.exists gate checks presence, not
+authenticity. This is the standard hook trust model (opening a repo runs its wired hooks)
+and is mitigated by the plugin being opt-in, the presence gate, PR/file review, and the
+platform's plugin-approval prompt. doctrine cannot fix platform-level hook trust;
+document it. Same class as the earlier SessionStart sign-off, now in a distributable
+plugin - hydrate is itself hardened (chain-verify gate, bounded parse, path defenses), so
+the auto-run cannot be turned into an arbitrary-file read or crash.
+
+## 4. pyproject / wheel (publish gating) - PASS
+
+- 5 console_scripts (module:main). No [project.entry-points] auto-run hooks, no cmdclass,
+  no setup.py - a wheel install executes NO arbitrary code (wheels are declarative;
+  build_meta runs only at build time).
+- package-dir=tools + py-modules ships ONLY the 5 tool modules - no .doctrine-state, no
+  .Doctrine corpus, no tests, no secrets in the wheel path.
+- NO publish/upload tooling anywhere in the repo: no twine, no gh release, no PyPI
+  publish job (the only workflow, doctrine.yml, runs lint+tests with
+  permissions: contents: read). Every "publish" reference is doctrine TEXT asserting
+  publishing is a human-gated external action (.Doctrine.md s5, 05-packaging.md,
+  release-manager.md, release-checklist.md). Nothing in the wheel path can publish
+  without a human.
+
+## Residual findings register (all non-blocking)
+
+| ID    | Sev   | Area          | Disposition                                              |
+|-------|-------|---------------|----------------------------------------------------------|
+| MCP-1 | Low-Mod | Robustness  | serve() should catch RecursionError + bound line length; crash is host-stdin-only, not agent-reachable via tool args. |
+| IN-1  | Low   | Install       | Refuse writing through symlinked dests (add dest.is_symlink() check). |
+| IN-2  | Low   | Install       | Also refuse target nested under source (self-ingest edge). |
+| MCP-2 | Info  | UX            | Missing-arg error message is misleading; no initialize ordering enforced. |
+
+## VERDICT: SIGN-OFF (v0.5.0 packaging cleared)
+
+The four packaging surfaces are sound. The installer honors never-clobber-without-force,
+keeps writes bounded to the target, and refuses self/invalid installs. The MCP server
+preserves JSON-RPC channel integrity even when a tool raises, carries every hardened
+guard through to cmd_checkpoint/cmd_record/cmd_check with no bypass, and cleans up its
+tempfiles - and its one robustness gap (deep-line RecursionError) is host-stdin-only, not
+reachable by a connected agent through tool arguments. The plugin hook has no injection
+surface and a fail-safe presence gate; the residual is the standard opt-in hook trust
+model. The wheel path executes no code at install and wires NO publishing - registry
+distribution stays human-gated as the doctrine states. The four residual findings are
+minor hardening/robustness items, dispositioned above, none blocking release. No secrets,
+no injection, no unauthorized-publish path. Combined with all prior sign-offs, v0.5.0 is
+cleared.
+
+-- Security Reviewer, 2026-07-12

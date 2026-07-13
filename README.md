@@ -1,6 +1,15 @@
-# Doctrine
+<h1 align="center">
+  <img src="images/doctrine_logo.png" alt="Doctrine">
+</h1>
 
-[![doctrine](https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg)](https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml)
+<p align="center">
+  <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
+  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/github/v/tag/aroora-ai-labs/doctrine?label=version&amp;sort=semver&amp;color=1a2b5e" alt="latest version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/aroora-ai-labs/doctrine?color=1a2b5e" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
+  <a href="#quick-start"><img src="https://img.shields.io/badge/Claude_Code-plugin-e8642c" alt="Claude Code plugin"></a>
+  <a href=".Doctrine/05-packaging.md"><img src="https://img.shields.io/badge/MCP-doctrineos-00a3c4" alt="MCP server: doctrineos"></a>
+</p>
 
 **A gated engineering operating system for AI coding agents.** Doctrine
 turns a repository into a disciplined software company: explicit

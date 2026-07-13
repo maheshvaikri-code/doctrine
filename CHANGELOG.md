@@ -6,6 +6,29 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-07-13
+
+### Added
+- **Gate instrumentation** — `doctrine_metrics.py gates` mines the
+  process's own story from what the pipeline already files: per-release
+  cycle time, commit/fix volume, and review-verdict events (counted only
+  on added artifact lines that NAME a verdict, so prose "veto" and
+  pasted `CHECK FAILED` output cannot inflate the numbers; adverse =
+  REQUEST-CHANGES/VETO/FAIL). First real report committed at
+  `docs/metrics/gates-2026-07-13.md`: 14 release windows, 36 commits,
+  7 fix commits, 4 adverse verdicts — the five review rounds are now
+  visible as data. A zero-adverse release with material change is
+  flagged for retro scrutiny, mirroring the HITL/CESR erosion gate.
+
+### Fixed
+- **Escaped defect from v0.6.2** (found by flaky-test triage, fixed
+  fail-closed): after a shared-distillate merge, the loser's orphaned
+  original distillate stayed at the forked seq, leaving
+  `_distillate_files[-1]` ambiguous by hash order — verify desynced on
+  roughly half of hash draws. Merge now archives every same-seq
+  distillate no survivor references. Suite deterministic across three
+  consecutive full runs (104 tests).
+
 ## [0.6.2] - 2026-07-12
 
 ### Added

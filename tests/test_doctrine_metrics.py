@@ -81,5 +81,53 @@ class TestEnrich(unittest.TestCase):
                               dm.DEFAULT_OUT)
 
 
+class TestVerdictClassifier(unittest.TestCase):
+    def test_verdict_lines_classified(self):
+        cases = {
+            "## Delta verdict (v0.5.0): REQUEST-CHANGES":
+                "REQUEST-CHANGES",
+            "## Re-audit verdict: SIGN-OFF (cleared)": "SIGN-OFF",
+            "Final delta verdict: APPROVE-WITH-NITS":
+                "APPROVE-WITH-NITS",
+            "**Final verdict: PASS.**": "PASS",
+            "VERDICT: VETO (deploy gate blocked)": "VETO",
+        }
+        for line, want in cases.items():
+            self.assertEqual(dm.classify_verdict_line(line), want, line)
+
+    def test_prose_and_tool_output_not_counted(self):
+        for line in ("Security Reviewer holds the ship veto.",
+                     "CHECK FAILED (3) - do not deploy v1.0.0:",
+                     "VERIFY FAILED (1):",
+                     "the tests pass locally"):
+            self.assertIsNone(dm.classify_verdict_line(line), line)
+
+
+class TestGates(TestEnrich):
+    def tag(self, name):
+        subprocess.run(["git", "tag", "-a", name, "-m", name],
+                       cwd=self.root, check=True)
+
+    def test_per_release_verdict_mining(self):
+        self.tag("v0.1.0")
+        self.write_review(
+            "## Delta verdict (task): REQUEST-CHANGES\n"
+            "later...\n## Final verdict: APPROVE\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        subprocess.run(["git", "commit", "-qm", "docs: review"],
+                       cwd=self.root, check=True)
+        self.tag("v0.2.0")
+        out = Path("docs") / "metrics" / "gates.md"
+        self.assertEqual(dm.cmd_gates(self.root, out), 0)
+        report = (self.root / out).read_text("utf-8")
+        self.assertIn("| v0.2.0 |", report)
+        self.assertIn("APPROVE:1", report)
+        self.assertIn("REQUEST-CHANGES:1", report)
+
+    def test_needs_two_tags(self):
+        self.tag("v0.1.0")
+        self.assertEqual(dm.cmd_gates(self.root, None), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

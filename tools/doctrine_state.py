@@ -1037,25 +1037,33 @@ def cmd_merge(plane: Plane, loser_name: str) -> int:
     dist_sha = loser["state_index"].get("latest_distillate_sha256")
     survivors = [p for p in plane.checkpoints.iterdir()
                  if CHECKPOINT_FILE_RE.match(p.name)]
-    still_referenced = any(
-        (lambda d: isinstance(d, dict) and d.get("state_index", {})
-         .get("latest_distillate_sha256") == dist_sha)(
-            load_json(p, "checkpoint")) for p in survivors)
+    referenced = set()
+    for p in survivors:
+        data = load_json(p, "checkpoint")
+        if isinstance(data, dict):
+            referenced.add(data.get("state_index", {})
+                           .get("latest_distillate_sha256"))
+    # at the forked seq, exactly the survivor-referenced distillates may
+    # remain — any other same-seq file (the loser's, or an orphan from
+    # the fork) would leave _distillate_files ambiguous and desync verify
     salvage: dict = {}
-    if still_referenced:
+    for d in list(_distillate_files(plane)):
+        if int(d.name.split("-", 1)[0]) != seq:
+            continue
+        d_sha = sha256_file(d)
+        if d_sha in referenced:
+            continue
+        if d_sha == dist_sha:
+            salvage = load_json(d, "distillate")
+        dist_forks = plane.distillates / "forks"
+        dist_forks.mkdir(parents=True, exist_ok=True)
+        d.rename(dist_forks / d.name)
+    if dist_sha in referenced:
         print("note: loser's distillate is shared with a surviving head - "
               "left in place, nothing to salvage")
-    else:
-        for d in _distillate_files(plane):
-            if sha256_file(d) == dist_sha:
-                salvage = load_json(d, "distillate")
-                dist_forks = plane.distillates / "forks"
-                dist_forks.mkdir(parents=True, exist_ok=True)
-                d.rename(dist_forks / d.name)
-                break
-        else:
-            print("note: loser's distillate not found (already pruned?) - "
-                  "nothing to salvage")
+    elif not salvage:
+        print("note: loser's distillate not found (already pruned?) - "
+              "nothing to salvage")
 
     # repoint checkpoint.json to the winning head if it named the loser
     remaining = sorted(

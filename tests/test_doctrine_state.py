@@ -468,13 +468,19 @@ class TestConcurrency(TempRepo):
             (self.plane.checkpoints / winner_name).read_text("utf-8"))
         loser_path = self.plane.checkpoints / loser_name
         loser = json.loads(loser_path.read_text("utf-8"))
-        loser["state_index"]["latest_distillate_sha256"] = \
-            winner["state_index"]["latest_distillate_sha256"]
+        shared_sha = winner["state_index"]["latest_distillate_sha256"]
+        loser["state_index"]["latest_distillate_sha256"] = shared_sha
         loser_path.write_bytes(ds.canonical_bytes(loser))
-        before = len(ds._distillate_files(self.plane))
         self.assertEqual(ds.cmd_merge(self.plane, loser_name), 0)
-        self.assertEqual(len(ds._distillate_files(self.plane)), before,
-                         "shared distillate must not be archived")
+        remaining = {ds.sha256_file(d)
+                     for d in ds._distillate_files(self.plane)}
+        self.assertIn(shared_sha, remaining,
+                      "the survivor-referenced distillate must stay")
+        # the loser's ORIGINAL distillate is an orphan at the forked seq
+        # and must be archived, or _distillate_files[-1] is ambiguous
+        seq1 = [d for d in ds._distillate_files(self.plane)
+                if d.name.startswith("1-")]
+        self.assertEqual(len(seq1), 1, "no same-seq distillate ambiguity")
         self.assertEqual(ds.cmd_verify(self.plane), 0)
 
     def test_merge_refuses_nonfork(self):

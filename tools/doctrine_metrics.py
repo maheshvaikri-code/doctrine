@@ -21,6 +21,7 @@ emitted; tokens are regex-validated before ever reaching git argv.
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
 import re
 import subprocess
@@ -34,6 +35,17 @@ ARTIFACT_DIRS = ["docs/reviews", "docs/qa", "docs/merges"]
 DEFAULT_OUT = Path("docs") / "metrics" / "enrichment.json"
 # word-bounded 7-40 hex; a 64-hex sha256 is one word and cannot match
 HEX_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
+
+# --- gate instrumentation -------------------------------------------------
+# A verdict event is an ADDED artifact line that carries the word
+# "verdict" plus a verdict token. Requiring "verdict" on the line keeps
+# prose ("holds the ship veto") and pasted tool output ("CHECK FAILED")
+# from inflating the counts. Order matters: longest token first.
+VERDICT_LINE_RE = re.compile(r"(?i)verdict")
+VERDICT_TOKENS = ["APPROVE-WITH-NITS", "REQUEST-CHANGES", "SIGN-OFF",
+                  "APPROVE", "VETO", "PASS", "FAIL"]
+ADVERSE = {"REQUEST-CHANGES", "VETO", "FAIL"}
+TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 
 
 def resolve_commit(repo: Path, token: str) -> str | None:
@@ -98,6 +110,106 @@ def cmd_enrich(repo: Path, dirs: list[str], out_rel: Path) -> int:
     return 0
 
 
+def classify_verdict_line(line: str) -> str | None:
+    """First verdict token on a line that names a verdict, else None."""
+    if not VERDICT_LINE_RE.search(line):
+        return None
+    upper = line.upper()
+    for token in VERDICT_TOKENS:
+        if token in upper:
+            return token
+    return None
+
+
+def _release_tags(repo: Path) -> list[str]:
+    tags = [t for t in git(repo, "tag", "--list", "v*").splitlines()
+            if TAG_RE.match(t)]
+    return sorted(tags, key=lambda t: tuple(
+        int(x) for x in TAG_RE.match(t).groups()))
+
+
+def _verdicts_in_range(repo: Path, spec: str) -> dict[str, int]:
+    """Verdict events ADDED to review artifacts within a git range."""
+    diff = git(repo, "diff", spec, "--", *ARTIFACT_DIRS)
+    counts: dict[str, int] = {}
+    for line in diff.splitlines():
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        token = classify_verdict_line(line[1:])
+        if token:
+            counts[token] = counts.get(token, 0) + 1
+    return counts
+
+
+def cmd_gates(repo: Path, out_rel: Path | None) -> int:
+    """Per-release process metrics mined from what the pipeline already
+    files: cycle time, commit/fix volume, and review-verdict events."""
+    if not (repo / ".git").exists():
+        raise StateError(f"{repo} is not a git repository")
+    tags = _release_tags(repo)
+    if len(tags) < 2:
+        print("need at least two vX.Y.Z tags to compute release windows",
+              file=sys.stderr)
+        return 1
+    rows = []
+    totals = {"commits": 0, "fixes": 0, "adverse": 0, "clearing": 0}
+    for prev, cur in zip(tags, tags[1:]):
+        spec = f"{prev}..{cur}"
+        t0 = _dt.datetime.fromisoformat(
+            git(repo, "log", "-1", "--format=%cI", prev))
+        t1 = _dt.datetime.fromisoformat(
+            git(repo, "log", "-1", "--format=%cI", cur))
+        hours = (t1 - t0).total_seconds() / 3600
+        commits = int(git(repo, "rev-list", "--count", spec))
+        fixes = int(git(repo, "rev-list", "--count",
+                        "--grep=^fix", spec))
+        verdicts = _verdicts_in_range(repo, spec)
+        adverse = sum(n for t, n in verdicts.items() if t in ADVERSE)
+        clearing = sum(n for t, n in verdicts.items() if t not in ADVERSE)
+        rows.append((cur, hours, commits, fixes, adverse, clearing,
+                     verdicts))
+        totals["commits"] += commits
+        totals["fixes"] += fixes
+        totals["adverse"] += adverse
+        totals["clearing"] += clearing
+
+    lines = [
+        "# Gate instrumentation - process metrics per release",
+        "",
+        "Mined from committed artifacts and git history. Verdict counts",
+        "are token heuristics over ADDED lines naming a verdict; cycle",
+        "time is tag-commit to tag-commit. Adverse = REQUEST-CHANGES/",
+        "VETO/FAIL (a review round that sent work back); clearing =",
+        "APPROVE*/SIGN-OFF/PASS.",
+        "",
+        "| Release | Cycle (h) | Commits | Fix commits | Adverse | "
+        "Clearing | Verdicts |",
+        "|---|---:|---:|---:|---:|---:|---|",
+    ]
+    for cur, hours, commits, fixes, adverse, clearing, verdicts in rows:
+        detail = ", ".join(f"{t}:{n}" for t, n in sorted(verdicts.items()))
+        lines.append(f"| {cur} | {hours:.1f} | {commits} | {fixes} | "
+                     f"{adverse} | {clearing} | {detail or '-'} |")
+    lines.append(f"| **total** |  | {totals['commits']} | "
+                 f"{totals['fixes']} | {totals['adverse']} | "
+                 f"{totals['clearing']} |  |")
+    lines.append("")
+    lines.append(f"Releases: {len(rows)} - adverse verdicts sent work "
+                 "back to G3 and every one is documented in "
+                 "docs/reviews|qa; a zero-adverse release with material "
+                 "code change deserves retro scrutiny (review erosion), "
+                 "exactly like the HITL/CESR gate.")
+    report = "\n".join(lines) + "\n"
+    if out_rel:
+        out = repo / out_rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(report.encode("utf-8"))
+        print(f"gate metrics written: {out_rel.as_posix()}")
+    else:
+        print(report, end="")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="doctrine_metrics",
                                      description=__doc__.splitlines()[0])
@@ -106,11 +218,16 @@ def main(argv: list[str] | None = None) -> int:
     p_en = sub.add_parser("enrich")
     p_en.add_argument("--dirs", nargs="*", default=ARTIFACT_DIRS)
     p_en.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    p_ga = sub.add_parser("gates")
+    p_ga.add_argument("--out", type=Path, default=None,
+                      help="write the report here instead of stdout")
     args = parser.parse_args(argv)
     try:
         if args.command == "enrich":
             return cmd_enrich(args.root.resolve(), list(args.dirs),
                               args.out)
+        if args.command == "gates":
+            return cmd_gates(args.root.resolve(), args.out)
     except StateError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

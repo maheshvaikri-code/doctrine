@@ -1,7 +1,8 @@
 # 02 — Role Protocol
 
-One AI, nineteen hats. The value of the hats comes from keeping them
-genuinely distinct. These mechanics make that real.
+One AI, twenty-six hats (nineteen engineering + seven startup-profile).
+The value of the hats comes from keeping them genuinely distinct. These
+mechanics make that real.
 
 ## Adoption
 

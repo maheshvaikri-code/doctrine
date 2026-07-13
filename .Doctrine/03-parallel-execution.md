@@ -65,6 +65,8 @@ Product Owner, Chief Architect, UX Designer, Release Manager, and FDE stay
 in the main thread — their work is interactive (human escalations, decisions,
 publishing, the P1/P6 sign-offs) and must not happen in a detached context.
 (FDE's P4 build and P5 instrumentation harness may still fan out as workers.)
+ALL startup-profile roles are main-thread for the same reason: everything
+they produce points outward, and external sends belong to the human.
 
 ## 6. Provided agents
 

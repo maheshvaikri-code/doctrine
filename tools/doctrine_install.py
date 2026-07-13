@@ -119,7 +119,8 @@ def append_lines(path: Path, lines: list[str], header: str | None,
 
 
 def install(source: Path, target: Path, tools: list[str],
-            enterprise: bool, ci: bool, force: bool) -> int:
+            enterprise: bool, ci: bool, force: bool,
+            startup: bool = False) -> int:
     if not (source / ".Doctrine.md").exists():
         print(f"error: {source} is not a doctrine source tree "
               "(.Doctrine.md missing)", file=sys.stderr)
@@ -181,9 +182,13 @@ def install(source: Path, target: Path, tools: list[str],
     append_lines(target / ".gitignore", GITIGNORE_LINES,
                  "# doctrine state plane (machine-local only)", report,
                  target)
+    brief_lines = []
     if enterprise:
-        append_lines(target / "docs" / "brief.md",
-                     ["Merge profile: enterprise"],
+        brief_lines.append("Merge profile: enterprise")
+    if startup:
+        brief_lines.append("Company profile: startup")
+    if brief_lines:
+        append_lines(target / "docs" / "brief.md", brief_lines,
                      "<!-- G0 artifact - complete via "
                      ".Doctrine/templates/project-brief.md -->", report,
                      target)
@@ -206,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
                              f"{','.join(sorted(ADAPTERS))} or 'all'")
     parser.add_argument("--enterprise", action="store_true",
                         help="seed 'Merge profile: enterprise' in the brief")
+    parser.add_argument("--startup", action="store_true",
+                        help="seed 'Company profile: startup' in the brief "
+                             "(activates the founder-ops roles)")
     parser.add_argument("--ci", action="store_true",
                         help="also install the GitHub Actions workflow")
     parser.add_argument("--force", action="store_true",
@@ -214,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     tools = [t.strip() for t in args.tool.split(",") if t.strip()]
     return install(args.source.resolve(), args.target.resolve(), tools,
-                   args.enterprise, args.ci, args.force)
+                   args.enterprise, args.ci, args.force, args.startup)
 
 
 if __name__ == "__main__":

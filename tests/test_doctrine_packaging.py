@@ -85,6 +85,12 @@ class TestInstaller(unittest.TestCase):
         brief = (self.target / "docs" / "brief.md").read_text("utf-8")
         self.assertIn("Merge profile: enterprise", brief)
 
+    def test_startup_seeds_brief(self):
+        di.install(REPO, self.target, ["claude"], False, False, False,
+                   startup=True)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Company profile: startup", brief)
+
     def test_unknown_tool_refused(self):
         self.assertEqual(self.install("notatool"), 2)
 

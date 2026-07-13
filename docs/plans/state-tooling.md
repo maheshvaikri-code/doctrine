@@ -139,3 +139,19 @@ Closes audit gap #1: the chain was linear with no lease/merge protocol.
     fork (copy plane, checkpoint both, reunite) detected; merge
     restores a verifying chain with salvage staged; then verifier
     fan-out; tag v0.6.2; checkpoint 7.
+
+## v0.6.7 slice — Startup profile (2026-07-13, Class M)
+OPT-IN (`Company profile: startup` in docs/brief.md): the non-
+engineering hands a founder needs. Two iron laws on every card:
+DRAFT-NEVER-SEND (all external actions are the human's, per section 5)
+and the honesty law extended beyond code (no invented testimonials/
+figures; estimates labeled; metrics quoted from docs/metrics with
+fidelity notes).
+26. **[Docs] 7 role cards**: growth-marketer, content-marketer,
+    sales-gtm (pairs with FDE demos), support-engineer (the user→gates
+    bridge: reproduced bug -> G0 brief or HOTFIX), finance-ops (models,
+    never moves money), legal-ops (drafts, never practices law),
+    investor-relations (real metrics only). All main-thread roles
+    (interactive/outward-facing; never subagents).
+27. **[DevOps] installer `--startup`** seeds the brief line (mirrors
+    --enterprise) + test; routing rows; role index -> 26; counts.

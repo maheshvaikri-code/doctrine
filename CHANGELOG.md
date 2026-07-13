@@ -6,6 +6,22 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-07-13
+
+### Added
+- **Startup profile** (OPT-IN via `Company profile: startup` in the
+  brief; installer `--startup` seeds it): seven founder-ops roles —
+  Growth Marketer, Content Marketer (claims trace to shipped tags),
+  Sales/GTM (demos via the FDE; pricing is a human decision), Support
+  Engineer (the user→gates bridge: a reproduced bug becomes a G0 brief
+  or HOTFIX), Finance Ops (models, never moves money), Legal Ops
+  (drafts, never practices law), Investor Relations (real metrics with
+  fidelity labels; "good news and bad in the same font size"). Two iron
+  laws on every card: **draft-never-send** (all external actions are
+  the human's, §5) and the **honesty law beyond code** (no invented
+  testimonials/figures; estimates labeled). All main-thread roles.
+  Role count 19 → 26; routing table +7 rows; tests 110 → 111.
+
 ## [0.6.6] - 2026-07-13
 
 ### Added

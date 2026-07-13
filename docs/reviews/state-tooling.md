@@ -570,13 +570,13 @@ INSTALLER:
 
 | # | Sev | Location | Finding | Suggested fix | Resolution |
 |---|-----|----------|---------|---------------|------------|
-| PD-1 | [MAJOR] | tools/doctrine_lint.py:106 (check_version), :121-159 (check_plugin_parity); tests/test_doctrine_packaging.py:127-132; tools/doctrine_install.py:173-174 | The installed target's out-of-box experience is broken three ways: (a) `doctrine_lint` crashes with a raw FileNotFoundError when the target has no CHANGELOG.md; (b) with one present, `check_plugin_parity` fails every consumer repo because `plugin/` and `.claude-plugin/` are source-repo artifacts the installer does not (and should not) ship; (c) the copied test suite is red (lint corpus test errors; the MCP test asserts "checkpoint seq" against a plane with no checkpoints). Net: the installer's own printed next step (`make verify`) and the `--ci` workflow fail in every fresh install. | Make the lint consumer-aware (skip plugin-parity and CHANGELOG checks when the artifacts are absent, or ship a consumer profile flag in the copied Makefile/workflow); check_version treats a missing CHANGELOG as a finding, not a crash; the MCP test accepts the fresh-plane message; add an install-into-temp-repo smoke test that runs the target's verify. | open |
-| PD-2 | [MAJOR] | tools/doctrine_mcp.py:136-167 (handle), :170-186 (serve) | The server's stated contract is "never crashes on a bad call", yet any non-dict JSON line - including a JSON-RPC batch array, which older MCP protocol revisions used - kills the process with an AttributeError (probe M1), as does `tools/call` with a non-dict `params` or `arguments` (M2). One malformed line ends the session for the connected agent. | Type-guard message/params/arguments (`isinstance(..., dict)`) returning -32600 invalid request; belt-and-braces: wrap `handle()` in try/except returning -32603 internal error. Regression tests per shape. | open |
-| PD-3 | [MINOR] | tools/doctrine_mcp.py:154-159, :139-144 | (a) A missing required tool argument surfaces as "unknown tool: state_checkpoint" - the `except KeyError` around `call_tool` conflates dispatch misses with `args["proposal_json"]` (M3). (b) `initialize` echoes whatever protocolVersion the client sent, including "9999-12-31" (M4) - no negotiation; combined with PD-2, honestly claiming an old batch-capable revision while crashing on batches. | Distinguish the KeyErrors (validate required args explicitly, -32602 with the real message); return the requested version only when supported, else PROTOCOL_VERSION. | open |
-| PD-4 | [MINOR] | tools/doctrine_install.py:114-115 | The source==target guard misses containment: a target inside a copied source subtree installs rc 0 and each rerun nests another copy (probe I1: 261 -> 392 -> 523 files) - the advertised idempotency silently fails. | Refuse when target is inside source or source inside target (resolve() + parents check, same as safe_repo_path). | open |
-| PD-5 | [MINOR] | tools/doctrine_install.py:92-104 (append_lines) | CRLF CLAUDE.md/.gitignore/brief are rewritten whole-file to LF on append (probe I2) - the same outside-content mutation class fixed for `emit_agents_block` in the v0.3.0 delta (D-2), regressed in the installer. | Byte-splice, or detect and preserve the file's newline style (the emit_agents_block fix is the in-repo pattern to copy). | open |
-| PD-6 | [MINOR] | pyproject.toml:7; plugin/.claude-plugin/plugin.json:3; tools/doctrine_mcp.py:34; .Doctrine.md:1 | The delta's own versioning rule (05-packaging.md: manifests bump "with the .Doctrine.md header in the same commit") is already violated: manifests + SERVER_INFO say 0.5.0 while .Doctrine.md says v0.4.0 - and nothing enforces it (corpus lint only checks .Doctrine.md vs CHANGELOG). | Add manifest-version sync (pyproject, plugin.json, marketplace, SERVER_INFO) to doctrine_lint; align the versions at G6. | open |
-| PD-7 | [NIT] | pyproject.toml; repo root; doctrine_lint parity messages | Wheel contains zero law files, so a pipx-installed `doctrine-install` has nothing to install without --source at a checkout (the error message is clear; 05-packaging.md does not say it). No LICENSE file at the root while pyproject declares MIT - matters at the human-gated publish step. Parity findings print backslash paths on Windows ("plugin\agents"). | Document the wheel limitation (or package the law as data files); add LICENSE; as_posix() the finding paths. | open |
+| PD-1 | [MAJOR] | tools/doctrine_lint.py:106 (check_version), :121-159 (check_plugin_parity); tests/test_doctrine_packaging.py:127-132; tools/doctrine_install.py:173-174 | The installed target's out-of-box experience is broken three ways: (a) `doctrine_lint` crashes with a raw FileNotFoundError when the target has no CHANGELOG.md; (b) with one present, `check_plugin_parity` fails every consumer repo because `plugin/` and `.claude-plugin/` are source-repo artifacts the installer does not (and should not) ship; (c) the copied test suite is red (lint corpus test errors; the MCP test asserts "checkpoint seq" against a plane with no checkpoints). Net: the installer's own printed next step (`make verify`) and the `--ci` workflow fail in every fresh install. | Make the lint consumer-aware (skip plugin-parity and CHANGELOG checks when the artifacts are absent, or ship a consumer profile flag in the copied Makefile/workflow); check_version treats a missing CHANGELOG as a finding, not a crash; the MCP test accepts the fresh-plane message; add an install-into-temp-repo smoke test that runs the target's verify. | fixed@4d11940 (re-check below) |
+| PD-2 | [MAJOR] | tools/doctrine_mcp.py:136-167 (handle), :170-186 (serve) | The server's stated contract is "never crashes on a bad call", yet any non-dict JSON line - including a JSON-RPC batch array, which older MCP protocol revisions used - kills the process with an AttributeError (probe M1), as does `tools/call` with a non-dict `params` or `arguments` (M2). One malformed line ends the session for the connected agent. | Type-guard message/params/arguments (`isinstance(..., dict)`) returning -32600 invalid request; belt-and-braces: wrap `handle()` in try/except returning -32603 internal error. Regression tests per shape. | fixed@4d11940 |
+| PD-3 | [MINOR] | tools/doctrine_mcp.py:154-159, :139-144 | (a) A missing required tool argument surfaces as "unknown tool: state_checkpoint" - the `except KeyError` around `call_tool` conflates dispatch misses with `args["proposal_json"]` (M3). (b) `initialize` echoes whatever protocolVersion the client sent, including "9999-12-31" (M4) - no negotiation; combined with PD-2, honestly claiming an old batch-capable revision while crashing on batches. | Distinguish the KeyErrors (validate required args explicitly, -32602 with the real message); return the requested version only when supported, else PROTOCOL_VERSION. | fixed@4d11940 |
+| PD-4 | [MINOR] | tools/doctrine_install.py:114-115 | The source==target guard misses containment: a target inside a copied source subtree installs rc 0 and each rerun nests another copy (probe I1: 261 -> 392 -> 523 files) - the advertised idempotency silently fails. | Refuse when target is inside source or source inside target (resolve() + parents check, same as safe_repo_path). | fixed@4d11940 |
+| PD-5 | [MINOR] | tools/doctrine_install.py:92-104 (append_lines) | CRLF CLAUDE.md/.gitignore/brief are rewritten whole-file to LF on append (probe I2) - the same outside-content mutation class fixed for `emit_agents_block` in the v0.3.0 delta (D-2), regressed in the installer. | Byte-splice, or detect and preserve the file's newline style (the emit_agents_block fix is the in-repo pattern to copy). | fixed@4d11940 |
+| PD-6 | [MINOR] | pyproject.toml:7; plugin/.claude-plugin/plugin.json:3; tools/doctrine_mcp.py:34; .Doctrine.md:1 | The delta's own versioning rule (05-packaging.md: manifests bump "with the .Doctrine.md header in the same commit") is already violated: manifests + SERVER_INFO say 0.5.0 while .Doctrine.md says v0.4.0 - and nothing enforces it (corpus lint only checks .Doctrine.md vs CHANGELOG). | Add manifest-version sync (pyproject, plugin.json, marketplace, SERVER_INFO) to doctrine_lint; align the versions at G6. | fixed@4d11940 (lint-enforced) |
+| PD-7 | [NIT] | pyproject.toml; repo root; doctrine_lint parity messages | Wheel contains zero law files, so a pipx-installed `doctrine-install` has nothing to install without --source at a checkout (the error message is clear; 05-packaging.md does not say it). No LICENSE file at the root while pyproject declares MIT - matters at the human-gated publish step. Parity findings print backslash paths on Windows ("plugin\agents"). | Document the wheel limitation (or package the law as data files); add LICENSE; as_posix() the finding paths. | fixed@4d11940 (one as_posix leftover, see re-check) |
 
 ## What holds (verified by execution)
 
@@ -609,3 +609,71 @@ resolves. 05-packaging.md's install matrix matches what the code does.
   Both fixes are contained. PD-3..PD-6 should ride along; PD-7 is
   author's call. The rest of the delta is well-built and the probe
   surface (hooks, wheel, parity, unicode, big inputs) is clean.
+
+---
+
+# Delta re-check — v0.5.0 remediation @ 4d11940 — 2026-07-12
+
+**Executed** (real output):
+
+```
+$ python tools/doctrine_lint.py        -> doctrine_lint: corpus clean (0)
+$ python -m ruff check tools tests     -> All checks passed! (0)
+$ python -m unittest discover -s tests -> Ran 82 tests ... OK
+.Doctrine.md header: v0.5.0 (manifests aligned; sync now lint-enforced)
+LICENSE present; 05-packaging.md documents the wheel-carries-tools-only
+limitation.
+```
+
+Every original probe re-run:
+
+```
+PD-1 FRESH CONSUMER TARGET (install -> git init -> state init):
+   python tools/doctrine_lint.py -> "doctrine_lint: corpus clean", exit 0
+   python -m unittest discover  -> Ran 82 tests ... OK
+   (plugin-parity skipped when plugin//.claude-plugin absent; CHANGELOG
+   sync only when one exists; missing state-plane files are findings;
+   every check wrapped - a crashed check is a finding)      -> FIXED
+PD-2 MCP: "[]", batch array, string, number, null -> -32600 "request
+   must be a single JSON object" each; "{not json" -> -32700; string
+   params/arguments -> -32602; ping answered after ALL of it; server
+   exit 0, zero tracebacks. 2MB proposal bounded; 5MB line cap in place.
+   (My earlier M1 "survived=False" was probe artifact - the probe read
+   the first of five queued error replies; verified properly here.)
+                                                            -> FIXED
+PD-3: missing proposal_json -> -32602 "state_checkpoint: missing/invalid
+   argument(s): proposal_json"; bogus protocolVersion "9999-12-31" ->
+   server negotiates 2025-06-18 (clamped to KNOWN_PROTOCOLS)  -> FIXED
+PD-4: target-inside-source, target-in-subdir, source-inside-target all
+   refused rc 2 with a clear message; nothing created         -> FIXED
+PD-5: CRLF CLAUDE.md preserved byte-exactly, appended lines emitted in
+   CRLF, rerun idempotent; LF no-trailing-newline case still correct
+                                                              -> FIXED
+PD-6: version-sync check probe: temp tree with .Doctrine.md v0.9.9 +
+   pyproject 0.5.0 -> "version desync: pyproject.toml 0.5.0 !=
+   .Doctrine.md v0.9.9"; aligned -> no findings. Source repo aligned at
+   0.5.0 across header/CHANGELOG/plugin.json/pyproject/SERVER_INFO
+                                                              -> FIXED
+PD-7: LICENSE (MIT) at root; wheel limitation documented; reference
+   findings POSIX-styled                                      -> FIXED*
+```
+
+*One leftover from PD-7: `tools/doctrine_lint.py:156` (plugin-parity
+"missing" message) still prints `copy.relative_to(root)` without
+`.as_posix()` - backslashes on Windows in the one message class that only
+fires in a source-style repo with a partial plugin tree. [NIT], author's
+call, no re-review needed.
+
+Also landed and verified in passing: `copy_file` refuses to write through
+pre-existing symlinks without --force (security-driven), and the consumer
+suite's MCP status test now accepts both the fresh-plane and
+checkpointed-plane messages.
+
+## Final delta verdict (v0.5.0)
+
+- [x] **Pass - APPROVE-WITH-NITS.** Both MAJORs (PD-1 broken consumer
+  verify, PD-2 MCP crash-on-malformed-line) and all MINORs verified fixed
+  by re-executing the original failing probes; the fresh-target install
+  now runs its own advertised verify green end-to-end (82/82 + clean
+  lint in the consumer). One cosmetic as_posix leftover noted above.
+  v0.5.0 packaging/distribution is good to land.

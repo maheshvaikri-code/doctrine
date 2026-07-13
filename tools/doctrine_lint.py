@@ -153,8 +153,8 @@ def check_plugin_parity(root: Path, findings: list[str]) -> None:
               root / "plugin" / "commands" / "checkpoint.md")]
     for canonical, copy in pairs:
         if not copy.exists():
-            findings.append(f"plugin parity: {copy.relative_to(root)} "
-                            "missing")
+            findings.append("plugin parity: "
+                            f"{copy.relative_to(root).as_posix()} missing")
             continue
         if canonical.is_dir():
             canon_files = {p.name: p for p in canonical.glob("*.md")}

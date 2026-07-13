@@ -6,6 +6,23 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-07-13
+
+### Added
+- **Token-capture wiring documented exactly** (closes the last unfed
+  metric family, TCR / cost-per-landed-change): capture is a
+  session-launch choice — OTel env must exist before the agent starts,
+  no hook can enable it retroactively. Two wirings in
+  `integrations/codemonk.md`: `codemonk wrap --otel -- claude`
+  (endpoint spawned, env pre-wired) or a standing `codemonk collect`
+  on 127.0.0.1:4318 with the four env exports (extracted from CodeMonk
+  0.10.0 source, verified live). Events land in `codemonk_tokens.jsonl`
+  (gitignored); report via `codemonk tokens --log`.
+- `doctrine_metrics capture-hint` — a SessionStart hint (never a gate,
+  always exit 0) fires only when a metrics-adopted repo runs
+  uncaptured; wired into `.claude/settings.json` and the plugin hooks.
+  3 new tests (107 total).
+
 ## [0.6.3] - 2026-07-13
 
 ### Added

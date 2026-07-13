@@ -6,6 +6,10 @@
           {
             "type": "command",
             "command": "python tools/doctrine_state.py hydrate --if-present"
+          },
+          {
+            "type": "command",
+            "command": "python tools/doctrine_metrics.py capture-hint"
           }
         ]
       }

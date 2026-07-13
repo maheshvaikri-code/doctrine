@@ -50,9 +50,35 @@ enrichment before it means anything.
   Verified on this repo: HITL 0% → 27.3%. Fidelity label: "reviewed"
   means covered by the verifier fan-out (adversarial agent review,
   human-arbitrated) — quote it as such.
-- **Token capture:** `codemonk wrap --otel claude` (verified upstream on
-  a real Claude Code run) or point the harness's OTel export at
-  `codemonk collect`. Status attrs (`codemonk.status`) make TCR precise.
+- **Token capture (closes the TCR / cost-per-landed-change gap):**
+  capture is a SESSION-LAUNCH choice — OTel env must exist before the
+  agent process starts, so no hook can enable it retroactively. Two
+  supported wirings (a SessionStart hint fires when a metrics-adopted
+  repo runs uncaptured):
+
+  Option A — wrapped launch (endpoint spawned, env pre-wired; verified
+  upstream on a real Claude Code run):
+
+  ```bash
+  codemonk wrap --otel -- claude
+  ```
+
+  Option B — standing collector + explicit env before launching:
+
+  ```bash
+  codemonk collect               # OTLP/JSON on 127.0.0.1:4318
+  export CLAUDE_CODE_ENABLE_TELEMETRY=1
+  export OTEL_METRICS_EXPORTER=otlp OTEL_LOGS_EXPORTER=otlp
+  export OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+  export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+  claude
+  ```
+
+  Both land events in `codemonk_tokens.jsonl` (gitignored — telemetry
+  is machine-local). Report: `codemonk tokens --log
+  codemonk_tokens.jsonl`; `codemonk.status` attrs make TCR precise;
+  `item_id` = the state-plane `task_refs` joins spend to landed
+  outcomes.
 - **G7 is the consumer:** `codemonk scorecard` output is filed with the
   retrospective (`docs/metrics/`); trends via snapshot + `trend`.
   CESR drops feed the retro's 5-whys.

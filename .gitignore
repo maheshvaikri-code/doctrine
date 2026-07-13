@@ -18,3 +18,7 @@ dist/
 
 # Metrics drop zone (pinned upstream lives on GitHub, never vendored)
 supportfolder/
+
+# CodeMonk telemetry (machine-local)
+codemonk_tokens.jsonl
+.codemonk/

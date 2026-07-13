@@ -129,5 +129,31 @@ class TestGates(TestEnrich):
         self.assertEqual(dm.cmd_gates(self.root, None), 1)
 
 
+class TestCaptureHint(unittest.TestCase):
+    def run_hint(self, root: Path, env_extra: dict) -> str:
+        import os
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("OTEL_EXPORTER_OTLP_ENDPOINT",
+                            "ANTHROPIC_BASE_URL")}
+        env.update(env_extra)
+        out = subprocess.run(
+            [sys.executable, str(REPO / "tools" / "doctrine_metrics.py"),
+             "--root", str(root), "capture-hint"],
+            capture_output=True, text=True, env=env)
+        self.assertEqual(out.returncode, 0, "a hint is never a gate")
+        return out.stderr
+
+    def test_hints_when_adopted_and_uncaptured(self):
+        self.assertIn("NOT being captured", self.run_hint(REPO, {}))
+
+    def test_silent_when_captured(self):
+        self.assertEqual(self.run_hint(REPO, {
+            "OTEL_EXPORTER_OTLP_ENDPOINT": "http://127.0.0.1:4318"}), "")
+
+    def test_silent_when_not_adopted(self):
+        with tempfile.TemporaryDirectory() as bare:
+            self.assertEqual(self.run_hint(Path(bare), {}), "")
+
+
 if __name__ == "__main__":
     unittest.main()

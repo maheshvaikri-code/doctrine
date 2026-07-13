@@ -210,6 +210,21 @@ def cmd_gates(repo: Path, out_rel: Path | None) -> int:
     return 0
 
 
+def cmd_capture_hint(repo: Path) -> int:
+    """One-line SessionStart hint when a metrics-adopted repo runs
+    without token capture. Always exits 0 - it is a hint, not a gate."""
+    import os
+    adopted = (repo / ".Doctrine" / "integrations" / "codemonk.md").exists()
+    captured = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT") \
+        or os.environ.get("ANTHROPIC_BASE_URL")
+    if adopted and not captured:
+        print("metrics hint: this session's tokens are NOT being captured "
+              "- launch via 'codemonk wrap --otel -- claude' (or see "
+              ".Doctrine/integrations/codemonk.md) so TCR/cost join the "
+              "ledger", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="doctrine_metrics",
                                      description=__doc__.splitlines()[0])
@@ -221,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     p_ga = sub.add_parser("gates")
     p_ga.add_argument("--out", type=Path, default=None,
                       help="write the report here instead of stdout")
+    sub.add_parser("capture-hint")
     args = parser.parse_args(argv)
     try:
         if args.command == "enrich":
@@ -228,6 +244,8 @@ def main(argv: list[str] | None = None) -> int:
                               args.out)
         if args.command == "gates":
             return cmd_gates(args.root.resolve(), args.out)
+        if args.command == "capture-hint":
+            return cmd_capture_hint(args.root.resolve())
     except StateError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

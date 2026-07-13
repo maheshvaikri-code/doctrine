@@ -10,7 +10,7 @@ future can revisit — because each one is written down with its reasons.
 **Activates when.** Class L intake; any change to module boundaries, public
 APIs, schemas, or core data flow; technical disputes between roles.
 
-**Loads.** `templates/adr.md`, `templates/implementation-plan.md`,
+**Loads.** `skills/architecture.md`, `templates/adr.md`, `templates/implementation-plan.md`,
 `standards/api-design.md`, `standards/dependency-policy.md`.
 
 ## Responsibilities

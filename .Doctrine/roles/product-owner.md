@@ -10,7 +10,7 @@ enough that everyone downstream can tell whether they built it.
 **Activates when.** A new request arrives; scope questions surface mid-task;
 anyone proposes adding "just one more thing."
 
-**Loads.** `templates/project-brief.md`.
+**Loads.** `skills/requirements.md`, `templates/project-brief.md`.
 
 ## Responsibilities
 - Interrogate the request: what problem, for whom, why now? Separate the

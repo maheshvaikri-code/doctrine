@@ -6,6 +6,32 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-07-13
+
+### Added
+- **Governance layer (GRC)** — four heads above the gates, policy
+  separated from enforcement (`standards/governance.md`): **Head of
+  AI** (model/vendor policy, eval standard, responsible-AI boundary,
+  model inventory), **Head of Data** (data contracts, lineage,
+  retention map, one-definition-per-entity), **CISO** (security
+  posture, threat-model registry, exception register — every accepted
+  risk carries the human's signature AND an expiry; the
+  security-reviewer keeps the G5 ship veto), **Risk Officer**
+  (enterprise risk register, `templates/risk-register.md` →
+  `docs/risk/register.md`, deltas reviewed at every G7; "a risk nobody
+  re-reviews is a surprise on a schedule"). G1 gains the governance
+  co-sign (mandatory on enterprise-profile repos). Deliberate
+  non-role, recorded in the standard: hands-on "cybersecurity" stays
+  with engineers + the security-reviewer — three hats, no fourth.
+- **Core delivery craft completed** (user-spotted gap): new
+  `skills/architecture.md` (the G1 craft: boundaries where change
+  happens together; an ADR with one option is a memo; failure modes
+  before happy path) and `skills/requirements.md` (the G0 craft:
+  problems not solutions; ACs are executable sentences; QA's
+  adversarial classes start at intake). Wired into chief-architect and
+  product-owner Loads.
+- Counts: 30 roles, 40 skills, 8 standards, 9 templates.
+
 ## [0.6.8] - 2026-07-13
 
 ### Added

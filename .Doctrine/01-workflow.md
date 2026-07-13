@@ -26,6 +26,11 @@ and enter the missing earlier gates before continuing.
 - **Entry:** approved brief.
 - **Do:** module boundaries, data flow, tech selection, failure-mode sketch,
   alternatives considered. One ADR per significant decision.
+- **Governance co-sign** (`standards/governance.md`): designs touching
+  AI, data architecture, or security-sensitive surfaces get the matching
+  head's co-sign on the ADR (Head of AI / Head of Data / CISO) —
+  mandatory on `Merge profile: enterprise` repos; a head can send the
+  design back here, which is cheaper than a veto catching it at G5.
 - **Exit:** design captured in ADR(s) (`templates/adr.md`) — the ADR set
   *is* the design document; no unresolved "TBD" on anything the build needs.
 

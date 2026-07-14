@@ -1,0 +1,53 @@
+{
+  "at_commit": "e85841ecb1683404d26e62de47cbc2acc6cb377f",
+  "created_at": "2026-07-14T05:41:20Z",
+  "dead_ends": [
+    {
+      "approach": "doctrine_verify running 'ruff check tools tests' + 'unittest discover -s tests' unconditionally",
+      "why_failed": "in a consumer repo tools/ and tests/ also hold the host's code; it linted foreign files and ran the host suite + doctrine's 9-min self-tests. Scope by is_source_repo()"
+    },
+    {
+      "approach": "git add -A before committing with an untracked diagnostic paste in the repo root",
+      "why_failed": "swept error_maple_verify_command.md into a tagged release; amended out + gitignored error_*.md. Stage explicitly or check status first"
+    },
+    {
+      "approach": "counting bare verdict tokens (VETO/FAIL/PASS) across artifact diffs",
+      "why_failed": "review artifacts quote prose and pasted tool output containing those words; requiring 'verdict' on the same line removed the false positives"
+    },
+    {
+      "approach": "mtime-sorted _latest_gold for chain head discovery",
+      "why_failed": "git does not track mtimes; clones equalize them and attackers forge them - v1.12.0 chained to the wrong predecessor with check still passing"
+    },
+    {
+      "approach": "existence-only checks for council verdict and sign-offs",
+      "why_failed": "empty files satisfy existence; 'no verdict, no gold' must mean bytes, so hashedref content-pinning replaced it"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.6.13 (ADR-002): doctrine_verify is now scope-aware. is_source_repo() (true only when pyproject declares 'doctrineos', which the installer never copies) runs the full dev suite in source; a consumer verifies only lint + state, skipping ruff/tests on the host's own code.",
+      "confidence": "verified",
+      "evidence": "tools/doctrine_verify.py; docs/adr/002-consumer-verify-scope.md; real consumer proof VERIFY OK",
+      "kind": "decision_ref"
+    },
+    {
+      "claim": "First real external-consumer bug (MAPLE): doctrine_verify ran ruff + the whole test suite on the host's code - flooded ruff with the host's findings and hung running doctrine's own git-spawning self-tests. The ADR-001 parked debt became a live defect.",
+      "confidence": "verified",
+      "evidence": "error_maple_verify_command.md paste; fix in v0.6.13",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "Productization v0.2 = daemon (doctrined) on MAPLE runtime; own G0/G1 with Head of AI + CISO",
+    "Then build the 5 MAPLE wishlist items in maple-oss under Doctrine (self-hosting)"
+  ],
+  "open_threads": [
+    "maple-oss must re-install to get the fixed doctrine_verify: doctrine_install --target . --tool claude,codex --force"
+  ],
+  "seq": 18,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "consumer-verify-scope"
+  ]
+}

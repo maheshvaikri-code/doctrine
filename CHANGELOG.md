@@ -6,6 +6,23 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.13] - 2026-07-14
+
+### Fixed
+- **`doctrine_verify` is now consumer-safe (ADR-002)** — in a consumer repo
+  it ran `ruff check tools tests` and `unittest discover -s tests` against
+  the HOST's own code: linting the host's files under Doctrine's ruff config
+  and running the host's whole suite plus Doctrine's heavyweight self-tests
+  (git-spawning, minutes-long). Reported live from the MAPLE repo (ruff
+  flooded with the host's findings; the test gate hung). Now scope-aware:
+  `is_source_repo()` (true only when `pyproject.toml` declares `doctrineos`,
+  which the installer never copies) runs the full dev suite in the source
+  repo, while a consumer verifies only Doctrine's own surface — corpus
+  **lint** + **state** — and skips ruff/tests with a note pointing to
+  `unittest discover -s tests -p "test_doctrine_*.py"` for the tool tests.
+  New `tests/test_doctrine_verify.py`; QUICKSTART re-verify note corrected.
+  Resolves the consumer-vs-source verify-surface debt parked in ADR-001.
+
 ## [0.6.12] - 2026-07-13
 
 ### Added

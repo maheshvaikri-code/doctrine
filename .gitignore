@@ -22,3 +22,6 @@ supportfolder/
 # CodeMonk telemetry (machine-local)
 codemonk_tokens.jsonl
 .codemonk/
+
+# local diagnostic pastes (not part of the corpus)
+error_*.md

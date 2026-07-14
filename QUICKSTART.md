@@ -77,10 +77,15 @@ land under `docs/`; at session end, `/checkpoint` records verified state.
 ## 5. Re-verify anytime
 
 ```bash
-python tools/doctrine_verify.py     # lint -> ruff (if present) -> tests -> state
+python tools/doctrine_verify.py
 ```
 
-No `make` needed; it is cross-platform (Windows, macOS, Linux).
+In your project (a *consumer* repo) this verifies Doctrine's own surface —
+corpus **lint** and **state** — and deliberately leaves your code's linting and
+your test suite to your own tooling. (In the Doctrine source repo it also runs
+ruff and the tool test suite.) No `make` needed; cross-platform (Windows, macOS,
+Linux). To run Doctrine's own tool tests in your repo:
+`python -m unittest discover -s tests -p "test_doctrine_*.py"`.
 
 ## Where to go next
 

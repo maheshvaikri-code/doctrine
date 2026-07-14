@@ -51,4 +51,5 @@ the OSS-launch phase; it is a §5 external action and needs the repo public firs
   for a later phase, noted so it is not forgotten.
 - **Invalidation triggers:** the repo going public (unlocks the `curl|bash`/PyPI
   bootstrap and reopens the "one command from a fresh machine, no clone" goal); or a
-  decision to split the consumer test surface from the source test surface.
+  decision to split the consumer test surface from the source test surface — **now
+  decided in ADR-002** (consumer verify = lint + state; the parked debt is resolved).

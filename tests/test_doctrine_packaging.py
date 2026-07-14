@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
@@ -45,6 +46,85 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("@.Doctrine.md", claude_md)
         gitignore = (self.target / ".gitignore").read_text("utf-8")
         self.assertIn(".doctrine-state/local/", gitignore)
+
+    def test_maple_flag_seeds_brief(self):
+        # v0.1 turnkey: --maple records the runtime opt-in in the brief
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], False, False, False,
+                       maple=True), 0)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Workforce runtime: maple", brief)
+
+    def test_maple_absent_by_default(self):
+        di.install(REPO, self.target, ["claude"], False, False, False)
+        brief = self.target / "docs" / "brief.md"
+        # brief is only seeded when a profile/runtime line is requested
+        if brief.exists():
+            self.assertNotIn("Workforce runtime: maple",
+                             brief.read_text("utf-8"))
+
+    def test_verify_flag_runs_init_then_gates(self):
+        # --verify must init state THEN run the gate suite, both in the
+        # target; assert the plumbing (not the 9-min suite itself, which
+        # has its own tests and would recurse through the copied tests).
+        calls = []
+
+        def fake_run(cmd, cwd=None, **kw):
+            calls.append((list(cmd), Path(cwd)))
+            return type("R", (), {"returncode": 0})()
+
+        with mock.patch.object(di.subprocess, "run", fake_run):
+            rc = di.install(REPO, self.target, ["claude"], False, False,
+                            False, verify=True)
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 2, calls)
+        (init_cmd, init_cwd), (verify_cmd, verify_cwd) = calls
+        self.assertIn("tools/doctrine_state.py", init_cmd)
+        self.assertIn("init", init_cmd)
+        self.assertEqual(init_cwd, self.target)
+        self.assertIn("tools/doctrine_verify.py", verify_cmd)
+        self.assertEqual(verify_cwd, self.target)
+
+    def test_verify_propagates_gate_failure(self):
+        # a failing gate suite must surface as a non-zero install exit
+        def fake_run(cmd, cwd=None, **kw):
+            hit = any("doctrine_verify.py" in str(c) for c in cmd)
+            return type("R", (), {"returncode": 1 if hit else 0})()
+
+        with mock.patch.object(di.subprocess, "run", fake_run):
+            rc = di.install(REPO, self.target, ["claude"], False, False,
+                            False, verify=True)
+        self.assertNotEqual(rc, 0)
+
+    def test_verify_refuses_on_tool_conflict(self):
+        # G5 MAJOR-1 regression: a target carrying a different-content
+        # enforcement tool must NOT be executed by --verify. copy_file
+        # skips it (no --force), so --verify must refuse, not run it.
+        (self.target / "tools").mkdir(parents=True)
+        (self.target / "tools" / "doctrine_verify.py").write_text(
+            "raise SystemExit('should never run')\n", encoding="utf-8")
+        calls = []
+
+        def fake_run(cmd, cwd=None, **kw):
+            calls.append(cmd)
+            return type("R", (), {"returncode": 0})()
+
+        with mock.patch.object(di.subprocess, "run", fake_run):
+            rc = di.install(REPO, self.target, ["claude"], False, False,
+                            False, verify=True)
+        self.assertEqual(rc, 2)
+        self.assertEqual(calls, [])  # never executed the target's tools
+
+    def test_no_verify_runs_no_subprocess(self):
+        calls = []
+
+        def fake_run(cmd, cwd=None, **kw):
+            calls.append(cmd)
+            return type("R", (), {"returncode": 0})()
+
+        with mock.patch.object(di.subprocess, "run", fake_run):
+            di.install(REPO, self.target, ["claude"], False, False, False)
+        self.assertEqual(calls, [])
 
     def test_idempotent(self):
         self.install()

@@ -13,6 +13,12 @@ Usage:
   python tools/doctrine_install.py --target ../my-repo --tool claude
   python tools/doctrine_install.py --target . --tool claude,cursor,codex
   python tools/doctrine_install.py --target ../svc --tool all --enterprise
+  python tools/doctrine_install.py --target . --verify   # turnkey: one command
+
+--verify makes it turnkey: after copying, it initializes the state plane
+and runs the gate suite in the target, so a single command ends in a
+proven-green install. --maple opts into the MAPLE runtime by seeding the
+brief.
 
 Publishing/registry distribution stays human-gated (.Doctrine.md section 5).
 """
@@ -20,6 +26,7 @@ Publishing/registry distribution stays human-gated (.Doctrine.md section 5).
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -118,9 +125,22 @@ def append_lines(path: Path, lines: list[str], header: str | None,
     report.copied.append(path.relative_to(target).as_posix())
 
 
+def run_post_install(target: Path) -> int:
+    """Turnkey --verify: initialize the state plane, then run the gate
+    suite in the freshly installed target. Argv list only, no shell,
+    sys.executable — cross-platform. Returns the worst exit code."""
+    py = sys.executable
+    print("=== turnkey: initializing state plane ===")
+    init = subprocess.run([py, "tools/doctrine_state.py", "init"], cwd=target)
+    print("=== turnkey: running the gate suite (doctrine_verify) ===")
+    verify = subprocess.run([py, "tools/doctrine_verify.py"], cwd=target)
+    return init.returncode or verify.returncode
+
+
 def install(source: Path, target: Path, tools: list[str],
             enterprise: bool, ci: bool, force: bool,
-            startup: bool = False) -> int:
+            startup: bool = False, verify: bool = False,
+            maple: bool = False) -> int:
     if not (source / ".Doctrine.md").exists():
         print(f"error: {source} is not a doctrine source tree "
               "(.Doctrine.md missing)", file=sys.stderr)
@@ -187,6 +207,8 @@ def install(source: Path, target: Path, tools: list[str],
         brief_lines.append("Merge profile: enterprise")
     if startup:
         brief_lines.append("Company profile: startup")
+    if maple:
+        brief_lines.append("Workforce runtime: maple")
     if brief_lines:
         append_lines(target / "docs" / "brief.md", brief_lines,
                      "<!-- G0 artifact - complete via "
@@ -194,10 +216,36 @@ def install(source: Path, target: Path, tools: list[str],
                      target)
 
     report.show()
-    print("next steps: python tools/doctrine_state.py init, then "
-          "python tools/doctrine_verify.py (= make verify, no Make "
-          "needed); MCP + per-tool wiring: .Doctrine/05-packaging.md")
-    return 1 if report.skipped_diff else 0
+    rc = 1 if report.skipped_diff else 0
+    if verify:
+        # SECURITY (G5 MAJOR-1): run_post_install executes the target's
+        # tool files. copy_file SKIPS (does not overwrite) a tool that
+        # already exists with different content unless --force, so running
+        # --verify then would execute code this installer did not write and
+        # could print a false "gates green". Refuse instead.
+        conflicted = [r for r in report.skipped_diff
+                      if any(tf in r for tf in TOOL_FILES)]
+        if conflicted:
+            print("refusing --verify: the target has different-content "
+                  "enforcement tools that were not overwritten "
+                  f"({', '.join(conflicted)}); running them would execute "
+                  "code this installer did not write. Resolve the conflict "
+                  "or rerun with --force.", file=sys.stderr)
+            return 2
+        vc = run_post_install(target)
+        if vc == 0:
+            print("turnkey: installed and verified - gates green. "
+                  "Engage with: doctrine: <task>")
+        else:
+            print("turnkey: install done, but the gate suite did NOT pass "
+                  "- see the gate output above (nothing was weakened to "
+                  "go green; fix and rerun verify).")
+        rc = vc or rc
+    else:
+        print("next steps: python tools/doctrine_state.py init, then "
+              "python tools/doctrine_verify.py (= make verify, no Make "
+              "needed); MCP + per-tool wiring: .Doctrine/05-packaging.md")
+    return rc
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -216,13 +264,22 @@ def main(argv: list[str] | None = None) -> int:
                              "(activates the founder-ops roles)")
     parser.add_argument("--ci", action="store_true",
                         help="also install the GitHub Actions workflow")
+    parser.add_argument("--maple", action="store_true",
+                        help="seed 'Workforce runtime: maple' in the brief "
+                             "(opt-in MAPLE runtime; see "
+                             ".Doctrine/integrations/maple.md)")
+    parser.add_argument("--verify", action="store_true",
+                        help="turnkey: after install, initialize state and "
+                             "run the gate suite in the target so one "
+                             "command ends verified")
     parser.add_argument("--force", action="store_true",
                         help="overwrite files that exist with different "
                              "content")
     args = parser.parse_args(argv)
     tools = [t.strip() for t in args.tool.split(",") if t.strip()]
     return install(args.source.resolve(), args.target.resolve(), tools,
-                   args.enterprise, args.ci, args.force, args.startup)
+                   args.enterprise, args.ci, args.force, args.startup,
+                   verify=args.verify, maple=args.maple)
 
 
 if __name__ == "__main__":

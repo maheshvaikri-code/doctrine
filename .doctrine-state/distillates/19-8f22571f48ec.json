@@ -1,0 +1,38 @@
+{
+  "at_commit": "6f96cf4c453dd65cbe44d8b31d046df4202a1968",
+  "created_at": "2026-07-14T20:28:18Z",
+  "dead_ends": [
+    {
+      "approach": "existence-based version echo of client protocolVersion in MCP initialize",
+      "why_failed": "echoing arbitrary client strings (even 9999-12-31) misrepresents capability; clamp to the known-protocol set instead"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "maple-oss 1.1.2 shipped all 5 Doctrine wishlist items; integrations/maple.md updated to match, verified against the 1.1.2 source tree (real smoke, all pass). Sharp edges -> resolved; asks -> shipped; pinned 1.1.1 -> 1.1.2.",
+      "confidence": "verified",
+      "evidence": "maple-oss CHANGELOG 1.1.2; scratchpad smoke SMOKE: PASS; integrations/maple.md",
+      "kind": "fact"
+    },
+    {
+      "claim": "The v0.6.11 caveat is closed: MAPLE 1.1.2's fresh_context_verifier_preset (maple.security.separation) makes separation of duties a BROKER-ENFORCED runtime guarantee - verified it blocks a verifier->builder route. Not a convention anymore.",
+      "confidence": "verified",
+      "evidence": "smoke '#3 preset BLOCKS verifier->builder' PASS; maple/security/separation.py",
+      "kind": "decision_ref"
+    }
+  ],
+  "next_actions": [
+    "If asked: formalize the three-repo topology (ADR + compatibility-manifest template) once the product repo exists",
+    "Productization v0.2 = daemon (doctrined/OpenHawk) on the MAPLE runtime; own G0/G1 with Head of AI + CISO"
+  ],
+  "open_threads": [
+    "MAPLE still-open upstream: a true post-delivery acknowledgement receipt (1.1.2 has send-time reachability only)",
+    "Product name converging on OpenHawk.ai (opencompany.cv also held); three-repo topology (doctrine+maple+product) recommended, not yet formalized"
+  ],
+  "seq": 19,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "maple-112-integration"
+  ]
+}

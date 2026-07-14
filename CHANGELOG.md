@@ -6,6 +6,20 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.16] - 2026-07-14
+
+### Fixed
+- **`doctrine_lint` version check is now consumer-safe** — it treated *any*
+  `pyproject.toml` `version = "X.Y.Z"` as a Doctrine version carrier, so a
+  consumer repo with its own product version (found live: OpenHawk 0.1.0)
+  failed lint with a false "version desync: pyproject.toml 0.1.0 !=
+  .Doctrine.md v0.6.15". `pyproject.toml` is now a carrier only when it
+  declares the `doctrineos` package (which the installer never copies); a
+  consumer's own pyproject is left alone. Same consumer-vs-source lesson as
+  ADR-002. Regression tests: consumer pyproject not flagged; a real
+  `doctrineos` desync still caught. Surfaced by installing Doctrine into the
+  new OpenHawk product repo.
+
 ## [0.6.15] - 2026-07-14
 
 ### Added

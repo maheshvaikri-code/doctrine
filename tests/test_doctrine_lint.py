@@ -18,6 +18,40 @@ class TestCorpusClean(unittest.TestCase):
         self.assertEqual(dl.main([str(REPO)]), 0)
 
 
+class TestVersionCarrierScope(unittest.TestCase):
+    """A consumer repo's own pyproject version is not a Doctrine desync."""
+
+    def _doc(self, root: Path, version: str) -> None:
+        (root / ".Doctrine.md").write_text(
+            f"# .Doctrine.md - Engineering Doctrine v{version}\n", encoding="utf-8")
+
+    def test_consumer_pyproject_not_a_carrier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._doc(root, "0.6.16")
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "openhawk"\nversion = "0.1.0"\n',
+                encoding="utf-8")
+            findings: list[str] = []
+            dl.check_version(root, findings)
+            self.assertEqual(
+                [f for f in findings if "pyproject" in f], [],
+                f"consumer pyproject wrongly flagged: {findings}")
+
+    def test_doctrineos_pyproject_desync_still_caught(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._doc(root, "0.6.16")
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "doctrineos"\nversion = "0.6.15"\n',
+                encoding="utf-8")
+            findings: list[str] = []
+            dl.check_version(root, findings)
+            self.assertTrue(
+                any("pyproject" in f for f in findings),
+                "doctrineos pyproject desync should be caught")
+
+
 class TestBrokenRefCaught(unittest.TestCase):
     def test_broken_reference(self):
         with tempfile.TemporaryDirectory() as tmp:

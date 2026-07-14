@@ -123,7 +123,6 @@ def check_version(root: Path, findings: list[str]) -> None:
     carriers = [
         (root / "plugin" / ".claude-plugin" / "plugin.json",
          r'"version":\s*"(\d+\.\d+\.\d+)"'),
-        (root / "pyproject.toml", r'version = "(\d+\.\d+\.\d+)"'),
         (root / "tools" / "doctrine_mcp.py",
          r'"version":\s*"(\d+\.\d+\.\d+)"'),
         # the README's static version badge (dynamic shields can't see a
@@ -131,6 +130,14 @@ def check_version(root: Path, findings: list[str]) -> None:
         (root / "README.md",
          r'shields\.io/badge/version-v(\d+\.\d+\.\d+)-'),
     ]
+    # pyproject.toml is a Doctrine version carrier ONLY in Doctrine's own
+    # source repo (it declares the `doctrineos` package). A CONSUMER repo has
+    # its OWN pyproject with its own product version (e.g. openhawk 0.1.0) -
+    # that is not a desync. Guard by the package name the installer never copies.
+    pyproject = root / "pyproject.toml"
+    if pyproject.exists() and \
+            'name = "doctrineos"' in pyproject.read_text("utf-8"):
+        carriers.append((pyproject, r'version = "(\d+\.\d+\.\d+)"'))
     for path, pattern in carriers:
         if not path.exists():
             continue

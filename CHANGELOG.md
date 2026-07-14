@@ -6,6 +6,24 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.14] - 2026-07-14
+
+### Changed
+- **MAPLE integration updated to maple-oss 1.1.2** — all five enhancement
+  asks shipped upstream and are now reflected in `integrations/maple.md`,
+  verified here against the 1.1.2 source tree (real smoke output, all
+  pass): (1) `register_handler` case-trap fixed; (2) `send(...,
+  require_routable=True)` → `Err UNROUTABLE`; (3) broker-enforced
+  fresh-context verifier preset (`maple.security.separation`) that blocks
+  a verifier→builder route — **separation of duties is now a runtime
+  guarantee, not a convention, closing the v0.6.11 caveat**; (4) the
+  doctrine profile (`maple.adapters.doctrine_adapter`:
+  `build_work_package`/`build_gate_result` + validators, `GATE_VERDICTS`);
+  (5) `tokens` as a first-class `ResourceRequest` type. The "sharp edges"
+  section becomes "Resolved in 1.1.2"; the "enhancement asks" become
+  "shipped"; `pinned_version` 1.1.1 → 1.1.2. License disposition unchanged
+  (AGPL, never vendored/imported — the profile ships inside maple-oss).
+
 ## [0.6.13] - 2026-07-14
 
 ### Fixed

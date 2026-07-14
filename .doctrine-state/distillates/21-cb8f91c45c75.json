@@ -1,0 +1,47 @@
+{
+  "at_commit": "cdd1840843db0a5ecf7053db4ee73734fa4d7ed2",
+  "created_at": "2026-07-14T22:44:26Z",
+  "dead_ends": [
+    {
+      "approach": "printing em-dash and section-sign in OpenHawk CLI output on Windows",
+      "why_failed": "cp1252 terminal mojibakes them to replacement chars; use ASCII in runtime-printed strings (the recurring Windows lesson) - comments/docstrings are fine"
+    },
+    {
+      "approach": "backtick path 'adapters/doctrine_adapter.py' in the MAPLE integration doc to name a proposed upstream module",
+      "why_failed": "lint's REF_RE reads adapters/-prefixed backtick paths as corpus refs and failed the suite; prefix upstream paths with the package name (maple/adapters/...)"
+    },
+    {
+      "approach": "trusting a piped exit code (verify | grep | head) as gate evidence",
+      "why_failed": "pipeline exit code came from head, not doctrine_verify - a FAIL could read as 0; capture to a log file and take the runner's own exit code"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "OpenHawk product repo kicked off at C:/Project_WorldLevel/OpenHawk: runnable v0.1 skeleton (CLI, default-deny action authority, MAPLE probe, daemon) + design suite (brief, architecture, ADRs, roadmap, manifest). Doctrine v0.6.16 installed; consumer verify green.",
+      "confidence": "verified",
+      "evidence": "openhawk doctor READY vs maple 1.1.2; 4 skeleton tests OK; doctrine_verify VERIFY OK",
+      "kind": "fact"
+    },
+    {
+      "claim": "v0.6.16: doctrine_lint.check_version was consumer-unsafe - it flagged any pyproject version as a Doctrine carrier, so OpenHawk 0.1.0 failed lint with a false desync vs .Doctrine.md. Now pyproject is a carrier only when it declares doctrineos. Found live via the OpenHawk install.",
+      "confidence": "verified",
+      "evidence": "tools/doctrine_lint.py check_version guard; tests TestVersionCarrierScope; CHANGELOG 0.6.16",
+      "kind": "decision_ref"
+    }
+  ],
+  "next_actions": [
+    "OpenHawk v0.2: wire the MAPLE orchestrator into daemon.beat + engage(); Head of AI + CISO co-sign the action-authority model (its own G0/G1)",
+    "Local dev box has maple 1.1.1 - pip install -U maple-oss>=1.1.2 for a READY doctor"
+  ],
+  "open_threads": [
+    "OpenHawk is a local repo (no remote/push yet - the human adds the remote and pushes)",
+    "Doctrine local main ahead of origin: v0.6.16 + checkpoint 21"
+  ],
+  "seq": 21,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "openhawk-kickoff",
+    "consumer-lint-fix"
+  ]
+}

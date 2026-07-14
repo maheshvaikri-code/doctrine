@@ -6,6 +6,24 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.15] - 2026-07-14
+
+### Added
+- **Product-family topology, formalized (ADR-003 + a template)** — the
+  three-repo shape is now a written decision, not a recommendation:
+  `doctrine` (governance + tooling) + `maple-oss` (runtime) + the product
+  (`openhawk`), with a **one-way dependency graph** (product → {doctrine,
+  maple}; doctrine ⟂ maple, no cycles). `docs/adr/003-product-family-topology.md`
+  fixes the boundaries and the rationale (separate repos for
+  license/cadence/visibility; a monorepo would spread MAPLE's AGPL to all).
+  New `templates/compatibility-manifest.md` (G6 artifact) is the per-release
+  **stack BOM**: the certified doctrine+maple versions for each product
+  release, the family-gate evidence checklist (Doctrine↔MAPLE smoke, product
+  gates, AGPL ack), and rollback. Routing-table row added. **Deferred, on
+  purpose:** the *running* family gate (CI pinning + testing three repos)
+  waits until the `openhawk` repo exists — a gate over a missing repo is
+  unenforceable; the contract is written first so it guides creation.
+
 ## [0.6.14] - 2026-07-14
 
 ### Changed

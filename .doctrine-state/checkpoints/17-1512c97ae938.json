@@ -1,0 +1,33 @@
+{
+  "at_commit": "e7b3ccc3511124d61861be9d93702bb0374a488b",
+  "checkpoint_version": "1",
+  "control": {
+    "active_intents": [],
+    "gates_passed": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6"
+    ],
+    "phase": "g6",
+    "ponytail_mode": "full",
+    "role": "release-manager"
+  },
+  "created_at": "2026-07-14T05:01:05Z",
+  "prev_sha256": "0e5af97eb4a462cfcb04393466d9a342662472fc14167b26f186574777a6db5a",
+  "seq": 17,
+  "session_id": "s-2026-07-13-a",
+  "state_index": {
+    "decisions_sha256": "8256284cb1c58ff0c8ff59f8634be335ad1707e0a9117a65abf8f17090db9370",
+    "graph": {
+      "built_at_commit": null
+    },
+    "intents": {},
+    "latest_distillate_sha256": "036b665342a3ebae693472577c552dafe3605e8568649f7cca2834303335eb37",
+    "unresolved_effects": 0
+  },
+  "worktree": "clean"
+}

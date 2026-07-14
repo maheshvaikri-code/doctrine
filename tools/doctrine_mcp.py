@@ -32,7 +32,7 @@ import doctrine_state  # noqa: E402
 
 PROTOCOL_VERSION = "2025-06-18"
 KNOWN_PROTOCOLS = {"2024-11-05", "2025-03-26", "2025-06-18"}
-SERVER_INFO = {"name": "doctrineos", "version": "0.6.10"}
+SERVER_INFO = {"name": "doctrineos", "version": "0.6.11"}
 MAX_LINE_BYTES = 5_000_000
 NO_ARGS = {"type": "object", "properties": {}, "additionalProperties": False}
 REQUIRED_ARGS = {"state_checkpoint": ["proposal_json"],

@@ -6,6 +6,28 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.11] - 2026-07-13
+
+### Added
+- **MAPLE runtime integration (opt-in)** — `integrations/maple.md` wires
+  MAPLE (`maple-oss` 1.1.1, mapleagent.org — first-party, same author)
+  as the doctrine's optional multi-agent workforce runtime: roles become
+  persistent addressable agents, work packages and gate verdicts become
+  typed messages (`WORK.PACKAGE` / `GATE.RESULT` carrying artifact
+  hashedrefs, never prose), `Result<T,E>` carries honest failure,
+  link-identified channels enforce separation of duties (verifiers hold
+  links only to the orchestrator), and `execute_consensus` maps to the
+  verifier panel. Two hard boundaries in law: MAPLE routes, gates
+  decide; the state plane stays the durable truth (broker state is
+  ephemeral). Verified live on Windows/Py3.12 with an in-process-broker
+  smoke test. Ships with a reproduced sharp-edges list (handler-key
+  case trap; `send()` Ok = enqueue, not delivery) and a five-item
+  upstream enhancement wishlist for `maple-oss`. AGPL-3.0 disposition
+  recorded per dependency policy: never vendored, never imported by
+  doctrineos — document + protocol contract only; consumers opting in
+  flag `Workforce runtime: maple` in their brief. Routing table row
+  added.
+
 ## [0.6.10] - 2026-07-13
 
 ### Added

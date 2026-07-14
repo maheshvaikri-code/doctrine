@@ -154,7 +154,9 @@ def check_plugin_parity(root: Path, findings: list[str]) -> None:
         return  # consumer repo: the plugin ships from the source repo only
     pairs = [(root / ".claude" / "agents", root / "plugin" / "agents"),
              (root / ".claude" / "commands" / "checkpoint.md",
-              root / "plugin" / "commands" / "checkpoint.md")]
+              root / "plugin" / "commands" / "checkpoint.md"),
+             (root / ".claude" / "commands" / "doctrine.md",
+              root / "plugin" / "commands" / "doctrine.md")]
     for canonical, copy in pairs:
         if not copy.exists():
             findings.append("plugin parity: "

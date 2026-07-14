@@ -6,9 +6,12 @@ file is only the ignition key — the doctrine is the source of truth.
 
 ## Before any work, on every task
 
-1. Read `.Doctrine.md` in full (~230 lines).
-2. Classify the task — S / M / L / HOTFIX — and follow the gate pipeline
-   for that class (G0 intake → G7 retrospective).
+1. Read `.Doctrine.md` in full.
+2. Classify the task — S / M / L / HOTFIX — and OPEN your response with
+   the Engagement Block (`.Doctrine.md` §2): `[DOCTRINE ENGAGED]` +
+   Class/Role/Loads/Gates/Governance/Profiles (one-liner for Class S).
+   Then execute the gates autonomously — pause only at §5 escalations.
+   Only the human bypasses, and a bypass is announced, never silent.
 3. Load `.Doctrine/` files ONLY per the routing table in `.Doctrine.md`
    §6. Progressive disclosure: never bulk-read the folder.
 4. Wear one role at a time and announce it: `[ROLE: Code Reviewer]`.

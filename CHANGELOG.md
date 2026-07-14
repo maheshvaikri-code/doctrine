@@ -6,6 +6,22 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.10] - 2026-07-13
+
+### Added
+- **The Engagement Protocol** — the observable cue that Doctrine kicked
+  in. On EVERY user command in a doctrine repo, the agent's response
+  OPENS with the Engagement Block before any work: `[DOCTRINE ENGAGED]`
+  + Class / Role / Loads / Gates / Governance / Profiles (one-line form
+  for Class S — right-sized ceremony applies to the ritual itself).
+  Explicit cues: `doctrine: <task>` forces engagement; only the human
+  can bypass, and a bypass is announced (`[DOCTRINE BYPASSED — human
+  instruction]`), never silent. Autonomy contract stated in law: after
+  the block, the agent executes the gates without waiting — pausing
+  only at §5 escalations. Shipped as: `.Doctrine.md` §2 (the law),
+  AGENTS.md compression (all agents), `/doctrine` command for Claude
+  Code (.claude + plugin, byte-parity lint-enforced).
+
 ## [0.6.9] - 2026-07-13
 
 ### Added

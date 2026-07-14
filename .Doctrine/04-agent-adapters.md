@@ -45,7 +45,7 @@ file the agent auto-loads at session start. This doc wires that ignition.
    card + diff + brief. Never let the verifier session see the build
    session's reasoning.
 2. **No `@import`**: AGENTS.md instructs the agent to Read `.Doctrine.md`;
-   verify early in a session that it did (ask it to state the task class).
+   verify early in a session that it did (its first task response must open with the `[DOCTRINE ENGAGED]` block; ask for it if absent).
 3. **Weaker file discipline**: some agents bulk-ingest. If you see it
    quoting deep `.Doctrine/` files unprompted, restate: routing table
    only, progressive disclosure.

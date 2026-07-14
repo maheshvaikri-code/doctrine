@@ -1,0 +1,47 @@
+{
+  "at_commit": "2c2b1aa92a422a8c436548c07dd02ec9be615de5",
+  "created_at": "2026-07-14T02:40:29Z",
+  "dead_ends": [
+    {
+      "approach": "backtick path 'adapters/doctrine_adapter.py' in the MAPLE integration doc to name a proposed upstream module",
+      "why_failed": "lint's REF_RE reads adapters/-prefixed backtick paths as corpus refs and failed the suite; prefix upstream paths with the package name (maple/adapters/...)"
+    },
+    {
+      "approach": "trusting a piped exit code (verify | grep | head) as gate evidence",
+      "why_failed": "pipeline exit code came from head, not doctrine_verify - a FAIL could read as 0; capture to a log file and take the runner's own exit code"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "v0.6.11: MAPLE (maple-oss 1.1.1, first-party) is the opt-in workforce runtime (integrations/maple.md): roles as persistent agents, WORK.PACKAGE/GATE.RESULT messages with artifact hashedrefs, links enforce separation of duties; MAPLE routes, gates decide; state plane stays truth.",
+      "confidence": "verified",
+      "evidence": "integrations/maple.md; smoke test on in-process broker (orchestrator->worker dispatch, typed verdict reply)",
+      "kind": "fact"
+    },
+    {
+      "claim": "AGPL-3.0 disposition recorded per dependency policy: MAPLE is never vendored and never imported by doctrineos (stdlib-only stays); document + protocol contract only; consumers opting in flag 'Workforce runtime: maple' in their brief.",
+      "confidence": "verified",
+      "evidence": "integrations/maple.md license verdict; standards/dependency-policy.md item 4",
+      "kind": "decision_ref"
+    },
+    {
+      "claim": "MAPLE 1.1.1 sharp edges reproduced: Message uppercases message_type but register_handler stores keys verbatim (register handlers UPPERCASE), and send() Ok means enqueued not delivered (Ok returned for a nonexistent receiver) - dispatch must be reply-or-timeout.",
+      "confidence": "verified",
+      "evidence": "maple/core/message.py normalization; smoke test output",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "Optional next engagement: the five-item MAPLE wishlist in maple-oss (list in integrations/maple.md 'Enhancement asks')",
+    "Queued gaps: runbook validator, sign-off signing (ssh-keygen -Y), installer --upgrade with manifest"
+  ],
+  "open_threads": [
+    "Push pending: v0.6.6 through v0.6.11 (git push --follow-tags)"
+  ],
+  "seq": 16,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "maple-runtime-integration"
+  ]
+}

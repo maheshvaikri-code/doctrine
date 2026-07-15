@@ -110,34 +110,40 @@ def check_version(root: Path, findings: list[str]) -> None:
         findings.append("version: no vX.Y.Z in the .Doctrine.md header")
         return
     version = m_doc.group(1)
-    # CHANGELOG sync — only when the repo keeps one (consumers may not yet)
-    changelog = root / "CHANGELOG.md"
-    if changelog.exists():
-        m_log = re.search(r"^## \[(\d+\.\d+\.\d+)\]",
-                          changelog.read_text("utf-8"), re.MULTILINE)
-        if m_log and m_log.group(1) != version:
-            findings.append(f"version desync: .Doctrine.md v{version} "
-                            f"!= CHANGELOG {m_log.group(1)}")
-    # packaging manifests sync (05-packaging versioning rule) — each
-    # checked only where present (source repo has them, consumers may not)
+    # The version carriers below are Doctrine's OWN version, enforced ONLY in
+    # Doctrine's source repo (it declares the `doctrineos` package, which the
+    # installer never copies). A CONSUMER repo has its OWN CHANGELOG, pyproject,
+    # and README badge for its OWN product version (e.g. openhawk 0.2.0) - NOT a
+    # desync. doctrine_mcp.py is Doctrine's file even inside a consumer, so it
+    # is the one carrier always checked. (This guards the whole bug class - the
+    # pyproject-only fix in 0.6.16 missed the CHANGELOG, caught by OpenHawk.)
+    pyproject = root / "pyproject.toml"
+    is_source = pyproject.exists() and \
+        'name = "doctrineos"' in pyproject.read_text("utf-8")
+
+    if is_source:
+        changelog = root / "CHANGELOG.md"
+        if changelog.exists():
+            m_log = re.search(r"^## \[(\d+\.\d+\.\d+)\]",
+                              changelog.read_text("utf-8"), re.MULTILINE)
+            if m_log and m_log.group(1) != version:
+                findings.append(f"version desync: .Doctrine.md v{version} "
+                                f"!= CHANGELOG {m_log.group(1)}")
+
     carriers = [
-        (root / "plugin" / ".claude-plugin" / "plugin.json",
-         r'"version":\s*"(\d+\.\d+\.\d+)"'),
         (root / "tools" / "doctrine_mcp.py",
          r'"version":\s*"(\d+\.\d+\.\d+)"'),
-        # the README's static version badge (dynamic shields can't see a
-        # private repo, so the badge is static and lint-enforced instead)
-        (root / "README.md",
-         r'shields\.io/badge/version-v(\d+\.\d+\.\d+)-'),
     ]
-    # pyproject.toml is a Doctrine version carrier ONLY in Doctrine's own
-    # source repo (it declares the `doctrineos` package). A CONSUMER repo has
-    # its OWN pyproject with its own product version (e.g. openhawk 0.1.0) -
-    # that is not a desync. Guard by the package name the installer never copies.
-    pyproject = root / "pyproject.toml"
-    if pyproject.exists() and \
-            'name = "doctrineos"' in pyproject.read_text("utf-8"):
-        carriers.append((pyproject, r'version = "(\d+\.\d+\.\d+)"'))
+    if is_source:
+        carriers += [
+            (root / "plugin" / ".claude-plugin" / "plugin.json",
+             r'"version":\s*"(\d+\.\d+\.\d+)"'),
+            (pyproject, r'version = "(\d+\.\d+\.\d+)"'),
+            # README static version badge (dynamic shields can't see a private
+            # repo, so the badge is static and lint-enforced instead)
+            (root / "README.md",
+             r'shields\.io/badge/version-v(\d+\.\d+\.\d+)-'),
+        ]
     for path, pattern in carriers:
         if not path.exists():
             continue

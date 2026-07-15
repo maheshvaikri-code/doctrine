@@ -6,6 +6,21 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.6.17] - 2026-07-14
+
+### Fixed
+- **`doctrine_lint` version check — whole bug class swept (CHANGELOG too)** —
+  0.6.16 fixed the consumer `pyproject` false-desync but missed the sibling
+  **CHANGELOG** check in the same function; a consumer repo with its own
+  product CHANGELOG (found live: OpenHawk 0.2.0) failed lint with a false
+  "version desync: .Doctrine.md v0.6.16 != CHANGELOG 0.2.0". `check_version`
+  now computes `is_source` once (pyproject declares `doctrineos`) and gates
+  ALL Doctrine-owned carriers — CHANGELOG, pyproject, plugin.json, README
+  badge — on it; only `doctrine_mcp.py` (Doctrine's own file even inside a
+  consumer) is always checked. Source behavior unchanged. Regression tests:
+  consumer CHANGELOG not flagged; source CHANGELOG desync still caught.
+  Lesson applied: fix the whole bug class, not the one instance.
+
 ## [0.6.16] - 2026-07-14
 
 ### Fixed

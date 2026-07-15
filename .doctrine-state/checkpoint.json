@@ -1,12 +1,10 @@
 {
-  "at_commit": "cdd1840843db0a5ecf7053db4ee73734fa4d7ed2",
+  "at_commit": "347dee26a0ffea18729150dc63db1939bf7c6959",
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
     "gates_passed": [
-      "G0",
       "G1",
-      "G2",
       "G3",
       "G6"
     ],
@@ -14,17 +12,17 @@
     "ponytail_mode": "full",
     "role": "release-manager"
   },
-  "created_at": "2026-07-14T22:44:26Z",
-  "prev_sha256": "d124153442aa3e4e63a89540c2dedec114becc20fd75731d5d9be44d4709fb81",
-  "seq": 21,
+  "created_at": "2026-07-15T02:34:01Z",
+  "prev_sha256": "b917151fd0b852efe20bbc806fdc276843cb5fd7b9873aabc382e2ea74765adb",
+  "seq": 22,
   "session_id": "s-2026-07-13-a",
   "state_index": {
-    "decisions_sha256": "0464dc76f1187176ecb74f056227610b9de36c5fd3327f3eaacbe0d4766acd7a",
+    "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
     "graph": {
       "built_at_commit": null
     },
     "intents": {},
-    "latest_distillate_sha256": "cb8f91c45c759658eaccc20f08b287cf13278f3282f449b386fff81721bbb50d",
+    "latest_distillate_sha256": "887dd8788aea80ed68e1b904b0f90df7906c7b2d3e8b877e9527a53d1d605548",
     "unresolved_effects": 0
   },
   "worktree": "clean"

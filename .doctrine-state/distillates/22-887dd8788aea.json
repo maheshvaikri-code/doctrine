@@ -1,0 +1,55 @@
+{
+  "at_commit": "347dee26a0ffea18729150dc63db1939bf7c6959",
+  "created_at": "2026-07-15T02:34:01Z",
+  "dead_ends": [
+    {
+      "approach": "patching only the pyproject instance of the consumer-vs-source version bug in check_version (v0.6.16)",
+      "why_failed": "the sibling CHANGELOG check in the same function had the identical flaw and recurred in OpenHawk. Fix the whole bug class in one pass; sweep the function"
+    },
+    {
+      "approach": "run_post_install executing the target's copied tool files while trusting they were 'just written by us'",
+      "why_failed": "copy_file skips different-content files (no --force), so --verify could execute unvetted target code; guard: refuse when any TOOL_FILES entry is in skipped_diff"
+    },
+    {
+      "approach": "lease check on prune and merge with --steal everywhere",
+      "why_failed": "blocked the solo maintenance path for an hour after every checkpoint; guarding non-append operations added ceremony without protection"
+    },
+    {
+      "approach": "split-on-first-END marker replacement in emit_agents_block",
+      "why_failed": "a body containing a literal END marker compounds corruption on every re-emit; strict one-ordered-pair integrity plus body token refusal replaced it"
+    },
+    {
+      "approach": "Path.read_text for AGENTS.md before splicing",
+      "why_failed": "universal-newline translation rewrote CRLF files wholesale, violating compiler-owns-only-the-block; raw bytes decode preserves outside content exactly"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "OpenHawk fleet design captured (ADR-006): scale without sprawl = one control plane over many uniform workers, O(1) in fleet size. Invariants: uniform WORK.PACKAGE contract, bounded persistent worker pool, capability dispatch, token budget, flat governance. FleetRegistry = v0.5.",
+      "confidence": "verified",
+      "evidence": "OpenHawk docs/adr/006-fleet-scaling.md; roadmap v0.5 row",
+      "kind": "decision_ref"
+    },
+    {
+      "claim": "v0.6.17: doctrine_lint check_version was still consumer-unsafe for the CHANGELOG check - v0.6.16 fixed only pyproject. OpenHawk's own CHANGELOG 0.2.0 falsely desynced. Now is_source gates ALL Doctrine-owned carriers; only doctrine_mcp.py always checked.",
+      "confidence": "verified",
+      "evidence": "tools/doctrine_lint.py is_source; tests; OpenHawk consumer verify now VERIFY OK",
+      "kind": "decision_ref"
+    }
+  ],
+  "next_actions": [
+    "OpenHawk v0.5 Fleet phase: build FleetRegistry (bounded pool, capability map, MAPLE discovery/health, token budget)",
+    "When fixing a bug class in a function, audit the whole function for siblings before shipping"
+  ],
+  "open_threads": [
+    "OpenHawk v0.2 is uncommitted in the user's working tree (they are actively developing: orchestrator, session, tests, ADR-005); ADR-006 + roadmap Fleet phase added by me, also uncommitted there",
+    "Doctrine local main ahead of origin: v0.6.15-v0.6.17 + checkpoints"
+  ],
+  "seq": 22,
+  "session_id": "s-2026-07-13-a",
+  "task_refs": [
+    "fleet-scaling",
+    "consumer-lint-changelog"
+  ]
+}

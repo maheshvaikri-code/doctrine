@@ -38,6 +38,23 @@ src/|<crate|pkg>/   tests/   docs/{adr,plans,reviews,qa,retro}/
 - Splitting to a monorepo (or out of one) is a Class-L decision with an
   ADR, not a Friday refactor.
 
+## Parallel-safe local work: git worktrees
+When two changes must proceed at once — a long build vs. a hotfix, one agent
+per work package (`03-parallel-execution.md`), a risky spike you don't want
+touching main's tree — don't stash-juggle or re-clone. **`git worktree`** gives
+each effort its own checked-out directory over one shared `.git`:
+- `git worktree add ../repo-hotfix hotfix-branch` — an isolated tree; edits,
+  builds, and test runs in one never disturb another.
+- One branch per worktree (git enforces it), so two efforts can't race the same
+  working tree or the same branch. `git worktree remove <path>` when done;
+  `git worktree prune` clears stale refs.
+- Shared object store = cheap (no re-clone), but **each worktree needs its own
+  env**: re-run `make setup`, re-create `.venv`/`node_modules`, re-export secrets.
+- **The version line stays single-writer.** Worktrees isolate *editing*, not
+  *landing*: two branches both bumping the version carriers/CHANGELOG still
+  collide at merge. Serialize the release step (one version at a time);
+  parallelize only disjoint file scopes (`03-parallel-execution.md`).
+
 ## Do
 - `.env.example` documents every variable's name and shape — never values.
 - Pre-commit hooks for fmt + lint + secrets scan; installing them is part

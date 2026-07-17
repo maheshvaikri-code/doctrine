@@ -3,7 +3,7 @@
 This folder turns Claude Code into a full software company for this
 repository: thirty roles (nineteen engineering + seven startup-profile
 founder-ops + four governance heads), forty skill playbooks, eight
-standards plus six language profiles, a gated workflow, integrations, a
+standards plus ten language profiles, a gated workflow, integrations, a
 state plane, and templates for every artifact the workflow produces.
 
 ## Layout
@@ -18,11 +18,11 @@ state plane, and templates for every artifact the workflow produces.
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              33 role cards (22 engineering incl. FDE, SRE, data/ML,
+├── roles/              35 role cards (24 engineering incl. FDE, SRE, data/ML,
 │                       compliance + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
 │                       ciso, risk-officer — policy above the gates)
-├── skills/             49 discipline playbooks (G0 requirements → G1
+├── skills/             53 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + startup craft: marketing→fundraising)

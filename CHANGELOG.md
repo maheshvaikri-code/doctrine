@@ -22,6 +22,55 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.26] - 2026-07-17
+
+### Added
+- **`skills/debugging.md`** — a systematic debugging / root-cause discipline:
+  reproduce-first, a hypothesis-driven loop (refute, don't confirm), the
+  vendor-neutral techniques (git bisect, minimal reproduction, differential
+  debugging, trace-to-origin), cause-not-symptom, and a regression test that
+  proves the fix. Fills a real gap — "debug" was scattered across
+  observability/incident-response but had no dedicated dev-time bug-hunting
+  playbook. **Distilled (not copied), vendor-neutral, agent-agnostic** from the
+  open coding disciplines in the awesome-claude-skills survey
+  (`root-cause-tracing`, `test-fixing`); no third-party package, script, or
+  service was adopted — the vendor-locked and already-covered entries were
+  deliberately excluded.
+
+### Changed
+- **`skills/repo-devops.md`** — added a *git worktrees* section for parallel-safe
+  local work (isolated working trees over one shared `.git`), reinforcing that
+  the version line stays single-writer (worktrees isolate editing, not landing).
+- Routing table + counts: 52 → 53 discipline playbooks.
+
+## [0.6.25] - 2026-07-17
+
+### Added
+- **Data Architect role (`roles/data-architect.md`) + `skills/data-architecture.md`**
+  — data modeling (conceptual/logical/physical) and storage topology
+  (OLTP/warehouse/lakehouse/mesh, system-of-record, expand-contract evolution,
+  one-definition-per-entity). Bounded against Chief Architect (whole system),
+  Head of Data (governance), Data Engineer (pipelines), Database Engineer (schema).
+- **Database Administrator role (`roles/database-administrator.md`) +
+  `skills/database-operations.md`** — DB *operations*: tested restores, RPO/RTO,
+  HA/DR, prod-safe migrations (lock scope, online/expand-contract), performance
+  ops, least-privilege access. Bounded against Database Engineer (designs schema)
+  and SRE (whole-system reliability). Destructive ops are §5-gated.
+- **`skills/platform-integrations.md` ("Spaces")** — governed integration with
+  external enterprise platforms (Hugging Face, Snowflake, ServiceNow, Salesforce,
+  Jira, …): intake checklist (auth / data-direction / SDK / limits / failure),
+  §5 on outbound writes to a system of record, secrets-in-manager, sandbox-first,
+  and an extensible platform catalog.
+- **Four language profiles (6 → 10):** C/C++, Ruby, PHP, Swift — toolchain,
+  format/lint, idioms, the no-swallow error rule, testing, dependency audit.
+- **Observability stacks catalog** in `skills/observability.md` — three pillars
+  + OpenTelemetry (instrument once, export anywhere); Prometheus/Grafana,
+  ELK/Loki, Jaeger/Tempo, Datadog, Sentry, each with cost/PII/§5 watch-items.
+
+### Changed
+- Routing table + role index wired for the 2 roles and 3 skills; counts
+  33 → 35 role cards (24 engineering) and 49 → 52 discipline playbooks.
+
 ## [0.6.24] - 2026-07-17
 
 ### Added

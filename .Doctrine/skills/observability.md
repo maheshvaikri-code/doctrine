@@ -43,12 +43,33 @@
 - Don't build a metrics cathedral for a CLI — proportionality: a `-v` flag
   and clean stderr may be the whole story.
 
+## Stacks — instrument once, export anywhere
+The three pillars are **metrics** (aggregatable numbers over time), **logs**
+(discrete events, above), and **traces** (one request's path across services).
+Instrument to **OpenTelemetry (OTel)** — the vendor-neutral SDK + wire format —
+so the backend becomes a config choice, not a rewrite. Never hard-wire a
+proprietary agent's API through your business logic.
+
+| Stack | Pillar(s) | Use it for | Watch-items |
+|-------|-----------|------------|-------------|
+| **OpenTelemetry** | all three | vendor-neutral instrumentation + collector | the collector is the seam; export to any backend below |
+| **Prometheus + Grafana** | metrics (+ dashboards) | self-hosted metrics, alerting (Alertmanager) | cardinality explosions (per-user labels) melt Prometheus; keep labels bounded |
+| **ELK / Loki** | logs | centralized, searchable log aggregation | index cost; retention policy; PII scrubbing at ingest |
+| **Jaeger / Tempo** | traces | distributed tracing storage + UI | sampling strategy; trace-ID propagation across every hop |
+| **Datadog / New Relic / Honeycomb** | all three (SaaS) | managed one-stop APM | **paid + data leaves the building (§5)**; cost scales with volume; scrub PII before export |
+| **Sentry** | errors (+ traces) | exception capture, release health, alerting | self-host or SaaS; scrub PII from event bodies + breadcrumbs; sample high-volume errors |
+
+Governance: any **SaaS** observability backend is a paid, external data flow —
+escalate (§5), and scrub secrets/PII **before** telemetry leaves the process
+(the no-secret-in-logs rule extends to every span attribute and metric label).
+
 ## Review checklist
 - [ ] Boundary events logged with correlation IDs and durations
 - [ ] Levels used to spec; no error-spam for handled conditions
 - [ ] Secret/PII audit of every new log line
 - [ ] Failure diagnostics sufficient: could you debug this from logs alone?
 - [ ] Debug leftovers removed; verbosity controls documented
+- [ ] SaaS telemetry backend escalated (§5); PII/secrets scrubbed before export
 
 ## Common failure modes
 Silent failure paths (the error goes nowhere); ERROR-level heartbeat noise

@@ -1,0 +1,35 @@
+# Opt-in GitHub Pages publishing for the Doctrine repo -- an instance of
+# skills/web-publishing.md applied to this repo itself.
+#
+# DORMANT until the human sets repo variable DOCTRINE_PAGES_PUBLISH=on (the
+# recorded Section-5 external-publish opt-in) AND sets Settings -> Pages -> Source
+# = GitHub Actions. Never default-on: adding this file publishes nothing.
+#
+# Before enabling: pin every action to a full commit SHA (do NOT trust floating
+# tags on a publish path, and do not guess SHAs offline -- that bricks the run).
+name: doctrine-pages
+on:
+  push:
+    branches: [main]
+    paths: ['.Doctrine/**', 'README.md', 'scripts/build_site.py']
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: doctrine-pages
+  cancel-in-progress: true
+jobs:
+  build-deploy:
+    if: ${{ vars.DOCTRINE_PAGES_PUBLISH == 'on' }}
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4               # TODO: pin to a SHA
+      - run: pip install "markdown>=3.6"
+      - name: Build site + fail-closed gates (designated source, one build)
+        run: python scripts/build_site.py _site
+      - uses: actions/upload-pages-artifact@v3  # TODO: pin to a SHA
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4           # TODO: pin to a SHA

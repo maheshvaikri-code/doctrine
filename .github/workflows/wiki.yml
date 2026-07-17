@@ -1,0 +1,46 @@
+# Opt-in wiki publishing for the Doctrine repo -- an instance of
+# skills/web-publishing.md applied to this repo itself.
+#
+# DORMANT until the human sets the repo variable DOCTRINE_WIKI_PUBLISH=on -- that
+# is the recorded Section-5 external-publish opt-in. Never default-on: adding this
+# file does not publish anything; flipping the variable does.
+#
+# Before enabling: pin actions/checkout to a full commit SHA (do NOT trust a
+# floating tag on a publish path -- and do not guess the SHA offline, that bricks
+# the workflow; look it up).
+name: doctrine-wiki
+on:
+  push:
+    branches: [main]
+    paths: ['.Doctrine/**']
+permissions:
+  contents: write
+concurrency:
+  group: doctrine-wiki
+  cancel-in-progress: true
+jobs:
+  sync:
+    if: ${{ vars.DOCTRINE_WIKI_PUBLISH == 'on' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4          # TODO: pin to a SHA before enabling
+      - name: Build wiki + fail-closed gates (designated source, one-way)
+        run: python scripts/build_wiki.py _wiki
+      - name: Publish one-way to the repo wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          url="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+          git clone --depth 1 "$url" _wikirepo \
+            || { mkdir _wikirepo && git -C _wikirepo init -q \
+                 && git -C _wikirepo remote add origin "$url"; }
+          rm -f _wikirepo/*.md
+          cp _wiki/*.md _wikirepo/
+          cd _wikirepo
+          git config user.name "doctrine-wiki[bot]"
+          git config user.email "actions@github.com"
+          git add -A
+          git diff --cached --quiet \
+            || git commit -m "doctrine wiki: sync from .Doctrine/ @ ${{ github.sha }}"
+          git push origin HEAD:master

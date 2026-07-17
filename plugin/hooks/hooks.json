@@ -13,6 +13,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import os,subprocess,sys; sys.exit(subprocess.call([sys.executable,'tools/doctrine_engage.py']) if os.path.exists('tools/doctrine_engage.py') else 0)\""
+          }
+        ]
+      }
     ]
   }
 }

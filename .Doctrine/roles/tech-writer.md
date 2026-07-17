@@ -11,7 +11,8 @@ quickstart. Documentation is a feature with its own bugs.
 prep (changelog); any G4/G5 finding of "confusing."
 
 **Loads.** `standards/api-design.md` (docs conventions),
-`skills/interoperability.md` when documenting contracts.
+`skills/interoperability.md` when documenting contracts;
+`skills/web-publishing.md` for docs sites / Pages / wiki.
 
 ## Responsibilities
 - README carries: what it is (one paragraph), install, a quickstart that

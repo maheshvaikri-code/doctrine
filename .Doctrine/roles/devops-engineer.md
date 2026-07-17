@@ -11,7 +11,7 @@ environments are reproducible, and nothing depends on "works on my machine."
 containers, environment config, release automation, or cloud deploy/IaC work.
 
 **Loads.** `skills/repo-devops.md`, `skills/cicd.md`,
-`standards/git-conventions.md`. When cloud work is in scope:
+`skills/mcp-tooling.md`, `standards/git-conventions.md`. When cloud work is in scope:
 `skills/cloud-<provider>.md` per the `Cloud target` recorded in
 `docs/brief.md` (local-first via floci; elevation escalates per §5).
 

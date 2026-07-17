@@ -6,6 +6,166 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+- **Dogfood: opt-in wiki publishing for this repo** — `.github/workflows/wiki.yml`
+  + `scripts/build_wiki.py` apply `skills/web-publishing.md` to the Doctrine repo
+  itself. On push to `main` — once the human sets repo variable
+  `DOCTRINE_WIKI_PUBLISH=on` (the recorded §5 external-publish opt-in) — the wiki is
+  one-way-synced from the designated source (`.Doctrine/` roles + skills = 78 pages
+  + Home + `_Sidebar`) through a fail-closed gate (credential-pattern scan,
+  broken-link + empty-page checks). Repo tooling only — **not** a framework/version
+  change (no `.Doctrine/` corpus or manifest change).
+- **Dogfood: opt-in GitHub Pages for this repo** — `.github/workflows/pages.yml` +
+  `scripts/build_site.py` render the designated source (`.Doctrine/` playbooks +
+  roles + skills + README = 86 pages) to a **self-contained** static site (embedded
+  CSS, no CDN, works offline) via Python-Markdown, through the same fail-closed gate
+  (credential-pattern scan, thin/empty-page check), deploying via
+  `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
+  Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
+
+## [0.6.24] - 2026-07-17
+
+### Added
+- **Data Analytics discipline (`roles/data-analyst.md` + `skills/data-analytics.md`
+  + `templates/analysis-report.md`)** — the catalog had Data *Engineering* (Data
+  Engineer + `data-engineering` + Head of Data) but no Data *Analytics*: no analyst
+  role, no analytics skill. They are distinct disciplines — engineering *moves and
+  stores* data, analytics *derives decisions from* it. New **Data Analyst** role +
+  **data-analytics** skill cover analysis, BI/dashboards, experimentation, and metric
+  definition on a decision-first, honest-statistics discipline:
+  one-metric-one-definition, uncertainty + confounders reported, no
+  correlation-as-causation, reproducible query, PII aggregated
+  (`privacy-compliance`), and **p-hacking treated as a §1 honesty violation, not a
+  technique**. `templates/analysis-report.md` (the decision-serving readout) ships
+  with it. **Data Engineering rounded out** with the template it lacked:
+  `templates/data-contract.md` (schema-as-promise, change policy, lineage/retention;
+  Head of Data co-signs). Wired into the §6 routing table + §10 role index (33 roles
+  / 49 skills); filed with a G0 brief.
+
+## [0.6.23] - 2026-07-16
+
+### Added
+- **Web Design discipline — a designer, recruited (`roles/web-designer.md` +
+  `skills/web-design.md`)** — Doctrine could *publish* a site (`web-publishing`)
+  but had no one who made it *look* designed: UX Designer owns flows, Frontend
+  Engineer implements, `ui` covers components — zero visual/web/brand coverage, so
+  generated sites looked dev-built. New **Web Designer** role + **web-design** skill
+  fill it, on one strategy: **borrow a proven open-source template and map the
+  repo's own content into it**, rather than invent design from scratch. The skill
+  encodes the corporate-site structure (hero → features → docs → about → CTA →
+  footer), a **template catalog** of free/open-source options (Material for MkDocs,
+  Docusaurus, Nextra, Start Bootstrap, HTML5 UP…) with **license discipline**
+  (check + attribute + comply; CC-BY keeps its credit), real-content-not-lorem
+  mapping, self-contained-not-CDN, and accessibility. Wired into the §6 routing
+  table + §10 role index; filed with a G0 brief. Honest constraint recorded:
+  external template repos can't be fetched from a sandbox, so the skill carries the
+  catalog for per-project borrowing and a strong self-contained default ships in
+  the generator. Proven by upgrading the repo's own site generator
+  (`scripts/build_site.py`) to a corporate-quality template.
+
+## [0.6.22] - 2026-07-16
+
+### Added
+- **Web publishing — GitHub Pages, project website, and GitHub wiki
+  (`skills/web-publishing.md`)** — the doctrine had no coverage for publishing a
+  repo to a web surface (grep: 0 hits), and no support for auto-publish-on-push.
+  New skill governs all three surfaces plus **opt-in auto-publish on commit/push**,
+  on one load-bearing rule: *auto-publish to a public surface is auto-EXPOSE on
+  every push.* So (1) **opt-in is a §5 decision made once** and recorded
+  (`Web publish: pages | site | wiki | off` in the brief), **never default-on** —
+  the choice is the escalation, not each push; (2) publish a **designated source
+  only** (`/docs`/`site/`/an artifact), never secrets/drafts/whole-repo; (3) the
+  publish workflow **fails closed** — build + link-check + secret-scan before
+  deploy, so a broken/leaky build never goes live. Includes a hardened,
+  SHA-pinned reference Actions workflow (path-scoped, `deploy-pages`), the
+  Pages/website/wiki specifics (one-way docs→wiki, custom-domain = §5), and
+  wiring into the §6 routing table + the Tech Writer role's Loads. Filed with a
+  G0 brief; enforcement of the publish gate is the workflow's (fail-closed), the
+  opt-in is the human's.
+
+## [0.6.21] - 2026-07-16
+
+### Fixed
+- **Installer atomic-update guard — no more partial-update framework drift** — a
+  non-force install into a repo that already has Doctrine copied *new* framework
+  files while *skipping* changed ones (`copy_file` preserves different-content
+  files without `--force`). When the skipped set included a **consistency
+  carrier** — `.Doctrine/README.md` (the role/skill counts),
+  `tools/doctrine_install.py` (the file manifest), or `.Doctrine.md` (the law) —
+  the consumer's framework went internally inconsistent (new files present, counts/
+  manifest stale), so its *own* `doctrine_lint`/`doctrine_packaging` failed. Found
+  live in the OpenHawk repo after a non-force "hook-merge" update. `install()` now
+  refuses **before touching the target** when updating an existing Doctrine and any
+  consistency carrier would differ, pointing to `--force` (which updates the whole
+  framework atomically). A generic differing file still skips-with-a-warning —
+  idempotent re-install and local-edit preservation are unchanged. Regression:
+  `tests/test_doctrine_install_atomic.py`; the packaging suite (idempotent,
+  differing-file-skip) stays green. Same consumer-vs-source hazard class as the
+  v0.6.10→v0.6.18 retro, one layer down: a partial *update* is its own drift source.
+
+## [0.6.20] - 2026-07-16
+
+### Added
+- **Governed use of external MCP servers (ADR-005 + `skills/mcp-tooling.md`)** —
+  the doctrine had no discipline for *consuming* external MCP servers (it only
+  *ships* the `doctrineos` server); grep for `Sentry` returned zero hits. New
+  `skills/mcp-tooling.md` governs MCP tool-use for **any** feature development
+  (not DevOps-only), on four invariants: **open-source-first** (an MCP server is a
+  dependency — same `dependency-policy` bar; a closed/hosted data-touching MCP is a
+  §5 decision); **intended, available, else fall back** (match the MCP to intent,
+  use only if wired, otherwise fall back to the CLI — never block a task on an absent
+  MCP); **MCP actions are governed actions** (read-only/least-privilege by default;
+  every write/deploy/spend/delete/send = §5 escalation; secrets in the server's auth
+  config never the repo; attributable + tested); **no skill-per-server** (one
+  principle-first skill + an illustrative catalog — GitHub/Docker/cloud/Sentry —
+  that grows by registry entry, not by rotting per-provider files). Wired into the §6
+  routing table and the DevOps Engineer role's Loads; ADR-005 records the decision.
+  Enforcement is advisory until a mechanical MCP-action gate lands (PreToolUse /
+  STIX-style pre-execution authorization — the L3 successor to ADR-004).
+
+## [0.6.19] - 2026-07-16
+
+### Added
+- **Activation layer — repos reliably wake Doctrine up (ADR-004)** — Doctrine
+  was advisory: loaded into context and reliant on the agent *choosing* to
+  engage, so installed repos often never triggered the Engagement Protocol
+  (loaded-but-not-obeyed, or never fully wired). Two mechanisms close the gap.
+  **L0 `doctrine_awaken`** — an activation doctor that audits a repo's wake-up
+  wiring (presence · CLAUDE.md/AGENTS.md load · SessionStart+UserPromptSubmit
+  hooks · state plane) and reports each gap with a remediation; exit non-zero on
+  a critical gap, so "installed but not triggering" is diagnosable in one
+  command. **L1 `doctrine_engage` + a `UserPromptSubmit` hook** — re-arms the
+  Engagement Protocol on *every* user message (an injected compact reminder),
+  turning "loaded once at session start, forgotten mid-session" into "prompted
+  every turn." Both **consumer-safe by construction** (engage no-ops outside a
+  doctrine repo; the plugin hook keeps its `os.path.exists` guard; awaken
+  inspects wiring only) — the v0.6.10→v0.6.18 retro's dominant bug class
+  designed out up front — and ASCII-only (Windows cp1252). Wired into
+  `.claude/settings.json` + `plugin/hooks/hooks.json`; both tools shipped by the
+  installer (`TOOL_FILES`). L2 (`.claude/rules/` path-routing pack) and L3
+  (`PreToolUse` hard gates) are ADR-004 roadmap. Filed with the full G0→G2 trail
+  (brief/ADR-004/plan) + `tests/test_doctrine_awaken.py` — dogfooding the retro's
+  self-application amendment.
+
+## [0.6.18] - 2026-07-16
+
+### Added
+- **Platform Engineering discipline** — a new role
+  (`roles/platform-engineer.md`) and skill (`skills/platform-engineering.md`)
+  fill the gap between DevOps (a repo's tooling/CI) and SRE (reliability/SLOs):
+  the internal platform *as a product* — paved roads, shared substrate,
+  self-service infra, developer experience; owns the cross-repo substrate both
+  build on. Principles: platform-the-second-use, golden-path-not-golden-cage
+  (every road has a documented escape hatch), contracts+versions on shared
+  substrate, self-service over tickets. New `templates/paved-road.md` is the
+  per-road artifact. Wired into the §6 routing table and §10 role index.
+- **PaaS deploy-target skills** — `skills/cloud-vercel.md`, `cloud-railway.md`,
+  `cloud-render.md`, `cloud-fly.md` extend cloud coverage below the major
+  providers. Honest local-first story: unlike aws/azure/gcp (floci-emulated),
+  PaaS targets are **not** emulated, so the parity path is Docker/CLI
+  (`vercel dev`, `railway run`, …) + preview deploys, with a local → preview →
+  prod promotion ladder and elevation to prod as a §5 escalation. The §6
+  Cloud-stage row now records `Cloud target: …|vercel|railway|render|fly`.
+
 ## [0.6.17] - 2026-07-14
 
 ### Fixed

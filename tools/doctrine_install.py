@@ -49,7 +49,8 @@ CLAUDE_IMPORTS = ["@.Doctrine.md",
                   "@.doctrine-state/local/hydration.bundle.md"]
 TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
               "doctrine_mcp.py", "doctrine_install.py",
-              "doctrine_metrics.py", "doctrine_verify.py"]
+              "doctrine_metrics.py", "doctrine_verify.py",
+              "doctrine_engage.py", "doctrine_awaken.py"]
 GITIGNORE_LINES = [".doctrine-state/local/", "__pycache__/"]
 
 
@@ -161,6 +162,31 @@ def install(source: Path, target: Path, tools: list[str],
         return 2
     if "all" in tools:
         tools = sorted(ADAPTERS)
+    # Atomic-update guard. copy_file preserves (skips) different-content files
+    # without --force -- fine for a locally-edited playbook, but if the skipped
+    # set includes a framework CONSISTENCY CARRIER (the README that states the
+    # role/skill counts, the installer manifest, or the law itself) the framework
+    # goes internally inconsistent: new files land while the counts/manifest stay
+    # stale, and the consumer's own doctrine_lint/packaging then fail (the
+    # OpenHawk drift, 2026-07-16). Refuse before touching the target; --force
+    # updates the whole framework atomically. A generic differing file still
+    # skips-with-a-warning as before.
+    if not force:
+        carriers = [".Doctrine/README.md",        # role/skill counts
+                    "tools/doctrine_install.py",   # the file manifest (TOOL_FILES)
+                    ".Doctrine.md"]                # the law / version
+        drifted = [rel for rel in carriers
+                   if (target / rel).exists()
+                   and (source / rel).read_bytes() != (target / rel).read_bytes()]
+        if drifted:
+            print("error: updating an existing Doctrine, but framework "
+                  "consistency carrier(s) " + ", ".join(drifted) + " differ. A "
+                  "non-force update would copy new files while leaving these "
+                  "stale, drifting the README counts / installer manifest and "
+                  "breaking the consumer's own doctrine_lint/packaging. Re-run "
+                  "with --force to update the framework atomically.",
+                  file=sys.stderr)
+            return 2
     target.mkdir(parents=True, exist_ok=True)
     report = Report()
 

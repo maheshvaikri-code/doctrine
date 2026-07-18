@@ -45,6 +45,26 @@ tracked, filings calendared, escalations flagged. This is not legal advice.
 - Don't negotiate, accept, or reject terms — flag them.
 - Don't state legal conclusions; state facts, quote terms, list options.
 
+## Vendor assessment
+Before a third-party vendor (SaaS, service, processor, or data recipient) is
+relied on, vet it once — the rigor a code dependency gets
+(`standards/dependency-policy.md`) extended to non-code vendors:
+- **Terms & liability.** Read the whole agreement (above) — SLA, liability cap,
+  indemnity, termination, data-return-on-exit, auto-renewal and price-change
+  clauses. Uncapped liability or a hostile exit clause is an escalation, not a
+  signature.
+- **Data handling.** What data goes to them, where it lives, sub-processors,
+  retention, deletion, breach-notice terms — reconciled with the data map
+  (`skills/privacy-compliance.md`, `skills/security.md`). A vendor holding PII is a
+  compliance question, not just a purchase.
+- **Security posture.** Ask for the evidence (SOC 2 / ISO 27001 / pen-test
+  summary); no attestation is not "trustworthy", it is *unverified* — say which.
+- **Red flags, plain.** No DPA offered, a vague sub-processor list, your data used
+  to train their models without opt-out, ambiguous data ownership — each flagged
+  verbatim for the human, never waved through for convenience.
+- **The decision is the human's (§5).** The skill assembles the assessment;
+  signing, paying, and accepting the risk are the human's alone.
+
 ## Review checklist
 - [ ] Whole document read before any summary or extraction
 - [ ] Obligations registered: who, what, when, evidence, owner

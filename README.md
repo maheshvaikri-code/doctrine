@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
-  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.26-1a2b5e" alt="version v0.6.26"></a>
+  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.27-1a2b5e" alt="version v0.6.27"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1a2b5e" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Claude_Code-plugin-e8642c" alt="Claude Code plugin"></a>
@@ -18,7 +18,7 @@ enforced by tooling, not vibes.
 
 - **35 roles** with tool-enforced separation of duties (reviewers
   physically cannot edit code)
-- **53 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
+- **54 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
   coverage from backend to mobile, ML, data, privacy, incident response
 - **Gates G0→G7** with right-sized ceremony (a typo fix never convenes
   a council; a release always does)
@@ -32,6 +32,27 @@ enforced by tooling, not vibes.
 Works with **Claude Code, Codex, Cursor, Windsurf, Copilot, Gemini CLI,
 Cline, Roo, Amazon Q, Continue, JetBrains Junie**, and anything that
 reads [AGENTS.md](.Doctrine/adapters/AGENTS.md) or speaks MCP.
+
+## An OS for agents
+
+**An operating system for coding agents — not the machine that runs them.**
+Doctrine owns the *policy* (how work is scheduled, isolated, remembered, and
+privileged); the harness — Claude Code, Codex, Cursor, MAPLE — owns the *CPU*.
+The classic OS primitives map onto real components:
+
+- **Kernel** — `.Doctrine.md` (always loaded) fused with the fail-closed gates
+  (`doctrine_lint` / `doctrine_verify` / gold-build)
+- **Processes** — tasks through gates **G0→G7**, classified S/M/L/HOTFIX, run
+  *as* roles with tool-enforced isolation (a reviewer physically cannot edit what
+  it judges)
+- **Memory** — the hash-chained **state plane** (`.doctrine-state/`): checkpoint →
+  hydrate; the repo remembers so the model doesn't have to
+- **Syscalls** — **§5** gates every irreversible or external action; the human is root
+
+It's agent-count-agnostic: one agent wearing role hats, or a fleet of workers +
+fresh-context verifiers. Full mapping — including where the metaphor holds and
+where it's only illustrative — in
+[docs/doctrine-as-an-os.md](docs/doctrine-as-an-os.md).
 
 ## Quick start
 

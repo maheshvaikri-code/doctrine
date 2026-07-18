@@ -22,7 +22,7 @@ state plane, and templates for every artifact the workflow produces.
 │                       compliance + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
 │                       ciso, risk-officer — policy above the gates)
-├── skills/             53 discipline playbooks (G0 requirements → G1
+├── skills/             54 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + startup craft: marketing→fundraising)

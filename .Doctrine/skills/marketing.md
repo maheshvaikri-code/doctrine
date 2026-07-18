@@ -45,6 +45,26 @@ product's true story to the people whose pain it solves. The human sends.
 - Don't let "everyone" be the audience; positioning that excludes no one
   reaches no one.
 
+## Search & answer-engine optimization (SEO/GEO)
+Being found now spans two surfaces: classic search (SEO) and AI answer engines
+that synthesize a reply and may cite you (GEO — generative-engine optimization).
+Both reward the same thing — genuine, well-structured authority, not tricks.
+- Earn the citation, don't game it: answer the real question completely, with a
+  direct answer up top and clear structure. Engines lift self-contained, factual
+  passages; buried or hedged answers don't get cited.
+- Structure for machines and people: semantic HTML, descriptive headings,
+  structured data where it fits, fast crawlable pages. SEO and accessibility pull
+  the same direction (`skills/accessibility.md`).
+- Authority is earned, not injected: original data, real expertise, honest
+  references. Keyword-stuffing, cloaking, and link schemes are the honesty law's
+  problem — and engines penalize them.
+- GEO specifics: be quotable (a crisp, sourced claim a model can lift), keep facts
+  current and dated, and make your entity legible (consistent name, clear "what we
+  do") so a model resolves and attributes you correctly.
+- Measure the traffic that pays rent: rankings and citations are vanity until tied
+  to signups/activation (`skills/metrics.md`) — a #1 ranking that converts no one
+  is theater.
+
 ## Review checklist
 - [ ] Positioning fits one sentence: user, pain, alternative
 - [ ] Every claim traces to a shipped artifact or labeled estimate

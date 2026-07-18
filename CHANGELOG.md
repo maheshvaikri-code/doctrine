@@ -22,6 +22,27 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.27] - 2026-07-18
+
+### Added
+- **`skills/accounting.md`** — the bookkeeping/accounting discipline (double-entry,
+  the three tying statements, journal entries, reconciliation, month-end close,
+  variance analysis, audit support) under Finance Ops, with the draft-only /
+  CPA-reviewed / never-moves-money guardrail (§5). Distinct from `finance.md`
+  (forward-looking runway/budgets/unit-economics); this is *the books*. Harvested as
+  the one genuine gap from a 42-agent task-catalog — the rest was already covered by
+  existing roles, or is task-level work those roles perform (not new roles: turning
+  micro-agents into 42 roles would break the separation-of-duties role model).
+
+### Changed
+- **`skills/marketing.md`** — added a Search & answer-engine optimization (SEO/GEO)
+  section: earn citations from AI answer engines through genuine structured
+  authority (never tricks), and tie rankings to the funnel metric.
+- **`skills/legal-basics.md`** — added a Vendor assessment section (terms/liability,
+  data handling, security posture, red flags) — the non-code-vendor equivalent of
+  what `dependency-policy` does for code deps; the decision stays the human's (§5).
+- Routing table + counts: 53 → 54 discipline playbooks.
+
 ## [0.6.26] - 2026-07-17
 
 ### Added

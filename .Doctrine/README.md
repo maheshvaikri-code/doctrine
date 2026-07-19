@@ -57,9 +57,12 @@ state plane, and templates for every artifact the workflow produces.
 - **Every discipline carries a Signature.** Each skill and role declares its
   composition across the eight mechanism dimensions — **roles · skills · tools ·
   plugins · workflows · hooks · MCP servers · subagents** (multiples where they
-  exist, `—` where none, `◻` planned). It doubles as an honesty ledger: a `◻` is a
-  declared *not-yet*, so a discipline cannot claim a capability it lacks. Exemplar:
-  `skills/engagement-engineering.md`.
+  exist, `—` where none). It doubles as an honesty ledger: a discipline cannot
+  claim a capability it lacks. The block is **generated, not hand-written** —
+  `doctrine_signature.py` derives it from the corpus's own primary sources (a
+  role's `Loads` line, its `.claude/agents` card, the inverse used-by map) and
+  `doctrine_lint` fails the build if any committed block drifts. Regenerate with
+  `make sign`. Exemplar: `skills/engagement-engineering.md`.
 
 ## Customizing
 

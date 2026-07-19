@@ -226,12 +226,30 @@ def check_state_plane(root: Path, findings: list[str]) -> None:
                             "(UTF-8/LF/sorted/no trailing ws/single \\n)")
 
 
+def check_signatures(root: Path, findings: list[str]) -> None:
+    """Every role and skill carries a generated Signature block declaring its
+    composition across the eight mechanism dimensions; a missing or drifted
+    block is a finding (fix: `python tools/doctrine_signature.py --write`).
+
+    Source-repo authoring invariant, gated like check_version: a consumer's
+    installed .Doctrine corpus is a read-only snapshot (§12 forbids editing it),
+    so re-deriving signatures there would be noise - and the local import stays
+    scoped to the one repo that ships the generator."""
+    pyproject = root / "pyproject.toml"
+    is_source = pyproject.exists() and \
+        'name = "doctrineos"' in pyproject.read_text("utf-8")
+    if not is_source:
+        return
+    import doctrine_signature  # only present/relevant in the source repo
+    doctrine_signature.check(root, findings)
+
+
 def main(argv: list[str] | None = None) -> int:
     root = Path(argv[0]) if argv else Path.cwd()
     findings: list[str] = []
     for check in (check_references, check_roles, check_skills, check_agents,
                   check_counts, check_version, check_templates,
-                  check_state_plane, check_plugin_parity):
+                  check_state_plane, check_plugin_parity, check_signatures):
         try:
             check(root, findings)
         except Exception as exc:  # a crashed check is a finding, not a crash

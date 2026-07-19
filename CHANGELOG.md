@@ -22,6 +22,45 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.29] - 2026-07-19
+
+### Added
+- **`tools/doctrine_signature.py`** — the Signature convention (introduced in
+  0.6.28 as a hand-written exemplar) becomes a **generated, lint-enforced
+  artifact**. The tool derives each role/skill's block across the eight mechanism
+  dimensions from the corpus's own primary sources — a role's `Loads` line (→
+  skills), its `.claude/agents` card (→ subagent + declared tool grant), the
+  inverse used-by map (→ a skill's roles), a small stable gate-ownership map —
+  and writes it into a marker-managed block (`<!-- SIGNATURE:BEGIN … END -->`)
+  that leaves all hand-written prose untouched. `--write` regenerates; the
+  default mode diffs and reports drift. Two small in-code maps (`ROLE_GATE`,
+  `SKILL_EXTRA`) are the only hand-kept config; the 90 blocks are fully derived.
+- **`doctrine_lint` check_signatures** — a missing or drifted Signature block now
+  **fails the corpus gate** (fix: `make sign`). Gated like `check_version`: a
+  source-repo authoring invariant, skipped in consumer repos whose installed
+  `.Doctrine/` corpus is a read-only snapshot (§12).
+- **Signatures materialized on all 90 disciplines** — 35 role cards + 55 skill
+  playbooks now each carry a generated Signature block, replacing the single
+  hand-written exemplar. Honest by construction: a reviewer role that loads only
+  standards shows `Skills: —`; a role with no `.claude/agents` card shows
+  `Subagents: —`.
+- Tests: `tests/test_doctrine_signature.py` — determinism, marker-scoped splicing
+  (prose outside the markers is never touched), drift detection (hand-edit → stale),
+  used-by inversion, and the source-only lint gating (12 tests).
+
+### Changed
+- `make sign` target; `doctrine-signature` console script + `py-modules` entry;
+  `doctrine_signature.py` joins the installer `TOOL_FILES` (ships to consumers so
+  they can re-sign their own corpus extensions).
+- `plugin.json` description count corrected: 52 → 55 skills.
+
+### Rationale
+- The hand-written Signature (0.6.28) was a drift liability: nothing stopped a
+  role's declared skills from diverging from its actual `Loads` line. Deriving the
+  block from primary sources and failing the build on drift makes the honesty
+  ledger *true by construction* rather than by discipline. More work once; correct
+  forever.
+
 ## [0.6.28] - 2026-07-19
 
 ### Added

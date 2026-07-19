@@ -22,6 +22,28 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.28] - 2026-07-19
+
+### Added
+- **`skills/engagement-engineering.md`** — the engagement-craft discipline: *how the
+  agent engages* a task and a human across the lifecycle (open → clarify-or-proceed →
+  right-resolution execution → honest status → clean handoff). Unifies pieces that
+  were scattered across §2 (the Engagement Protocol), `requirements`, `ponytail`,
+  `loop-engineering`, the state plane, and the autonomy-resolution / trust-ratchet
+  model into one named, **cross-cutting** discipline (applied by every role, like
+  `ponytail`). Realized on existing machinery — the doctrine-engage `UserPromptSubmit`
+  hook = *open*; escalation-park + §5 = *checkpoint*; the state-plane checkpoint =
+  *handoff*. Deliberately a **skill, not a role** (engagement is cross-cutting craft,
+  not a gate-owning function).
+- **Discipline "Signature" convention** — a discipline declares its composition across
+  the eight mechanism dimensions (**roles · skills · tools · plugins · workflows ·
+  hooks · MCP servers · subagents**; multiples where they exist, `—` where none, `◻`
+  planned). `engagement-engineering` carries the first Signature as the pattern.
+
+### Changed
+- Routing table + counts: 54 → 55 discipline playbooks; `engagement-engineering`
+  added to the always-on craft set ("Any code at all") + a dedicated routing row.
+
 ## [0.6.27] - 2026-07-18
 
 ### Added

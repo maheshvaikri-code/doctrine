@@ -1,8 +1,8 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: thirty roles (nineteen engineering + seven startup-profile
-founder-ops + four governance heads), forty skill playbooks, eight
+repository: thirty-five roles (twenty-four engineering + seven startup-profile
+founder-ops + four governance heads), fifty-five skill playbooks, eight
 standards plus ten language profiles, a gated workflow, integrations, a
 state plane, and templates for every artifact the workflow produces.
 
@@ -22,7 +22,7 @@ state plane, and templates for every artifact the workflow produces.
 │                       compliance + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
 │                       ciso, risk-officer — policy above the gates)
-├── skills/             54 discipline playbooks (G0 requirements → G1
+├── skills/             55 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + startup craft: marketing→fundraising)
@@ -54,6 +54,12 @@ state plane, and templates for every artifact the workflow produces.
   reported status must match executed reality.
 - **Right-sized ceremony.** Task classes (S/M/L/HOTFIX) prevent a typo fix
   from triggering a seven-gate parade.
+- **Every discipline carries a Signature.** Each skill and role declares its
+  composition across the eight mechanism dimensions — **roles · skills · tools ·
+  plugins · workflows · hooks · MCP servers · subagents** (multiples where they
+  exist, `—` where none, `◻` planned). It doubles as an honesty ledger: a `◻` is a
+  declared *not-yet*, so a discipline cannot claim a capability it lacks. Exemplar:
+  `skills/engagement-engineering.md`.
 
 ## Customizing
 

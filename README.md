@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
-  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.27-1a2b5e" alt="version v0.6.27"></a>
+  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.28-1a2b5e" alt="version v0.6.28"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1a2b5e" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Claude_Code-plugin-e8642c" alt="Claude Code plugin"></a>
@@ -18,7 +18,7 @@ enforced by tooling, not vibes.
 
 - **35 roles** with tool-enforced separation of duties (reviewers
   physically cannot edit code)
-- **54 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
+- **55 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
   coverage from backend to mobile, ML, data, privacy, incident response
 - **Gates G0→G7** with right-sized ceremony (a typo fix never convenes
   a council; a release always does)

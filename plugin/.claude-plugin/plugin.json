@@ -1,6 +1,6 @@
 {
   "name": "doctrine",
-  "version": "0.6.30",
+  "version": "0.6.31",
   "description": "The Doctrine System: a gated engineering operating system for AI coding agents - 37 roles (incl. domain specialists), 55 skills, domain overlays, adversarial review gates, hash-chained session state, gold-build deployment. /doctrine-init installs the law into your repo; commands, subagents, hooks and the doctrineos MCP server ride along.",
   "author": {
     "name": "Mahesh Vaikri",

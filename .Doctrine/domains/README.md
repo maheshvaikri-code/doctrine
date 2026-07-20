@@ -44,9 +44,11 @@ carry **no Signature block** (that convention is for roles + skills).
 
 ## Packs
 
-| Pack | Regime highlights | Status |
-|------|-------------------|--------|
-| `domains/healthcare.md` | HIPAA/HITECH · FHIR/HL7 · IEC 62304 clinical safety | pilot (reference implementation) |
+| Pack | Regime highlights | New roles | Status |
+|------|-------------------|-----------|--------|
+| `domains/healthcare.md` | HIPAA/HITECH · FHIR/HL7 · IEC 62304 clinical safety | +2 (clinical-safety, regulatory-affairs) | pilot (reference) |
+| `domains/finance.md` | PCI-DSS · AML/KYC · SOX · ISO 20022/FIX · double-entry | 0 (reuses core governance) | shipped |
 
-Finance, quant, aerospace, manufacturing, logistics, and the rest are stamped from
-the same template once the pilot proves the shape.
+Quant, aerospace, manufacturing, logistics, ecommerce, travel, and the rest are
+stamped from the same template. Most add **zero** roles (finance is the model): a
+pack is an overlay, and the governance roles already exist.

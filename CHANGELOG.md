@@ -22,6 +22,20 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.31] - 2026-07-20
+
+### Added
+- **`domains/finance.md`** — the Finance/Fintech domain pack, second overlay off
+  the v0.6.30 template. Regimes: PCI-DSS · AML/KYC · SOX · PSD2 · Basel III ·
+  MiFID II. Canonical entities: ISO 20022 / ISO 8583 / FIX, double-entry
+  `LedgerEntry`, money as integer minor units. Non-negotiables: idempotent
+  money movement, unbreakable double-entry, no PAN outside PCI scope, no skipped
+  AML/KYC, mandatory reconciliation.
+- **Demonstrates the overlay payoff: zero new roles.** Finance composes onto the
+  existing governance core (security-reviewer for PCI, compliance-officer for
+  AML/KYC, risk-officer for model/market risk, regulatory-affairs for licensing).
+  A vertical is a pack, not a new headcount — most domains add no roles.
+
 ## [0.6.30] - 2026-07-20
 
 ### Added

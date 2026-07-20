@@ -22,6 +22,32 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.32] - 2026-07-20
+
+### Added
+- **`domains/quant.md`** — Quant/Trading pack: MiFID II · MAR (market abuse) ·
+  model-risk (SR 11-7) · SEC 15c3-5 market access; FIX/ITCH entities, point-in-time
+  market data, versioned models. Non-negotiables: no look-ahead/out-of-sample-only
+  backtests, pre-trade risk controls + tested kill switch before any live order,
+  no market-abuse order patterns, governed model risk, reproducible research.
+- **`domains/aerospace.md`** — Aerospace/Space pack: DO-178C (DAL A–E) · DO-254 ·
+  ECSS · NASA-STD-8739 · **ITAR/EAR export control**; CCSDS/MIL-STD-1553/ARINC 653
+  entities, bidirectional requirements traceability. Non-negotiables: MC/DC +
+  traceability for DAL-A/B, defined safe modes, bounded WCET / no post-init dynamic
+  allocation in flight-critical paths, ITAR data segregation (§5), config management.
+- **`roles/quant-researcher.md`** (38th role, `⁽ᵈ⁾` domain specialist) — owns signal/
+  model research and the **backtest-integrity sign-off** (no look-ahead, out-of-sample,
+  reproducible); distinct from the ML Engineer. Aerospace adds **zero** roles (reuses
+  qa-engineer for DO-178C verification, risk-officer for the safety case, compliance/
+  regulatory-affairs for ITAR + certification).
+
+### Changed
+- `domains/README.md` packs index now carries a **roles-added column** as the honesty
+  ledger of overlay cost (healthcare +2, finance 0, quant +1, aerospace 0).
+- Counts updated to 38 roles / three domain specialists (`.Doctrine.md` index +
+  legend, both READMEs, plugin); also corrected a stale "35 roles" bullet in the root
+  README (unbumped since v0.6.30 — the badge had moved but the prose had not).
+
 ## [0.6.31] - 2026-07-20
 
 ### Added

@@ -63,6 +63,7 @@ ROLE_GATE = {
     "risk-officer": "governance: enterprise risk register",
     "clinical-safety-officer": "G5 (patient-safety veto; healthcare domain)",
     "regulatory-affairs": "G5/G6 regulatory sign-off + submissions (domain overlay)",
+    "quant-researcher": "G3 (signal/model research) + G5 backtest-integrity sign-off",
     "growth-marketer": "startup-ops (draft only; the human sends)",
     "content-marketer": "startup-ops (draft only)",
     "sales-gtm": "startup-ops (demos via FDE; pricing = human)",

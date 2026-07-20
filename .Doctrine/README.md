@@ -1,8 +1,8 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: thirty-seven roles (twenty-four engineering + seven startup-profile
-founder-ops + four governance heads + two domain specialists), fifty-five skill
+repository: thirty-eight roles (twenty-four engineering + seven startup-profile
+founder-ops + four governance heads + three domain specialists), fifty-five skill
 playbooks, eight standards plus ten language profiles, a gated workflow, domain
 overlays, integrations, a state plane, and templates for every artifact the
 workflow produces.
@@ -19,11 +19,12 @@ workflow produces.
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              37 role cards (24 engineering incl. FDE, SRE, data/ML,
+├── roles/              38 role cards (24 engineering incl. FDE, SRE, data/ML,
 │                       compliance + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
 │                       ciso, risk-officer — policy above the gates
-│                       + 2 domain specialists: clinical-safety, regulatory-affairs)
+│                       + 3 domain specialists: clinical-safety, regulatory-affairs,
+│                       quant-researcher)
 ├── skills/             55 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…

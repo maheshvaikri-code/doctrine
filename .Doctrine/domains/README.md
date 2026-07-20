@@ -48,7 +48,11 @@ carry **no Signature block** (that convention is for roles + skills).
 |------|-------------------|-----------|--------|
 | `domains/healthcare.md` | HIPAA/HITECH · FHIR/HL7 · IEC 62304 clinical safety | +2 (clinical-safety, regulatory-affairs) | pilot (reference) |
 | `domains/finance.md` | PCI-DSS · AML/KYC · SOX · ISO 20022/FIX · double-entry | 0 (reuses core governance) | shipped |
+| `domains/quant.md` | MiFID II · MAR · model-risk · FIX · point-in-time/backtest | +1 (quant-researcher) | shipped |
+| `domains/aerospace.md` | DO-178C · ECSS · ITAR/EAR · CCSDS · MC/DC + traceability | 0 (reuses qa/risk/compliance) | shipped |
 
-Quant, aerospace, manufacturing, logistics, ecommerce, travel, and the rest are
-stamped from the same template. Most add **zero** roles (finance is the model): a
-pack is an overlay, and the governance roles already exist.
+Manufacturing, logistics/supply-chain, ecommerce, travel/tourism, transportation,
+and auditing are stamped from the same template. The roles column is the honesty
+ledger of overlay cost: most add **zero** (a pack is an overlay; governance roles
+already exist), one or two only where a genuinely distinct function appears
+(healthcare's clinical safety, quant's research rigor).

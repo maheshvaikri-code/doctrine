@@ -22,6 +22,28 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.33] - 2026-07-20
+
+### Added
+- **`domains/manufacturing.md`** — Manufacturing pack: ISO 9001 / IATF 16949 /
+  ISO 13485 · IEC 62443 (OT/ICS security) · IEC 61508/61511 (functional safety, SIL)
+  · ISA-95 MES model; OPC-UA/MTConnect/MQTT entities. Non-negotiables: app software
+  is never the sole guard against physical harm (independent SIL safety system),
+  OT/IT segmentation (Purdue), no untested change to a live line, unbroken lot
+  genealogy. **0 new roles** (security-reviewer=OT/62443, risk-officer=functional
+  safety, qa-engineer=quality/traceability).
+- **`domains/logistics.md`** — Logistics/Supply-Chain pack: customs/export control ·
+  OFAC sanctions · C-TPAT · DSCSA serialization · GDP/FSMA cold-chain · dangerous
+  goods; GS1 (GTIN/SSCC/GLN) + EPCIS + EDI (X12/EDIFACT) entities. Non-negotiables:
+  hold-not-release for controlled/sanctioned shipments (§5), substantiated customs
+  data, unbroken chain-of-custody, no silent cold-chain excursion. **0 new roles**
+  (compliance-officer=customs/sanctions, regulatory-affairs=export/DSCSA).
+
+### Changed
+- `domains/README.md` packs index: **six domains, three new roles total** — the
+  overlay cost ledger now reads healthcare +2, finance 0, quant +1, aerospace 0,
+  manufacturing 0, logistics 0.
+
 ## [0.6.32] - 2026-07-20
 
 ### Added

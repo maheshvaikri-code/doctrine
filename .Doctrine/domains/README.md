@@ -50,9 +50,11 @@ carry **no Signature block** (that convention is for roles + skills).
 | `domains/finance.md` | PCI-DSS · AML/KYC · SOX · ISO 20022/FIX · double-entry | 0 (reuses core governance) | shipped |
 | `domains/quant.md` | MiFID II · MAR · model-risk · FIX · point-in-time/backtest | +1 (quant-researcher) | shipped |
 | `domains/aerospace.md` | DO-178C · ECSS · ITAR/EAR · CCSDS · MC/DC + traceability | 0 (reuses qa/risk/compliance) | shipped |
+| `domains/manufacturing.md` | ISO 9001/IATF · IEC 62443 (OT) · IEC 61508 (SIL) · ISA-95 · lot genealogy | 0 (reuses security/risk/qa) | shipped |
+| `domains/logistics.md` | customs/export · sanctions · GS1/EPCIS · EDI · DSCSA · cold-chain | 0 (reuses compliance/regulatory) | shipped |
 
-Manufacturing, logistics/supply-chain, ecommerce, travel/tourism, transportation,
-and auditing are stamped from the same template. The roles column is the honesty
-ledger of overlay cost: most add **zero** (a pack is an overlay; governance roles
+Ecommerce, travel/tourism, transportation, and auditing are stamped from the same
+template. The roles column is the honesty ledger of overlay cost: **six domains,
+three new roles total** — most add zero (a pack is an overlay; the governance roles
 already exist), one or two only where a genuinely distinct function appears
 (healthcare's clinical safety, quant's research rigor).

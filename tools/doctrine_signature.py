@@ -61,6 +61,8 @@ ROLE_GATE = {
     "head-of-data": "governance: G1 co-sign (data contracts/lineage)",
     "ciso": "governance: security posture (G5 veto held by the security-reviewer)",
     "risk-officer": "governance: enterprise risk register",
+    "clinical-safety-officer": "G5 (patient-safety veto; healthcare domain)",
+    "regulatory-affairs": "G5/G6 regulatory sign-off + submissions (domain overlay)",
     "growth-marketer": "startup-ops (draft only; the human sends)",
     "content-marketer": "startup-ops (draft only)",
     "sales-gtm": "startup-ops (demos via FDE; pricing = human)",

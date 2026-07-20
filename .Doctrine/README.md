@@ -1,10 +1,11 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: thirty-five roles (twenty-four engineering + seven startup-profile
-founder-ops + four governance heads), fifty-five skill playbooks, eight
-standards plus ten language profiles, a gated workflow, integrations, a
-state plane, and templates for every artifact the workflow produces.
+repository: thirty-seven roles (twenty-four engineering + seven startup-profile
+founder-ops + four governance heads + two domain specialists), fifty-five skill
+playbooks, eight standards plus ten language profiles, a gated workflow, domain
+overlays, integrations, a state plane, and templates for every artifact the
+workflow produces.
 
 ## Layout
 
@@ -18,18 +19,21 @@ state plane, and templates for every artifact the workflow produces.
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              35 role cards (24 engineering incl. FDE, SRE, data/ML,
+├── roles/              37 role cards (24 engineering incl. FDE, SRE, data/ML,
 │                       compliance + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
-│                       ciso, risk-officer — policy above the gates)
+│                       ciso, risk-officer — policy above the gates
+│                       + 2 domain specialists: clinical-safety, regulatory-affairs)
 ├── skills/             55 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + startup craft: marketing→fundraising)
+├── domains/            Vertical overlays: regime + canonical entities + domain
+│                       sign-offs, composed onto the horizontal core (healthcare pilot)
 ├── standards/          8 hard standards (incl. enterprise merge/promotion
 │                       + GRC governance) + languages/ profiles
-├── templates/          9 artifact templates (brief, ADR, plan, reviews,
-│                       merge verdict, release, retro, risk register)
+├── templates/          10 artifact templates (brief, ADR, plan, reviews,
+│                       merge verdict, release, retro, risk register, domain pack)
 ├── integrations/       Third-party tool wiring: FDE/floci overview, ponytail, graphify
 ├── rubrics/            Authority documents for interview-style gates (FDE discovery)
 ├── schemas/            JSON Schemas for machine-checked artifacts (parity ledger)

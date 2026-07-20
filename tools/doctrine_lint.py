@@ -32,7 +32,7 @@ ALLOWED_EXTERNAL = {
 
 REF_RE = re.compile(
     r"`((?:skills|standards|roles|templates|rubrics|schemas|examples|"
-    r"integrations|state-plane|adapters|languages)/[A-Za-z0-9._/-]+)`")
+    r"integrations|state-plane|adapters|languages|domains)/[A-Za-z0-9._/-]+)`")
 
 
 def check_references(root: Path, findings: list[str]) -> None:

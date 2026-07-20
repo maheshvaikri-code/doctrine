@@ -22,6 +22,39 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.30] - 2026-07-20
+
+### Added
+- **Domain-overlay layer (`domains/`)** — verticals (healthcare, finance, aerospace,
+  logistics…) are covered by thin **overlay packs** that compose WITH the horizontal
+  engineering core, not by parallel role-sets. Coverage is `role × domain`: one
+  `backend-engineer` loads `domains/<x>.md` when the work serves that domain, gaining
+  its regulatory regime, canonical entities, domain acceptance criteria, harm model,
+  and a G5 domain sign-off. Keeps the always-loaded core lean (progressive disclosure)
+  while scaling to any number of verticals. Rationale: parallel per-domain companies
+  would be an N×M file explosion with ~90% duplicated engineering content and
+  regulations that go stale.
+- **`templates/domain-pack.md`** — the fixed eight-section shape every pack follows
+  (regime · entities/interop · acceptance · harm model · gate overlay · specialist
+  roles · glossary · non-negotiables); `domains/README.md` documents the layer.
+- **`domains/healthcare.md`** — the pilot/reference pack: HIPAA/HITECH + GDPR-health
+  + IEC 62304 + DCB0129/0160 + FDA Part 11; FHIR/HL7/SNOMED/LOINC canonical entities;
+  PHI-never-to-an-unBAA'd-LLM and clinical-safety non-negotiables.
+- **Two domain-specialist roles** (35 → **37 roles**): `roles/clinical-safety-officer.md`
+  (patient-safety veto at G5; owns the hazard log) and `roles/regulatory-affairs.md`
+  (classification, submissions, audit liaison; reused across regulated domains). Both
+  signed by `doctrine_signature`.
+
+### Changed
+- `.Doctrine.md` §6 gains a domain-overlay routing row and §10 gains a `⁽ᵈ⁾`
+  domain-specialist class (with legend); README/plugin counts updated (37 roles,
+  10 templates, the `domains/` tree entry).
+- `doctrine_lint` `check_references` now validates `domains/` paths (REF_RE), so
+  broken pack references fail the corpus gate like any other.
+- Adding the two roles auto-updated the `privacy-compliance` and `testing` skill
+  Signatures (their generated used-by-roles lists) — the generated-signature system
+  staying true by construction.
+
 ## [0.6.29] - 2026-07-19
 
 ### Added

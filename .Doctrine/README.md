@@ -2,7 +2,7 @@
 
 This folder turns Claude Code into a full software company for this
 repository: thirty-eight roles (twenty-four engineering + seven startup-profile
-founder-ops + four governance heads + three domain specialists), fifty-five skill
+founder-ops + four governance heads + three domain specialists), fifty-six skill
 playbooks, eight standards plus ten language profiles, a gated workflow, domain
 overlays, integrations, a state plane, and templates for every artifact the
 workflow produces.
@@ -25,7 +25,7 @@ workflow produces.
 │                       ciso, risk-officer — policy above the gates
 │                       + 3 domain specialists: clinical-safety, regulatory-affairs,
 │                       quant-researcher)
-├── skills/             55 discipline playbooks (G0 requirements → G1
+├── skills/             56 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + startup craft: marketing→fundraising)

@@ -22,6 +22,21 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.37] - 2026-07-21
+
+### Added
+- **`skills/tooling.md` — the tool/project selection discipline (55 -> 56 skills).**
+  Answers "what's the best tool for this role/skill/gate/plugin/MCP/subagent" as a
+  *procedure*, not a rotting matrix: **portfolio-first**, then vetted external
+  (`standards/dependency-policy.md`), MCP via `skills/mcp-tooling.md`, adoption/
+  provisioning = §5. Carries the grounded **portfolio catalog** mapping our own
+  stacks to the Doctrine mechanism each serves, with honest status
+  (wired: CodeMonk/MAPLE/floci · proposed: STIX/OpenGuide/Contegrity · candidate:
+  SnapLLM/CEPIA/QUMBA), plus a best-fit-by-mechanism table. Anti-staleness by
+  design: encodes the rule + the stable portfolio map, defers volatile external
+  specifics to the routed discipline skill + a currency check.
+- `.Doctrine.md` §6 routing row for tool selection; counts updated to 56 skills.
+
 ## [0.6.36] - 2026-07-20
 
 ### Added

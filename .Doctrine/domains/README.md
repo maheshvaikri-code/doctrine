@@ -52,9 +52,13 @@ carry **no Signature block** (that convention is for roles + skills).
 | `domains/aerospace.md` | DO-178C · ECSS · ITAR/EAR · CCSDS · MC/DC + traceability | 0 (reuses qa/risk/compliance) | shipped |
 | `domains/manufacturing.md` | ISO 9001/IATF · IEC 62443 (OT) · IEC 61508 (SIL) · ISA-95 · lot genealogy | 0 (reuses security/risk/qa) | shipped |
 | `domains/logistics.md` | customs/export · sanctions · GS1/EPCIS · EDI · DSCSA · cold-chain | 0 (reuses compliance/regulatory) | shipped |
+| `domains/ecommerce.md` | PCI · consumer-protection · tax nexus · WCAG · idempotent checkout | 0 (reuses security/compliance/frontend) | shipped |
+| `domains/travel.md` | IATA/GDS/NDC · PCI · passport PII · ATOL · fare rules | 0 (reuses security/compliance/interop) | shipped |
+| `domains/transportation.md` | FMCSA HOS/ELD · ISO 26262 (ASIL) · telematics privacy · GTFS | 0 (reuses risk/compliance/sre) | shipped |
+| `domains/auditing.md` | SOC 2 · GAAS/SOX · evidence integrity · independence (SoD) | 0 (reuses security/compliance/risk) | shipped |
 
-Ecommerce, travel/tourism, transportation, and auditing are stamped from the same
-template. The roles column is the honesty ledger of overlay cost: **six domains,
-three new roles total** — most add zero (a pack is an overlay; the governance roles
-already exist), one or two only where a genuinely distinct function appears
-(healthcare's clinical safety, quant's research rigor).
+The roles column is the honesty ledger of overlay cost: **ten domains, three new
+roles total** (healthcare +2, quant +1; the other eight reuse the core). A pack is
+an overlay, not a payroll — a new role appears only where a genuinely distinct
+function does (healthcare's clinical safety, quant's research rigor). New verticals
+are stamped from `templates/domain-pack.md`; most add zero roles.

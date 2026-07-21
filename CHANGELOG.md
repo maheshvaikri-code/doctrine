@@ -22,6 +22,28 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.34] - 2026-07-20
+
+### Added
+- **Four domain packs close the initial vertical set (ten domains total):**
+  - **`domains/ecommerce.md`** — PCI · consumer-protection · tax nexus · WCAG;
+    idempotent checkout, inventory-reservation (no oversell), server-authoritative
+    pricing, no dark patterns.
+  - **`domains/travel.md`** — IATA/GDS/NDC · PCI · passport (special-category) PII ·
+    ATOL; live-availability booking idempotency, fare-rule correctness, APIS handling.
+  - **`domains/transportation.md`** — FMCSA HOS/ELD · ISO 26262 (ASIL) · telematics
+    privacy · GTFS; tamper-evident duty logs, functional-safety fallback, no silent
+    surveillance. Composes `domains/aerospace.md` rigor for ASIL-D autonomy.
+  - **`domains/auditing.md`** — SOC 2 · GAAS/SOX · evidence integrity · independence;
+    immutable/tamper-evident evidence, chain-of-custody, separation-of-duties (the
+    doctrine's own fresh-context-verifier rule as a legal requirement), reproducible
+    findings. (Evidence-integrity substrate overlaps the Contegrity provenance model.)
+  - **All four add 0 new roles.**
+
+### Changed
+- `domains/README.md` ledger: **ten domains, three new roles total** (healthcare +2,
+  quant +1; the other eight reuse the core) — the overlay thesis proven at scale.
+
 ## [0.6.33] - 2026-07-20
 
 ### Added

@@ -172,5 +172,70 @@ class TestCaptureHint(unittest.TestCase):
             self.assertEqual(self.run_hint(Path(bare), {}), "")
 
 
+class TestBudget(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def run_budget(self, **kw) -> tuple[int, str]:
+        import contextlib
+        import io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            code = dm.cmd_budget(self.root, kw.get("cap"), kw.get("spent"),
+                                 kw.get("log"))
+        return code, out.getvalue()
+
+    def test_under_cap_ok(self):
+        code, msg = self.run_budget(cap=1000, spent=200)
+        self.assertEqual(code, 0)
+        self.assertIn("budget ok", msg)
+
+    def test_warn_near_cap(self):
+        code, msg = self.run_budget(cap=1000, spent=850)
+        self.assertEqual(code, 0)
+        self.assertIn("warning", msg)
+
+    def test_over_cap_escalates(self):
+        code, msg = self.run_budget(cap=1000, spent=1200)
+        self.assertEqual(code, 1, "over-cap must signal an escalation")
+        self.assertIn("BUDGET EXCEEDED", msg)
+        self.assertIn("Section 5", msg)
+
+    def test_no_telemetry_is_not_a_breach(self):
+        # no --spent and no log present -> exits 0 with a launch hint
+        code, msg = self.run_budget(cap=1000)
+        self.assertEqual(code, 0)
+        self.assertIn("no token telemetry", msg)
+
+    def test_nonpositive_cap_refused(self):
+        with self.assertRaises(dm.StateError):
+            self.run_budget(cap=0, spent=10)
+
+    def test_sum_tokens_defensive_parse(self):
+        log = self.root / "codemonk_tokens.jsonl"
+        log.write_text(
+            json.dumps({"total_tokens": 100}) + "\n"
+            + json.dumps({"tokens": 50}) + "\n"
+            + json.dumps({"usage": {"total_tokens": 25}}) + "\n"
+            + "not json at all\n"
+            + json.dumps(["a", "list", "not", "a", "dict"]) + "\n"
+            + json.dumps({"unrelated": "field"}) + "\n"
+            + json.dumps({"tokens": True}) + "\n",  # bool must not count
+            encoding="utf-8")
+        self.assertEqual(dm._sum_tokens(log), 175)
+
+    def test_log_path_summed_and_gated(self):
+        log = self.root / "toks.jsonl"
+        log.write_text(json.dumps({"total_tokens": 1500}) + "\n",
+                       encoding="utf-8")
+        code, msg = self.run_budget(cap=1000, log=log)
+        self.assertEqual(code, 1)
+        self.assertIn("1500", msg)
+
+
 if __name__ == "__main__":
     unittest.main()

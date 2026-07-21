@@ -22,6 +22,31 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.35] - 2026-07-20
+
+### Added
+- **`doctrine_metrics budget` — a real budget gate (measurement -> enforcement).**
+  CodeMonk *trends* token spend but by design never gates work; this adds a live
+  ceiling: `budget --cap <tokens>` (or `--spent <n>` from `codemonk tokens`, or a
+  summed `--log`) compares spend to the cap and, on breach, exits non-zero with a
+  **Section 5 escalation** (the human decides to continue — never a silent block,
+  consistent with the codemonk boundary). No telemetry yet exits 0 with a
+  launch-wrapped hint (not a breach). Defensive JSONL token sum tolerates unknown
+  lines. 7 tests (under/warn/over/no-telemetry/parse/cap-guard).
+
+### Changed
+- `integrations/codemonk.md`: **wrapped launch (`codemonk wrap --otel -- claude`)
+  is now the documented standard** for token capture, with the honest caveat that
+  capture cannot be enabled retroactively — a session started bare has no token
+  data (which is why the recent history is blank). Documents the budget gate.
+
+### Notes
+- Honest state of token monitoring: the metric *design* is comprehensive (TCR,
+  cost-per-landed-change, ROI), but capture is a session-launch choice and has been
+  off — `codemonk_tokens.jsonl` is absent and `docs/metrics/` is stale at 7/13.
+  Turning it on requires launching wrapped; this release makes that the standard and
+  adds the enforcement gate that was missing.
+
 ## [0.6.34] - 2026-07-20
 
 ### Added

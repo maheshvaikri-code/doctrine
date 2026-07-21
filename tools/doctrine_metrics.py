@@ -246,6 +246,74 @@ def cmd_capture_hint(repo: Path) -> int:
     return 0
 
 
+BUDGET_WARN = 0.8
+
+
+def _sum_tokens(log: Path) -> int:
+    """Best-effort token sum from a JSONL token log (one JSON object per line).
+    Sums the first present of total_tokens / tokens / usage.total_tokens per
+    line; unparseable or unrecognized lines are skipped, so a partial or
+    schema-varying log never crashes the gate. The source of truth for the
+    exact figure is `codemonk tokens`; pass it explicitly via --spent when you
+    need precision."""
+    total = 0
+    for line in log.read_text("utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        for key in ("total_tokens", "tokens"):
+            v = obj.get(key)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                total += int(v)
+                break
+        else:
+            usage = obj.get("usage")
+            if isinstance(usage, dict) and isinstance(
+                    usage.get("total_tokens"), (int, float)):
+                total += int(usage["total_tokens"])
+    return total
+
+
+def cmd_budget(root: Path, cap: int, spent: int | None,
+               log_path: Path | None) -> int:
+    """Budget gate: compare spend against a token cap. This does NOT auto-block
+    work (metrics never gate a merge - see codemonk.md); breaching the cap is a
+    Section 5 escalation (the human decides to continue). Exit 1 = over cap
+    (escalate), 0 = ok/warn/no-telemetry.
+
+    Get --spent from `codemonk tokens`; or point --log at codemonk_tokens.jsonl
+    for a best-effort sum. No telemetry yet is not a breach - it exits 0 with a
+    launch-wrapped hint."""
+    if cap <= 0:
+        raise StateError("--cap must be a positive token count")
+    if spent is None:
+        log = log_path if log_path else root / "codemonk_tokens.jsonl"
+        if not log.exists():
+            print(f"budget: no token telemetry ({log.name} absent) - launch "
+                  "'codemonk wrap --otel -- claude' to capture, then re-run "
+                  "(nothing to gate yet).", file=sys.stderr)
+            return 0
+        spent = _sum_tokens(log)
+    pct = spent / cap
+    if spent >= cap:
+        print(f"BUDGET EXCEEDED: spent {spent} >= cap {cap} tokens "
+              f"({pct:.0%}). Per Section 5 this is a HUMAN decision - continue "
+              "only with explicit approval; do not silently proceed.")
+        return 1
+    if pct >= BUDGET_WARN:
+        print(f"budget warning: spent {spent}/{cap} tokens ({pct:.0%}) - "
+              "approaching cap.")
+        return 0
+    print(f"budget ok: spent {spent}/{cap} tokens ({pct:.0%}).")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="doctrine_metrics",
                                      description=__doc__.splitlines()[0])
@@ -261,6 +329,14 @@ def main(argv: list[str] | None = None) -> int:
     p_ga.add_argument("--out", type=Path, default=None,
                       help="write the report here instead of stdout")
     sub.add_parser("capture-hint")
+    p_bg = sub.add_parser("budget")
+    p_bg.add_argument("--cap", type=int, required=True,
+                      help="token budget ceiling (breach = Section 5 escalation)")
+    p_bg.add_argument("--spent", type=int, default=None,
+                      help="tokens spent (from `codemonk tokens`); else summed "
+                           "from --log")
+    p_bg.add_argument("--log", type=Path, default=None,
+                      help="token JSONL to sum (default: codemonk_tokens.jsonl)")
     args = parser.parse_args(argv)
     try:
         if args.command == "enrich":
@@ -270,6 +346,9 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_gates(args.root.resolve(), args.out)
         if args.command == "capture-hint":
             return cmd_capture_hint(args.root.resolve())
+        if args.command == "budget":
+            return cmd_budget(args.root.resolve(), args.cap, args.spent,
+                              args.log)
     except StateError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

@@ -79,6 +79,17 @@ enrichment before it means anything.
   codemonk_tokens.jsonl`; `codemonk.status` attrs make TCR precise;
   `item_id` = the state-plane `task_refs` joins spend to landed
   outcomes.
+  **Wrapped launch (Option A) is the standard** — make it the default way you
+  start a doctrine session, or token/cost stays uncaptured (the recent history is
+  blank precisely because sessions ran unwrapped). Capture cannot be turned on
+  retroactively; a session started bare has no token data, full stop.
+- **Budget gate (measurement -> enforcement):** `codemonk` trends spend but never
+  gates a merge. When you want a live ceiling, `python tools/doctrine_metrics.py
+  budget --cap <tokens>` (or `--spent <n>` from `codemonk tokens`) compares spend to
+  the cap and, on breach, exits non-zero with a **Section 5 escalation** (the human
+  decides to continue — the gate never silently blocks work, consistent with the
+  boundary below). No telemetry yet is not a breach; it exits 0 with a launch hint.
+  Set the cap in the brief's budget line and run it at checkpoints / in CI.
 - **G7 is the consumer:** `codemonk scorecard` output is filed with the
   retrospective (`docs/metrics/`); trends via snapshot + `trend`.
   CESR drops feed the retro's 5-whys.

@@ -22,6 +22,32 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.36] - 2026-07-20
+
+### Added
+- **Portfolio governance-trio integration shims (proposed) — Doctrine begins to run
+  on its own stack.** Three thin, non-vendored shims + §6 routing rows, each an
+  orthogonal plane:
+  - **`integrations/stix.md`** — runtime **action** enforcement. Makes §5
+    ("escalate before irreversible/external actions") physical: STIX ALLOW/DENY/
+    QUARANTINE gates the concrete action with a crypto proof + HITL. Doctrine
+    decides, STIX enforces, the human is root.
+  - **`integrations/openguide.md`** — runtime **behavior** enforcement. Role
+    personas + `engagement-engineering` + `ponytail` compile to OBC contracts held
+    by the GuidanceGrid runtime; sits beside ponytail in Behavior Engineering.
+  - **`integrations/contegrity.md`** — **integrity/provenance**. CGB captures agent
+    comms as tamper-evident evidence beneath the state plane, gold-build, and
+    `domains/auditing.md` (whose evidence model it *is*).
+  - Three orthogonal planes: process (Doctrine gates) · behavior (OpenGuide) ·
+    action (STIX) · with Contegrity as the evidence record beneath all.
+
+### Notes
+- **Honesty:** these are **proposed** shims — the *fit, routing, and boundary* are
+  grounded, but each frontmatter marks `upstream` / `license` / `pinned_version` /
+  API as `<confirm>` because they are not yet verified against a running product.
+  No fabricated pins. The human confirms the real interfaces before they wire live
+  (unlike codemonk/maple, which are verified).
+
 ## [0.6.35] - 2026-07-20
 
 ### Added

@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
-  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.38-1a2b5e" alt="version v0.6.38"></a>
+  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.39-1a2b5e" alt="version v0.6.39"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1a2b5e" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Claude_Code-plugin-e8642c" alt="Claude Code plugin"></a>
@@ -84,6 +84,13 @@ args = ["tools/doctrine_mcp.py"]
 ```
 
 Full install matrix: [.Doctrine/05-packaging.md](.Doctrine/05-packaging.md).
+
+**Drive it (once installed).** Every task engages the doctrine automatically (the
+repo is the cue) — or be explicit:
+
+- `doctrine: <task>` (any agent) or **`/doctrine <task>`** — classify, staff, gate, execute
+- **`/role <name> [task]`** — act as one hat: `/role security-reviewer`, `/role chief-architect` (reviewer roles run fresh-context)
+- **`/checkpoint`** — save session state so the repo remembers, not you
 
 ## How it's built (and proven)
 

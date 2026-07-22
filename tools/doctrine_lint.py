@@ -165,33 +165,37 @@ def check_plugin_parity(root: Path, findings: list[str]) -> None:
     if not (root / "plugin").exists() and \
             not (root / ".claude-plugin").exists():
         return  # consumer repo: the plugin ships from the source repo only
-    pairs = [(root / ".claude" / "agents", root / "plugin" / "agents"),
-             (root / ".claude" / "commands" / "checkpoint.md",
-              root / "plugin" / "commands" / "checkpoint.md"),
-             (root / ".claude" / "commands" / "doctrine.md",
-              root / "plugin" / "commands" / "doctrine.md")]
-    for canonical, copy in pairs:
-        if not copy.exists():
-            findings.append("plugin parity: "
-                            f"{copy.relative_to(root).as_posix()} missing")
-            continue
-        if canonical.is_dir():
-            canon_files = {p.name: p for p in canonical.glob("*.md")}
-            copy_files = {p.name: p for p in copy.glob("*.md")}
-            for name in sorted(canon_files.keys() | copy_files.keys()):
-                if name not in copy_files:
-                    findings.append(f"plugin parity: agents/{name} "
-                                    "missing from plugin")
-                elif name not in canon_files:
-                    findings.append(f"plugin parity: agents/{name} exists "
-                                    "only in plugin")
-                elif canon_files[name].read_bytes() != \
-                        copy_files[name].read_bytes():
-                    findings.append(f"plugin parity: agents/{name} "
-                                    "drifted from .claude/agents")
-        elif canonical.read_bytes() != copy.read_bytes():
-            findings.append("plugin parity: plugin/commands/checkpoint.md "
-                            "drifted from .claude/commands/checkpoint.md")
+    # agents: every .claude/agents/*.md must byte-match its plugin twin (both ways).
+    canon_agents = root / ".claude" / "agents"
+    copy_agents = root / "plugin" / "agents"
+    if not copy_agents.exists():
+        findings.append("plugin parity: plugin/agents missing")
+    else:
+        canon_files = {p.name: p for p in canon_agents.glob("*.md")}
+        copy_files = {p.name: p for p in copy_agents.glob("*.md")}
+        for name in sorted(canon_files.keys() | copy_files.keys()):
+            if name not in copy_files:
+                findings.append(f"plugin parity: agents/{name} "
+                                "missing from plugin")
+            elif name not in canon_files:
+                findings.append(f"plugin parity: agents/{name} exists "
+                                "only in plugin")
+            elif canon_files[name].read_bytes() != \
+                    copy_files[name].read_bytes():
+                findings.append(f"plugin parity: agents/{name} "
+                                "drifted from .claude/agents")
+    # commands: every .claude/commands/*.md needs a byte-identical plugin twin.
+    # One-directional - the plugin MAY ship extra consumer-only commands
+    # (doctrine-init, gold-check, ...) - so new commands are covered automatically.
+    copy_cmds = root / "plugin" / "commands"
+    for c in sorted((root / ".claude" / "commands").glob("*.md")):
+        twin = copy_cmds / c.name
+        if not twin.exists():
+            findings.append(f"plugin parity: commands/{c.name} "
+                            "missing from plugin")
+        elif c.read_bytes() != twin.read_bytes():
+            findings.append(f"plugin parity: commands/{c.name} "
+                            "drifted from .claude/commands")
     for ref in ("plugin/.claude-plugin/plugin.json",
                 ".claude-plugin/marketplace.json",
                 "plugin/hooks/hooks.json", "plugin/.mcp.json"):

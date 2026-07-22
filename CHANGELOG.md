@@ -22,6 +22,23 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.39] - 2026-07-22
+
+### Added
+- **`/role` slash command — role ergonomics** (idea harvested from gstack, built
+  doctrine-native). `/role <name> [task]` adopts a specific hat: reads the role card
+  + its Loads, announces `[ROLE: …]`, runs that role's checklist, and keeps
+  reviewer roles fresh-context. Ships in `.claude/commands/` **and** `plugin/commands/`
+  (byte-parity), beside `/doctrine` and `/checkpoint`.
+- **Frictionless onboarding** — the README quick-start now shows the drive-it path
+  (`/doctrine`, `/role`, `/checkpoint`) so a new user engages in one line.
+
+### Changed
+- `doctrine_lint` `check_plugin_parity` **generalized**: every `.claude/commands/*.md`
+  now auto-requires a byte-identical `plugin/commands/` twin (one-directional — the
+  plugin may still ship consumer-only commands like `doctrine-init`). New commands
+  are covered automatically; also fixes a hard-coded checkpoint-only drift message.
+
 ## [0.6.38] - 2026-07-21
 
 ### Changed

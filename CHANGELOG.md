@@ -22,6 +22,17 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.41] - 2026-07-22
+
+### Added
+- **`/review` and `/qa` role-shortcut commands** — high-frequency gate roles on top
+  of the parametric `/role`: `/review` adopts the Code Reviewer at G4 (fresh-context,
+  severity-ranked, runs the AI-slop pass); `/qa` adopts the QA Engineer at G5
+  (adversarial, execute-don't-inspect, five UI states). Both ship in `.claude/commands/`
+  + `plugin/commands/` (byte-parity, auto-enforced by the generalized check).
+- **`skills/ai-slop.md` now also loaded by `roles/ux-designer.md`** — design slop
+  (UI variant) is covered by ux + web-designer + code-reviewer. Signatures updated.
+
 ## [0.6.40] - 2026-07-22
 
 ### Added

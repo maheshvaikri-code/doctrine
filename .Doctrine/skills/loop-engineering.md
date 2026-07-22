@@ -1,79 +1,99 @@
 # Skill: Loop Engineering
 
-The gates G0–G7 are the company's **outer loop**. This skill governs the
-**inner loop** — the act → observe → validate → decide cycle you run dozens
-of times inside G3 (and inside every fix at G4/G5). Prompt engineering is
-what you say per call; context engineering is what you see per call; loop
-engineering is **what calls happen, when to iterate, when to gate, and when
-to stop**. Undisciplined inner loops are where fabrication, thrash, and
-budget burn are born.
+The gates G0–G7 are the company's **outer loop**. This skill governs the **inner
+loop** — act → observe → validate → decide, run dozens of times inside G3 (and
+inside every fix at G4/G5). Prompt engineering is what you say per call; context
+engineering is what you see; loop engineering is **what calls happen, when to
+iterate, when to gate, and when to stop**. Undisciplined inner loops are where
+fabrication, thrash, and budget burn are born.
 
-## Loop anatomy — every iteration has five beats
+## Loop anatomy — five beats, one hypothesis per iteration
 
-1. **Anchor** — restate the acceptance criterion this iteration serves
-   (verbatim from the brief/plan). The criterion is the loop invariant.
-2. **Act** — the smallest change that produces an observable result.
-3. **Observe** — RUN it. Real command, real output, pasted. Predicted
-   output is not observation (Non-Negotiable #1).
-4. **Validate** — pass the result through a deterministic gate, in order:
-   compiles/lints → tests pass → acceptance criterion advanced →
-   no regression elsewhere → still inside scope. A gate says **no**
-   mechanically; "looks right" is not a gate.
-5. **Decide** — exactly one of: *iterate* (criterion not met, budget
-   remains) · *done* (criterion met with evidence) · *stop & escalate*
-   (budget out, or thrash detected, or the plan is wrong).
+1. **Anchor** — restate the acceptance criterion this iteration serves, **verbatim**
+   from the brief/plan (paraphrase is where drift starts). One criterion per loop;
+   if the criterion itself seems wrong, that is *stop & escalate* to G2, not a
+   license to reinterpret it.
+2. **Act** — the smallest change producing a *distinguishable* result, encoding
+   **one hypothesis** ("I believe X is the cause; this tests it"). Bundled
+   hypotheses → split. A "while I'm here" fix is a new G0 finding — note it, stay
+   on the criterion.
+3. **Observe** — RUN it, PASTE it. Predicted/remembered output is fabrication
+   (Non-Negotiable #1). Re-read after every apply (disk is truth, your model is
+   stale); observe the **whole** signal — exit codes, warnings, counts — not just
+   the line you hoped for.
+4. **Validate** — a gate says **no** mechanically, in cost order: compiles/lints →
+   tests pass (**all**) → criterion measurably advanced → no regression → still in
+   scope. "Looks right" is an opinion, not a gate. **Gate-weakening is forbidden**
+   (Non-Negotiable #4) — it corrupts every future loop that trusts that gate.
+5. **Decide** — exactly one recorded exit: **iterate** (criterion unmet, budget
+   remains, *and a changed hypothesis* — rerunning unchanged code is not iteration)
+   · **done** (criterion met *with* the pasted evidence a reviewer could reproduce)
+   · **stop & escalate** (budget out, thrash, or the plan is wrong — a first-class
+   outcome; an honest "stuck after N, here's the trail" beats attempt N+20).
 
 ## Execution caps — loops end by design, not exhaustion
 
-- Set an iteration budget when entering a loop: default **5** per
-  acceptance criterion (S), **10** (M/L). Budget out → stop, write down
-  what was tried, escalate or return to G2 re-planning. An honest
-  "stuck after N attempts, here's the evidence" beats attempt N+20.
-- **Thrash detector**: same file edited 3× with no test-delta, or the
-  same error message twice after "fixing" it → the hypothesis is wrong.
-  Stop patching; go up a level (re-read the plan, re-read the actual
-  code, question the diagnosis).
-- **Flaky-test rule**: a test that fails intermittently is a defect to
-  file, not a retry target. Max one re-run to confirm flakiness; never
-  loop until lucky-green.
-- Re-anchor every 5 iterations: re-read the acceptance criteria. Long
-  loops drift — the fix that "works" often no longer serves the brief.
+- **Iteration budget**, set on entry: default **5** (Class S) / **10** (M/L) per
+  criterion. Budget out → stop, write down what was tried, escalate or return to G2.
+- **Thrash detector**: same file edited 3× with no test-delta, or the same error
+  twice after "fixing" it → the hypothesis is wrong; go up a level (re-read the
+  plan, re-read the actual code, question the diagnosis).
+- **Token-jam rule** (extends thrash): two iterations where TPI rises and the
+  evidence delta is flat → you are spending more to move less; stop, journal it,
+  escalate. (Token units defined in `skills/metrics.md`.)
+- **Flaky-test rule**: an intermittent failure is a defect to file, not a retry
+  target; one confirming re-run max, never loop until lucky-green.
+- Re-anchor every 5 iterations — long loops drift off the brief.
 
-## Deterministic validation (the DCCV pattern)
+## Loop profiles — declare at entry, stamp in the journal
 
-Wire the loop so something mechanical says no at each level: spec ↔ story
-↔ acceptance criteria ↔ test coverage ↔ regression impact ↔ observed
-behavior — and a failure at any level feeds **back to the level that owns
-it**, not to another patch on top. Symptom-level patches that silence a
-gate without satisfying its level are defects.
+The caps above are the **default** profile (budget 5/10) for exploratory work. Two
+tighter worker profiles + one orchestrator profile:
 
-## Measure the loop (the CodeMonk pattern)
+- **Ratchet** (budget 2–3) — small/known tasks. Every iteration must produce a
+  visible evidence delta (gate reached, error class changed, count moved). No delta
+  → escalate immediately, even with budget left: a ratchet only moves forward; a
+  click that does not advance means the mechanism is jammed.
+- **Shutter** (budget 1) — known recipes (scaffolding, config, a documented
+  migration). One exposure, no second attempt: a recipe that fails is a premise/
+  environment problem a retry cannot fix — the miss *is* the diagnostic.
+- **Farm** (orchestrator only) — the dispatch policy for `.claude/agents/` workers
+  under `03-parallel-execution.md`: each work package carries a profile stamp
+  (`loop: shutter|ratchet|default`) matched to certainty; greens merge, escalations
+  are triaged in **one batch**; if ≥ half the farm escalates, the **plan** is wrong
+  → halt, return to G2 (never re-dispatch the same packages under bigger budgets).
 
-Record per task, file in the QA report / retro (G7 reads these):
-- **Iterations-to-green** per criterion (converging or wandering?)
-- **Churn ratio** — lines rewritten vs. lines surviving to the commit
-- **Interventions** — how many times the human had to step in, and where
-- Escapes: any defect found at G4/G5 that the inner loop's gates missed
-  → that's a missing gate, propose it at G7.
+Heuristic: escalation cost falls as certainty rises — spend budget only where
+iteration has information value. (Per-profile token expectations: `skills/metrics.md`.)
 
-## Cross-run persistence
+## Validation spine + cross-run persistence
 
-Before a session ends mid-loop, write a loop journal entry in the plan
-file: criterion in progress, attempts made, hypotheses killed, next step.
-A resumed loop that repeats a dead end is a doctrine failure, not bad luck.
+DCCV: spec ↔ story ↔ acceptance criteria ↔ tests ↔ regression ↔ observed behavior;
+a failure feeds **back to the level that owns it**, never a patch on top. Before a
+session ends mid-loop, append a **loop-journal** line — the resume point:
+
+```text
+[<profile> N/B] hypothesis: <one line> | result: <gate, pass/fail> | tok: <in>/<out> (cum) | next: <iterate|done|stop>
+```
+
+Token values come from the harness usage fields, never self-estimated. A resumed
+loop that repeats a dead end is a doctrine failure, not bad luck.
+
+## Metrics (filed in QA reports / retros; G7 reads them)
+
+Iterations-to-green per criterion; churn ratio (lines rewritten vs surviving to
+merge); interventions; escapes (a defect G4/G5 caught that the loop's gates missed
+= a missing gate, propose it at G7). The per-loop **token** accounting
+(TPI/TTG/TPD/ETS, per-profile expectations, farm rollup) lives with the measurement
+discipline in `skills/metrics.md`, computed by CodeMonk (`integrations/codemonk.md`).
 
 ## Common failure modes
 
-- **Thrash** — editing in circles; caps + detector above exist for this.
-- **Victory on partial green** — "the important tests pass." All means all.
-- **Gate-weakening** — deleting/loosening the failing check (forbidden,
-  Non-Negotiable #4).
-- **Stale observation** — reasoning from a file state you already edited;
-  re-read after every apply.
-- **Scope creep mid-loop** — "while I'm here" fixes; new finding = new
-  task at G0, note it and stay on the criterion.
-- **Retry-as-strategy** — rerunning unchanged code hoping for different
-  output; only a *changed hypothesis* earns another iteration.
+Victory on partial green ("the important tests pass" — all means all) ·
+gate-weakening (forbidden, Non-Negotiable #4) · stale observation (re-read after
+every apply) · scope creep mid-loop (new finding = new G0 task) ·
+retry-as-strategy (only a changed hypothesis earns another spin) · a shutter task
+misclassified from a recipe (shows up as high escalation spend, a routing defect).
 
 ## Signature
 

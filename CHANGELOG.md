@@ -22,6 +22,22 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.38] - 2026-07-21
+
+### Changed
+- **`skills/loop-engineering.md` — right-sized upgrade.** Adopts the expanded
+  draft's substance while keeping the skill lean (progressive disclosure): adds
+  **loop profiles — Ratchet (budget 2-3) / Shutter (budget 1) / Farm (orchestrator
+  fan-out)** and the **token-jam stop rule**, with Farm-Loop cross-referencing
+  `03-parallel-execution.md`. The five-beat anatomy, caps, DCCV spine, journal, and
+  failure modes are retained/tightened.
+- **`skills/metrics.md` — owns the token numbers.** The deep per-loop token
+  accounting (**TPI / TTG / TPD / ETS**, per-profile expectations, farm rollup CPM +
+  orchestrator-overhead) moved here from the loop skill — measurement lives with the
+  measurement discipline; loop-engineering keeps the *behavior*. All from harness
+  usage fields, never self-estimated; computed by CodeMonk. Ties into the v0.6.35
+  budget gate.
+
 ## [0.6.37] - 2026-07-21
 
 ### Added

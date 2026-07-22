@@ -26,6 +26,26 @@ review coverage, token economics — so retros argue from numbers, not vibes.
 - Token capture where the harness allows: `codemonk wrap --otel <agent>`
   or the `collect` OTLP endpoint; estimated figures stay labeled estimated.
 
+## Per-loop token accounting (the inner-loop cost units)
+
+`skills/loop-engineering.md` runs the inner loop; these are its cost units, all
+from harness usage fields (never self-estimated), computed by CodeMonk:
+
+- **TPI** — tokens per iteration (in/out); the journal base unit.
+- **TTG** — tokens-to-green: cumulative from loop entry to a `done`-with-evidence,
+  per criterion (the token twin of iterations-to-green).
+- **TPD** — tokens per evidence delta; rising while iterations pass = paying more
+  per unit of progress.
+- **ETS** — escalation token spend: the price of an honest *stop & escalate*. **Not
+  waste** — it bought the evidence trail; track it separately so honest stops are
+  never scored as loss against the worker.
+
+Per-profile expectation: **shutter** ~1× probe cost (fixed) · **ratchet** ≤ 3×
+(jam signal: TPI rising click-over-click) · **default** bounded by budget (jam: the
+token-jam rule — 2× rising TPI with flat delta). Farm rollup: **CPM** (cost per
+merged package = worker TTG + orchestrator dispatch/harvest) and the
+**orchestrator-overhead ratio** (rising with flat merge count = a micromanaged farm).
+
 ## Do
 - Investigate every CESR drop as an escaped-defect signal — it feeds the
   same 5-whys the retro already owns.

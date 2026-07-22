@@ -22,6 +22,23 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.40] - 2026-07-22
+
+### Added
+- **`skills/ai-slop.md` — the AI-slop detection reviewer discipline** (56 -> 57
+  skills; gstack's "designer who catches AI slop", generalized). A fresh-context
+  G4/G5 detector for the failure modes specific to AI-generated code/content:
+  invented APIs, plausible-but-wrong, over-engineering, placeholder-as-done, comment
+  slop, test theater, fabricated evidence, ignores-the-codebase, security theater,
+  confident-wrong prose. Composes with Non-Negotiables #1/#9 and `ponytail` (they
+  forbid the acts; this detects them). Loaded by `roles/code-reviewer.md` and, for
+  design slop, `roles/web-designer.md`; routed in §6.
+- **Browser E2E at G5 (Playwright)** — `roles/qa-engineer.md` + `skills/testing.md`
+  now require a **real-browser** end-to-end check for user-facing surfaces at G5,
+  exercising the **five UI states** (empty/loading/error/partial/ideal). Playwright
+  is the vetted external anchor (native or the Playwright MCP server) — *recommended,
+  not bundled*: Doctrine stays vendor-neutral (`skills/tooling.md` portfolio-first).
+
 ## [0.6.39] - 2026-07-22
 
 ### Added

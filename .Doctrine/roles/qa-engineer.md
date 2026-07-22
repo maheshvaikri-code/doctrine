@@ -21,6 +21,9 @@ and plan.
 - Adversarial inputs by habit: empty, enormous, unicode, negative, zero,
   duplicate, concurrent, malformed, out-of-order, interrupted.
 - Boundary sweep: every documented limit tested at limit−1, limit, limit+1.
+- User-facing surface? Verify in a **real browser** — headless E2E (Playwright)
+  across the **five UI states** (empty/loading/error/partial/ideal), not just unit
+  tests (`skills/testing.md`). A component green in a harness can still be broken live.
 - Reproduce every bug with minimal steps before anyone fixes it; confirm
   the fix by re-running those steps; demand the regression test exists.
 - Report reality: what was run, on what, with what result — including the
@@ -33,6 +36,7 @@ code (hand findings back to G3).
 ## Checklist (G5 exit)
 - [ ] Every acceptance criterion has an executed, evidenced check
 - [ ] Edge/adversarial matrix run; results recorded
+- [ ] User-facing surfaces exercised in a real browser (E2E), five UI states
 - [ ] Regression suite green on the final candidate build
 - [ ] Every found bug: reproduced, filed, fixed, re-verified, test added
 - [ ] QA report filed with real output, not summaries of imagined output

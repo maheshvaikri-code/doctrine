@@ -22,6 +22,18 @@ testing — the evidence layer for every other skill.
 - State invariants asserted at checkpoints in integration tests, not just
   final-state equality.
 
+## Browser E2E for user-facing surfaces (the top of the pyramid, at G5)
+
+- Any UI (web/mobile) gets a **real-browser end-to-end** check at G5, not just
+  unit tests — a component that renders in a test harness can still be broken in
+  a browser. Recommended anchor: **Playwright** (headless, cross-browser, records
+  traces); native Playwright or the Playwright MCP server (`skills/mcp-tooling.md`).
+  Portfolio-first per `skills/tooling.md`; Playwright is the vetted external default.
+- Exercise the **five UI states** on the critical flow: empty · loading · error ·
+  partial · ideal — the failure states are where slop hides (`skills/ai-slop.md`).
+- Keep E2E a *handful* (pyramid), on the money paths; assert on user-visible
+  behavior and accessibility (`skills/accessibility.md`), not DOM internals.
+
 ## Defaults
 - A bug fixed = a regression test added, in the same commit, named after
   the failure (`test_reissue_after_partial_write_regression`).

@@ -216,6 +216,14 @@ def install(source: Path, target: Path, tools: list[str],
         copy_file(source / ".Doctrine" / "adapters" / "AGENTS.md", agents,
                   target, report, force)
 
+    # .mcp.json local MCP registration (never overwrite - the consumer may run
+    # its own MCP servers). Registers the doctrineos server so any MCP-capable
+    # agent gets the doctrine tools locally: no marketplace, no publish. The
+    # MCP client still gates activation with its own approval prompt.
+    mcp = target / ".mcp.json"
+    if not mcp.exists() and (source / ".mcp.json").exists():
+        copy_file(source / ".mcp.json", mcp, target, report, force)
+
     if "claude" in tools:
         copy_tree(source / ".claude", target / ".claude", target, report,
                   force)

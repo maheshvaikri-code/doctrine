@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
-  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.41-1a2b5e" alt="version v0.6.41"></a>
+  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.42-1a2b5e" alt="version v0.6.42"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1a2b5e" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Claude_Code-plugin-e8642c" alt="Claude Code plugin"></a>
@@ -64,6 +64,10 @@ where it's only illustrative — in
 /doctrine-init
 ```
 
+The plugin path needs the marketplace (public/shared). **Local or private repo?**
+Use the installer below — no marketplace, no publish; it now also auto-registers the
+MCP server.
+
 **Any repo (installer):**
 
 ```bash
@@ -73,8 +77,14 @@ python doctrine/tools/doctrine_install.py --target <your-repo> \
 cd <your-repo> && python tools/doctrine_state.py init && make verify
 ```
 
-**Any MCP-capable agent** — register the `doctrineos` server (lint,
-state plane, gold-build gates as native tools):
+**Any MCP-capable agent** — the installer drops a **`.mcp.json`** registering the
+`doctrineos` server (corpus lint, state plane, gold-build gates as native tools), so
+Claude Code / Cursor / any `.mcp.json`-aware client offers it on approval — no
+marketplace, no publish. Register by hand where a client needs it:
+
+```bash
+claude mcp add doctrineos -- python tools/doctrine_mcp.py   # Claude Code (local)
+```
 
 ```toml
 # Codex config.toml

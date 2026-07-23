@@ -22,6 +22,28 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.42] - 2026-07-22
+
+### Added
+- **Local-first MCP: the installer now auto-registers `doctrineos`.** A `.mcp.json`
+  is written into every install (never overwriting an existing one), registering the
+  `doctrineos` server (`python tools/doctrine_mcp.py`) so any `.mcp.json`-aware agent
+  (Claude Code, Cursor, …) offers the doctrine tools — corpus lint, state plane,
+  gold-build gates — on approval. **No marketplace, no publish** required; the
+  `/plugin` path was never the only way. The source repo now self-registers via a
+  root `.mcp.json` too (dogfooding).
+- README quick-start clarified: the plugin path needs the marketplace (public); the
+  installer is the local/private path and now wires the MCP; `claude mcp add
+  doctrineos -- python tools/doctrine_mcp.py` documented for manual Claude Code use.
+- Tests: `.mcp.json` in the install round-trip + registers-doctrineos +
+  never-overwrites-existing.
+
+### Verified (local, this machine)
+- Live stdio probe of `tools/doctrine_mcp.py`: `initialize` → `serverInfo doctrineos`,
+  `tools/list` → 7 tools, `state_status` call → real checkpoint data (`isError:false`).
+- Local install (`--tool all`) into a throwaway target: 230 files, consumer
+  lint-clean, and (post-fix) `.mcp.json` present.
+
 ## [0.6.41] - 2026-07-22
 
 ### Added

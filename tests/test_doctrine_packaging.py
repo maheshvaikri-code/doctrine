@@ -39,7 +39,7 @@ class TestInstaller(unittest.TestCase):
                     ".claude/agents/code-reviewer.md",
                     ".claude/commands/checkpoint.md",
                     ".claude/settings.json", "CLAUDE.md", "AGENTS.md",
-                    ".cursor/rules/doctrine.mdc", "Makefile",
+                    ".cursor/rules/doctrine.mdc", "Makefile", ".mcp.json",
                     "tests/test_doctrine_state.py"):
             self.assertTrue((self.target / rel).exists(), rel)
         claude_md = (self.target / "CLAUDE.md").read_text("utf-8")
@@ -159,6 +159,21 @@ class TestInstaller(unittest.TestCase):
         self.install()
         self.assertEqual((self.target / "AGENTS.md").read_text("utf-8"),
                          "mine\n")
+
+    def test_mcp_json_registers_doctrineos(self):
+        self.install()
+        cfg = json.loads((self.target / ".mcp.json").read_text("utf-8"))
+        self.assertIn("doctrineos", cfg.get("mcpServers", {}))
+        self.assertIn("doctrine_mcp.py",
+                      " ".join(cfg["mcpServers"]["doctrineos"]["args"]))
+
+    def test_existing_mcp_json_untouched(self):
+        self.target.mkdir(parents=True)
+        (self.target / ".mcp.json").write_text('{"mcpServers":{"mine":{}}}',
+                                                encoding="utf-8")
+        self.install()
+        self.assertEqual((self.target / ".mcp.json").read_text("utf-8"),
+                         '{"mcpServers":{"mine":{}}}')
 
     def test_enterprise_seeds_brief(self):
         self.install(enterprise=True)

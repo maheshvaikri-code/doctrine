@@ -22,6 +22,32 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.44] - 2026-07-23
+
+### Added
+- **AI deployment-pattern security-review archetypes (Security Review Process
+  Standardization, pillar 1).** A shared control backbone + five archetype packs:
+  - **`skills/ai-security.md`** (57 -> 58 skills) — the shared AI-security-review
+    discipline: OWASP LLM Top 10 · MITRE ATLAS · NIST AI RMF · ISO/IEC 42001 · EU AI
+    Act; the threat taxonomy (prompt injection incl. indirect, insecure output
+    handling, excessive agency, supply-chain, model DoS/theft, overreliance) and the
+    deterministic G1+G5 review method. Loaded by `security-reviewer` + `ml-engineer`.
+  - **`domains/agentic-ai.md`** — excessive agency, tool least-privilege, HITL/action
+    gating (maps to §5 + STIX), memory poisoning, cost/loop bounds (budget gate + loop caps).
+  - **`domains/conversational-ai.md`** — prompt injection/jailbreak, system-prompt
+    leak, transcript PII, moderation, transparency, overreliance.
+  - **`domains/iot-ai.md`** — device attestation, signed edge-model + OTA, adversarial
+    sensor inputs, on-device extraction (composes manufacturing/transportation).
+  - **`domains/contact-center-ai.md`** — voice consent/PII, deepfake-voice, PCI-in-voice
+    (DTMF mask), agent-assist human override (composes finance/healthcare).
+  - **`domains/saas-ai.md`** — tenant isolation (no cross-tenant RAG/embedding leakage),
+    no-train-on-customer-data, subprocessor/DPA, RBAC, per-tenant limits.
+  - **Zero new roles** — all five overlay `skills/ai-security.md` and reuse
+    security-reviewer/compliance/risk/ml-engineer. 15 domain packs total (10 industry
+    verticals + 5 AI archetypes).
+- `.Doctrine.md` §6 routing row for AI-deployment security review; `domains/README`
+  gains the archetype category; counts -> 58 skills.
+
 ## [0.6.43] - 2026-07-22
 
 ### Changed

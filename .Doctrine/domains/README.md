@@ -57,8 +57,21 @@ carry **no Signature block** (that convention is for roles + skills).
 | `domains/transportation.md` | FMCSA HOS/ELD · ISO 26262 (ASIL) · telematics privacy · GTFS | 0 (reuses risk/compliance/sre) | shipped |
 | `domains/auditing.md` | SOC 2 · GAAS/SOX · evidence integrity · independence (SoD) | 0 (reuses security/compliance/risk) | shipped |
 
-The roles column is the honesty ledger of overlay cost: **ten domains, three new
-roles total** (healthcare +2, quant +1; the other eight reuse the core). A pack is
-an overlay, not a payroll — a new role appears only where a genuinely distinct
-function does (healthcare's clinical safety, quant's research rigor). New verticals
-are stamped from `templates/domain-pack.md`; most add zero roles.
+**AI deployment-pattern security-review archetypes** (a distinct category: overlay
+the shared `skills/ai-security.md` control backbone — OWASP LLM Top 10 / MITRE ATLAS /
+NIST AI RMF / ISO 42001 / EU AI Act — each adding only its distinct control surface):
+
+| Pack | Distinct control surface | New roles | Status |
+|------|--------------------------|-----------|--------|
+| `domains/agentic-ai.md` | excessive agency, tool least-privilege, HITL/action-gating, memory poisoning, cost/loop bounds | 0 (security/risk + ai-security) | shipped |
+| `domains/conversational-ai.md` | prompt injection/jailbreak, system-prompt leak, transcript PII, moderation, overreliance | 0 | shipped |
+| `domains/iot-ai.md` | device attestation, signed edge-model + OTA, adversarial sensors, on-device extraction | 0 | shipped |
+| `domains/contact-center-ai.md` | voice consent/PII, deepfake-voice, PCI-in-voice (DTMF mask), agent-assist override | 0 | shipped |
+| `domains/saas-ai.md` | tenant isolation, no-train-on-customer-data, subprocessor/DPA, RBAC, per-tenant limits | 0 | shipped |
+
+The roles column is the honesty ledger of overlay cost: **fifteen packs — ten
+industry verticals + five AI deployment-pattern archetypes — with three new roles
+total** (healthcare +2, quant +1; every other pack, including all five AI archetypes,
+reuses the core, and the archetypes share one skill, `skills/ai-security.md`). A pack
+is an overlay, not a payroll — a new role appears only where a genuinely distinct
+function does. All are stamped from `templates/domain-pack.md`.

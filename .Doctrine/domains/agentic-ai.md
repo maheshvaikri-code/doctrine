@@ -9,8 +9,8 @@
 > `skills/ai-security.md` (the shared backbone). What is distinct here: the model
 > doesn't just answer, it **takes actions**, so **excessive agency** and
 > **indirect prompt injection through what the agent reads** are the dominant risks.
-> Doctrine's own §5, budget gate, loop caps, and STIX/Contegrity map directly onto
-> these controls.
+> Doctrine's own §5, budget gate, loop caps, and any wired action-enforcement /
+> provenance layer map directly onto these controls.
 
 ## 1. Regime (adds to `skills/ai-security.md`)
 
@@ -32,8 +32,8 @@ guidance (multi-agent, autonomy).
    task needs — scoped, not standing broad access; high-impact tools are allow-listed.
 2. Given a **high-impact or irreversible action** (spend, delete, deploy, external
    send), when the agent attempts it, then it is **gated** — a §5 escalation /
-   human-in-the-loop, enforced at the action boundary (STIX where wired), not by the
-   agent's good behavior.
+   human-in-the-loop, enforced at the action boundary (where an action-enforcement
+   layer is wired), not by the agent's good behavior.
 3. Given content the agent **reads** (tool output, retrieved docs, other agents),
    when it enters context, then it is treated as **untrusted** — indirect prompt
    injection is assumed; instructions in data are not obeyed.
@@ -41,7 +41,7 @@ guidance (multi-agent, autonomy).
    apply (the loop caps + budget gate), so a runaway or looping agent cannot burn
    budget or spam actions.
 5. Given any agent action, when taken, then it is **logged for non-repudiation**
-   (who/what/when/why), tamper-evident (Contegrity where wired).
+   (who/what/when/why), tamper-evident (where a provenance layer is wired).
 
 ## 4. Threat / harm model
 

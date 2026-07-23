@@ -113,10 +113,10 @@ def check_version(root: Path, findings: list[str]) -> None:
     # The version carriers below are Doctrine's OWN version, enforced ONLY in
     # Doctrine's source repo (it declares the `doctrineos` package, which the
     # installer never copies). A CONSUMER repo has its OWN CHANGELOG, pyproject,
-    # and README badge for its OWN product version (e.g. openhawk 0.2.0) - NOT a
+    # and README badge for its OWN product version (e.g. product-app 0.2.0) - NOT a
     # desync. doctrine_mcp.py is Doctrine's file even inside a consumer, so it
     # is the one carrier always checked. (This guards the whole bug class - the
-    # pyproject-only fix in 0.6.16 missed the CHANGELOG, caught by OpenHawk.)
+    # pyproject-only fix in 0.6.16 missed the CHANGELOG, caught in a consumer repo.)
     pyproject = root / "pyproject.toml"
     is_source = pyproject.exists() and \
         'name = "doctrineos"' in pyproject.read_text("utf-8")

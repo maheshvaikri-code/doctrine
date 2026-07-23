@@ -30,11 +30,11 @@ doctrine-state-plane/
 ## How it composes with the other packs
 
 Structure state is graphify's `graph.json` (already integrated; referenced by commit
-hash, never owned here). Checkpoints hash-link like ContextChain. Effects follow
-retrace's log discipline. Intents are RIR outputs. The bundle emits in ISON. FDE phase
-gates are natural checkpoint triggers. AceIQ360 is the optional cross-repo tier above
-this repo-local plane — imported claims arrive tagged with their source repo, never
-merged silently.
+hash, never owned here). Checkpoints hash-link as an append-only chain. Effects follow
+an append-only side-effect log discipline. Intents are structured-intent outputs. The
+bundle emits as canonical JSON. FDE phase gates are natural checkpoint triggers. An
+optional cross-repo tier sits above this repo-local plane — imported claims arrive
+tagged with their source repo, never merged silently.
 
 ## Adoption order
 

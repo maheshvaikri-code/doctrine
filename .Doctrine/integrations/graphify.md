@@ -55,9 +55,9 @@ global, `./.agents/skills/` with `--project`) readable by any spec-compliant fra
 - **Provenance discipline:** when an agent reports structure ("X calls Y"), it carries
   the edge tag — `EXTRACTED` may be stated as fact, `INFERRED` is stated as inferred.
   Same epistemics as the parity ledger: derived claims are labeled derived.
-- **RudraDB/AceIQ360 positioning note:** graphify publishes LOCOMO recall@10 0.497 and
+- **Retrieval positioning note:** graphify publishes LOCOMO recall@10 0.497 and
   LongMemEval-S 76% (tied with dense RAG) at zero graph-build LLM credits — a datapoint
-  for the Memory Engineering comparison table, and a validation of the
+  when comparing memory/retrieval approaches, and a validation of the
   no-embeddings-needed thesis.
 
 ## Health check

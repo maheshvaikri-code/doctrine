@@ -2,7 +2,7 @@
 rubric: fde-discovery
 version: 0.1.0
 authority: human
-binds: qumba-rir
+binds: intent-resolver
 ---
 
 # FDE Discovery Rubric

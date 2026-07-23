@@ -10,7 +10,7 @@ deterministically, at zero cost. Promotion to a real cloud is an emitted config 
 ```
 .Doctrine/
 ├── roles/fde.md                       ← the FDE role spec (mission, guardrails, 6-phase loop, gates)
-├── rubrics/discovery.rubric.md        ← QUMBA RIR authority document for the discovery interview
+├── rubrics/discovery.rubric.md        ← the authority document for the discovery interview
 ├── skills/
 │   ├── floci-provision.md             ← manifest → emulated infra + endpoints.lock.json + .env.floci
 │   ├── floci-seed.md                  ← seeded synthetic data + hash-verified seed manifest
@@ -24,11 +24,11 @@ deterministically, at zero cost. Promotion to a real cloud is an emitted config 
 
 | Phase | Skill | Gate artifact |
 |---|---|---|
-| P1 Discover | qumba-rir + `discovery.rubric.md` | `intent-spec.json` (human sign-off) |
+| P1 Discover | discovery interview + `discovery.rubric.md` | `intent-spec.json` (human sign-off) |
 | P2 Shape | (role logic) | `floci.manifest.yaml` (schema-valid) |
 | P3 Provision | floci-provision | `endpoints.lock.json` (health green, hash-stable) |
 | P4 Build | (role logic) | `make demo` ×2 from clean → identical output hash |
-| P5 Verify | floci-parity (+ ReplayLens if retrieval) | `parity-ledger.json` (gate ≠ block) |
+| P5 Verify | floci-parity (+ replay verification if retrieval) | `parity-ledger.json` (gate ≠ block) |
 | P6 Promote | floci-promote | `iac-diff/` + `PROMOTION.md` (human sign-off) |
 
 ## The one invariant

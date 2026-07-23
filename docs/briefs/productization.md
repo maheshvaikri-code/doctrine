@@ -51,9 +51,9 @@ keeps the receipts.
   - **Not** replacing DOCTRINE's gates, artifacts, or the human's §5 authority with a
     smoother UX — the product exposes the discipline, it does not soften it.
   - **Not** going public / relicensing yet — private until the "proud moment."
-- **Deferred (parked ideas):** brand name (OpenHawk or other — working name is
-  DoctrineOS, which already exists as the package + MCP server name); voice/Canvas
-  surfaces like OpenClaw's; a skills marketplace; multi-tenant hosting.
+- **Deferred (parked ideas):** brand name (TBD — working name is DoctrineOS, which
+  already exists as the package + MCP server name); voice/Canvas surfaces; a skills
+  marketplace; multi-tenant hosting.
 
 ## Acceptance criteria (numbered, testable) — for v0.1 (Turnkey distribution) only
 

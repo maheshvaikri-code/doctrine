@@ -58,7 +58,7 @@ Add `skills/mcp-tooling.md` to govern MCP *consumption* for **any** feature deve
   role and any feature, via the routing table, without new per-tool files.
 - **Negative / debt:** MCP maturity varies by provider — some concerns fall back to the
   CLI (honest, documented in the skill); enforcement is **advisory** until a mechanical
-  gate lands (a `PreToolUse` hook or STIX-style pre-execution authorization on MCP
+  gate lands (a `PreToolUse` hook or external pre-execution authorization on MCP
   actions — the natural L3 successor, cf. ADR-004).
 - **Invalidation triggers:** if an MCP becomes the *only* viable path for a consequential
   action, the §5 gate still applies (the gate is on the action); if a mechanical MCP-action

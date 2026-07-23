@@ -228,7 +228,7 @@ track it so the deferral does not become permanent.
   JSONDecodeError inside hydrate. Fail-loud, low severity. Recommend routing these logs
   through the bounded/hardened parse too. Tracked as a follow-up, not a ship blocker.
 - Intent-file content (title/acceptance_criteria) pulled into the bundle is not
-  secret-scanned; only distillate content is. The intent/RIR writer is out of scope per
+  secret-scanned; only distillate content is. The intent writer is out of scope per
   docs/brief.md non-goals, so this is a documented trust boundary, not a defect.
 - Secret-detection and intent_id regexes were reviewed for ReDoS: all linear, no
   catastrophic backtracking; inputs are length-bounded by the schema. Clean.

@@ -169,7 +169,7 @@ def install(source: Path, target: Path, tools: list[str],
     # role/skill counts, the installer manifest, or the law itself) the framework
     # goes internally inconsistent: new files land while the counts/manifest stay
     # stale, and the consumer's own doctrine_lint/packaging then fail (the
-    # OpenHawk drift, 2026-07-16). Refuse before touching the target; --force
+    # a consumer repo's drift, 2026-07-16). Refuse before touching the target; --force
     # updates the whole framework atomically. A generic differing file still
     # skips-with-a-warning as before.
     if not force:

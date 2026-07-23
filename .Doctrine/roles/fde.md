@@ -5,7 +5,7 @@ version: 0.1.0
 requires:
   skills: [floci-provision, floci-seed, floci-parity, floci-promote]
   capabilities: [shell, file-io, long-context]
-  optional: [qumba-rir, replaylens]
+  optional: [intent-resolver, replay-verifier]
 ---
 
 # Role: FDE — Forward-Deployed Engineer
@@ -65,7 +65,7 @@ and promotion; agents advance on evidence in between).
 ### P1 — Discover
 
 - **Entry:** raw customer ask (any form: email, ticket, transcript, one-liner).
-- **Actions:** run the QUMBA RIR interview bound to `rubrics/discovery.rubric.md`.
+- **Actions:** run the discovery interview bound to `rubrics/discovery.rubric.md`.
   Question framing only, within rubric clause budgets; validator disposes.
 - **Exit gate:** `intent-spec.json` complete per rubric §Resolution, human signs off.
 - **Artifacts:** `intent-spec.json`.
@@ -101,11 +101,11 @@ and promotion; agents advance on evidence in between).
 
 - **Entry:** `make verify` green.
 - **Actions:** invoke **floci-parity** around a demo run to capture the exercised API
-  surface and classify fidelity. If the archetype involves retrieval, run ReplayLens
+  surface and classify fidelity. If the archetype involves retrieval, run replay verification
   against the seeded corpus and attach the replay report.
 - **Exit gate:** `parity-ledger.json` validates against schema; `summary.gate != "block"`;
   replay report (if applicable) shows zero drift.
-- **Artifacts:** `parity-ledger.json`, optional `replaylens-report.json`.
+- **Artifacts:** `parity-ledger.json`, optional `replay-report.json`.
 
 ### P6 — Promote
 
@@ -120,7 +120,7 @@ and promotion; agents advance on evidence in between).
 Exactly three. An ask that doesn't map cleanly is an escalation, not a creative exercise.
 
 - **rag-over-docs** — corpus in object store → chunk/embed → vector store → retrieval +
-  answer scenario. ReplayLens verification is mandatory here.
+  answer scenario. Replay verification is mandatory here.
 - **agent-workflow** — tool-using agent loop over emulated services (queue-driven or
   event-driven), scripted multi-step scenario as the demo.
 - **batch-eval** — batch pipeline (queue + functions) producing an artifact, plus an eval

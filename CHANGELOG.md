@@ -22,6 +22,31 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.45] - 2026-07-23
+
+### Changed
+- **Portfolio-private references scrubbed from the corpus — Doctrine is
+  publish-clean.** The distributable framework named several first-party,
+  unpublished products by name; a public Doctrine (installed into other repos,
+  or the repo itself) would have leaked them. This release genericizes every such
+  reference to the *mechanism* it serves, so the method stays intact and the
+  product names live only in a private, gitignored plan.
+  - **Removed** the three proposed internal-integration shims
+    (`integrations/stix.md`, `openguide.md`, `contegrity.md`) and their §6 routing
+    rows. Runtime **action** / **behavior** / **provenance** enforcement is now
+    documented as *bring-your-own extension points* (pick a fit, vet via
+    `dependency-policy`, wire as a new `integrations/*.md` shim) — the same
+    architecture without the product names.
+  - **Genericized** inline mentions across `skills/tooling.md` (portfolio catalog →
+    wired-integrations + extension points), `skills/ai-security.md`,
+    `domains/agentic-ai.md`, `domains/auditing.md`, `integrations/README.md`,
+    `integrations/fde.md`, `integrations/graphify.md`, `roles/fde.md`, the
+    state-plane docs, several ADRs/briefs/retros, and tool comments.
+  - **Public integrations kept:** CodeMonk, MAPLE, floci, ponytail, graphify (all
+    have live upstreams / wired shims). Competitor references (public) left as-is.
+  - Verification: corpus grep-clean for the internal product/pack names; lint +
+    signatures + tests green. No mechanism removed — only names.
+
 ## [0.6.44] - 2026-07-23
 
 ### Added
@@ -33,7 +58,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
     handling, excessive agency, supply-chain, model DoS/theft, overreliance) and the
     deterministic G1+G5 review method. Loaded by `security-reviewer` + `ml-engineer`.
   - **`domains/agentic-ai.md`** — excessive agency, tool least-privilege, HITL/action
-    gating (maps to §5 + STIX), memory poisoning, cost/loop bounds (budget gate + loop caps).
+    gating (maps to §5 + a wired action-enforcement layer), memory poisoning, cost/loop bounds (budget gate + loop caps).
   - **`domains/conversational-ai.md`** — prompt injection/jailbreak, system-prompt
     leak, transcript PII, moderation, transparency, overreliance.
   - **`domains/iot-ai.md`** — device attestation, signed edge-model + OTA, adversarial
@@ -150,9 +175,9 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   *procedure*, not a rotting matrix: **portfolio-first**, then vetted external
   (`standards/dependency-policy.md`), MCP via `skills/mcp-tooling.md`, adoption/
   provisioning = §5. Carries the grounded **portfolio catalog** mapping our own
-  stacks to the Doctrine mechanism each serves, with honest status
-  (wired: CodeMonk/MAPLE/floci · proposed: STIX/OpenGuide/Contegrity · candidate:
-  SnapLLM/CEPIA/QUMBA), plus a best-fit-by-mechanism table. Anti-staleness by
+  integrations to the Doctrine mechanism each serves, with honest status
+  (the wired integrations CodeMonk/MAPLE/floci/ponytail/graphify, plus bring-your-own
+  extension points for action/behavior/provenance/retrieval), plus a best-fit-by-mechanism table. Anti-staleness by
   design: encodes the rule + the stable portfolio map, defers volatile external
   specifics to the routed discipline skill + a currency check.
 - `.Doctrine.md` §6 routing row for tool selection; counts updated to 56 skills.
@@ -160,21 +185,20 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 ## [0.6.36] - 2026-07-20
 
 ### Added
-- **Portfolio governance-trio integration shims (proposed) — Doctrine begins to run
-  on its own stack.** Three thin, non-vendored shims + §6 routing rows, each an
-  orthogonal plane:
-  - **`integrations/stix.md`** — runtime **action** enforcement. Makes §5
-    ("escalate before irreversible/external actions") physical: STIX ALLOW/DENY/
-    QUARANTINE gates the concrete action with a crypto proof + HITL. Doctrine
-    decides, STIX enforces, the human is root.
-  - **`integrations/openguide.md`** — runtime **behavior** enforcement. Role
-    personas + `engagement-engineering` + `ponytail` compile to OBC contracts held
-    by the GuidanceGrid runtime; sits beside ponytail in Behavior Engineering.
-  - **`integrations/contegrity.md`** — **integrity/provenance**. CGB captures agent
-    comms as tamper-evident evidence beneath the state plane, gold-build, and
-    `domains/auditing.md` (whose evidence model it *is*).
-  - Three orthogonal planes: process (Doctrine gates) · behavior (OpenGuide) ·
-    action (STIX) · with Contegrity as the evidence record beneath all.
+- **Runtime enforcement extension points (proposed).** §6 routing rows + notes for
+  three thin, opt-in, non-vendored planes, each orthogonal to the process gates:
+  - runtime **action** enforcement — makes §5 ("escalate before irreversible/external
+    actions") physical: an action-enforcement layer ALLOW/DENY/QUARANTINE gates the
+    concrete action with a crypto proof + HITL. Doctrine decides, the layer enforces,
+    the human is root.
+  - runtime **behavior** enforcement — role personas + `engagement-engineering` +
+    `ponytail` compile to behavioral contracts held by a behavior-control runtime;
+    sits beside ponytail in Behavior Engineering.
+  - **integrity/provenance** — a provenance layer captures agent comms as
+    tamper-evident evidence beneath the state plane, gold-build, and
+    `domains/auditing.md`.
+  - Three orthogonal planes: process (Doctrine gates) · behavior · action · with
+    provenance as the evidence record beneath all.
 
 ### Notes
 - **Honesty:** these are **proposed** shims — the *fit, routing, and boundary* are
@@ -223,7 +247,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   - **`domains/auditing.md`** — SOC 2 · GAAS/SOX · evidence integrity · independence;
     immutable/tamper-evident evidence, chain-of-custody, separation-of-duties (the
     doctrine's own fresh-context-verifier rule as a legal requirement), reproducible
-    findings. (Evidence-integrity substrate overlaps the Contegrity provenance model.)
+    findings. (Evidence-integrity substrate maps onto a wired provenance layer.)
   - **All four add 0 new roles.**
 
 ### Changed
@@ -527,7 +551,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `tools/doctrine_install.py` (the file manifest), or `.Doctrine.md` (the law) —
   the consumer's framework went internally inconsistent (new files present, counts/
   manifest stale), so its *own* `doctrine_lint`/`doctrine_packaging` failed. Found
-  live in the OpenHawk repo after a non-force "hook-merge" update. `install()` now
+  live in a consumer repo after a non-force "hook-merge" update. `install()` now
   refuses **before touching the target** when updating an existing Doctrine and any
   consistency carrier would differ, pointing to `--force` (which updates the whole
   framework atomically). A generic differing file still skips-with-a-warning —
@@ -554,7 +578,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   that grows by registry entry, not by rotting per-provider files). Wired into the §6
   routing table and the DevOps Engineer role's Loads; ADR-005 records the decision.
   Enforcement is advisory until a mechanical MCP-action gate lands (PreToolUse /
-  STIX-style pre-execution authorization — the L3 successor to ADR-004).
+  external pre-execution authorization — the L3 successor to ADR-004).
 
 ## [0.6.19] - 2026-07-16
 
@@ -606,7 +630,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 - **`doctrine_lint` version check — whole bug class swept (CHANGELOG too)** —
   0.6.16 fixed the consumer `pyproject` false-desync but missed the sibling
   **CHANGELOG** check in the same function; a consumer repo with its own
-  product CHANGELOG (found live: OpenHawk 0.2.0) failed lint with a false
+  product CHANGELOG (found live: a consumer repo at 0.2.0) failed lint with a false
   "version desync: .Doctrine.md v0.6.16 != CHANGELOG 0.2.0". `check_version`
   now computes `is_source` once (pyproject declares `doctrineos`) and gates
   ALL Doctrine-owned carriers — CHANGELOG, pyproject, plugin.json, README
@@ -620,14 +644,14 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 ### Fixed
 - **`doctrine_lint` version check is now consumer-safe** — it treated *any*
   `pyproject.toml` `version = "X.Y.Z"` as a Doctrine version carrier, so a
-  consumer repo with its own product version (found live: OpenHawk 0.1.0)
+  consumer repo with its own product version (found live: a consumer repo at 0.1.0)
   failed lint with a false "version desync: pyproject.toml 0.1.0 !=
   .Doctrine.md v0.6.15". `pyproject.toml` is now a carrier only when it
   declares the `doctrineos` package (which the installer never copies); a
   consumer's own pyproject is left alone. Same consumer-vs-source lesson as
   ADR-002. Regression tests: consumer pyproject not flagged; a real
-  `doctrineos` desync still caught. Surfaced by installing Doctrine into the
-  new OpenHawk product repo.
+  `doctrineos` desync still caught. Surfaced by installing Doctrine into a
+  new consumer product repo.
 
 ## [0.6.15] - 2026-07-14
 
@@ -635,7 +659,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 - **Product-family topology, formalized (ADR-003 + a template)** — the
   three-repo shape is now a written decision, not a recommendation:
   `doctrine` (governance + tooling) + `maple-oss` (runtime) + the product
-  (`openhawk`), with a **one-way dependency graph** (product → {doctrine,
+  (`product-app`), with a **one-way dependency graph** (product → {doctrine,
   maple}; doctrine ⟂ maple, no cycles). `docs/adr/003-product-family-topology.md`
   fixes the boundaries and the rationale (separate repos for
   license/cadence/visibility; a monorepo would spread MAPLE's AGPL to all).
@@ -644,7 +668,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   release, the family-gate evidence checklist (Doctrine↔MAPLE smoke, product
   gates, AGPL ack), and rollback. Routing-table row added. **Deferred, on
   purpose:** the *running* family gate (CI pinning + testing three repos)
-  waits until the `openhawk` repo exists — a gate over a missing repo is
+  waits until the `product-app` repo exists — a gate over a missing repo is
   unenforceable; the contract is written first so it guides creation.
 
 ## [0.6.14] - 2026-07-14

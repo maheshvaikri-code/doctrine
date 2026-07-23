@@ -25,7 +25,8 @@
 ## 2. Canonical entities & interoperability
 
 Routes into `skills/data-architecture.md` and `skills/interoperability.md`. The
-evidence-integrity substrate overlaps the user's Contegrity provenance model.
+evidence-integrity substrate maps onto a dedicated provenance/integrity layer if one
+is wired.
 
 - **Standards:** immutable/append-only evidence stores (hash-chained or WORM),
   **OSCAL** (open security-controls assessment language), control frameworks

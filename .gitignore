@@ -25,3 +25,6 @@ codemonk_tokens.jsonl
 
 # local diagnostic pastes (not part of the corpus)
 error_*.md
+
+# personal, private planning (never committed)
+docs/personal/

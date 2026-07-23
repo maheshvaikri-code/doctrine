@@ -45,7 +45,7 @@ output. Composes with `skills/privacy-compliance.md` (data) and `skills/ai-slop.
 2. **Treat model output as untrusted** — validate/encode before it touches code, a
    query, a filesystem, or another agent.
 3. **Least agency:** the model gets the *minimum* tools/permissions/data; high-impact
-   actions are gated (a §5 escalation / human-in-the-loop; enforce with STIX where wired).
+   actions are gated (a §5 escalation / human-in-the-loop; enforce with an action-enforcement layer where wired).
 4. **Isolate prompts + secrets** from user-controllable content; never put a secret
    where a prompt-injection can read it back.
 5. **Bound cost + autonomy:** rate/token/loop limits (the v0.6.35 budget gate + loop
@@ -59,7 +59,7 @@ output. Composes with `skills/privacy-compliance.md` (data) and `skills/ai-slop.
 
 - Classify the EU-AI-Act tier and pick the deployment pack at G0.
 - Red-team prompt injection / jailbreak with a real corpus; paste results.
-- Log AI actions for non-repudiation (provenance; Contegrity where wired).
+- Log AI actions for non-repudiation (provenance; a provenance layer where wired).
 
 ## Don't
 

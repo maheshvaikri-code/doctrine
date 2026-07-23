@@ -36,12 +36,12 @@ maps a repo into a queryable knowledge graph (`graph.json` + `graph.html` +
 
 ## Taxonomy placement
 
-ponytail → **Behavior Engineering** (sits beside OpenGuide/GuidanceGrid: GuidanceGrid
-governs general behavioral conformance; ponytail governs code-brevity behavior
-specifically). graphify → **Retrieval/Context Engineering** (deterministic code-structure
-retrieval; complements RudraDB/ContextChain rather than overlapping — no embeddings, no
-vector store). Note for AceIQ360 positioning: graphify publishes LongMemEval-S 76% and
-LOCOMO recall figures — worth a line in your Memory Engineering comparison table.
+ponytail → **Behavior Engineering** (a behavior-shaping skill: ponytail governs
+code-brevity behavior specifically; broader behavioral conformance is a separate
+bring-your-own plane). graphify → **Retrieval/Context Engineering** (deterministic
+code-structure retrieval; complements embedding/vector retrieval rather than overlapping
+— no embeddings, no vector store). graphify publishes LongMemEval-S 76% and LOCOMO recall
+figures — a datapoint when comparing memory/retrieval approaches.
 
 ## Precedence (binding, in order)
 

@@ -30,7 +30,7 @@ class TestVersionCarrierScope(unittest.TestCase):
             root = Path(tmp)
             self._doc(root, "0.6.16")
             (root / "pyproject.toml").write_text(
-                '[project]\nname = "openhawk"\nversion = "0.1.0"\n',
+                '[project]\nname = "product-app"\nversion = "0.1.0"\n',
                 encoding="utf-8")
             findings: list[str] = []
             dl.check_version(root, findings)
@@ -57,7 +57,7 @@ class TestVersionCarrierScope(unittest.TestCase):
             root = Path(tmp)
             self._doc(root, "0.6.17")
             (root / "pyproject.toml").write_text(
-                '[project]\nname = "openhawk"\nversion = "0.2.0"\n',
+                '[project]\nname = "product-app"\nversion = "0.2.0"\n',
                 encoding="utf-8")
             (root / "CHANGELOG.md").write_text(
                 "# Changelog\n\n## [0.2.0] - 2026-07-14\n", encoding="utf-8")

@@ -161,7 +161,7 @@ class TestLintIntegration(unittest.TestCase):
             root = Path(tmp)
             # A consumer pyproject (not "doctrineos") + an unsigned corpus:
             (root / "pyproject.toml").write_text(
-                '[project]\nname = "openhawk"\n', encoding="utf-8")
+                '[project]\nname = "product-app"\n', encoding="utf-8")
             (root / ".Doctrine" / "roles").mkdir(parents=True)
             (root / ".Doctrine" / "roles" / "backend-engineer.md").write_text(
                 "---\nname: x\ndescription: d\n---\n**Mission.** m\n",

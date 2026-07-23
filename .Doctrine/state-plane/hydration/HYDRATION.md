@@ -11,8 +11,8 @@ fallback). The bundle is generated state: it lives in `local/`, never committed.
 
 ## Assembly order and token budget
 
-Priority order — earlier sections are never trimmed. Budgets are measured **post-ISON**
-(the ~68.6% reduction is why the whole plane fits in a corner of the window). Default
+Priority order — earlier sections are never trimmed. Budgets are measured **after
+compaction** (the ~68.6% reduction is why the whole plane fits in a corner of the window). Default
 total: 6,000 tokens; per-adapter override in the repo charter.
 
 | # | Section | Source | Budget | Degrade-to on overflow |
@@ -40,7 +40,7 @@ in `stale[]`; a stale graph triggers rebuild-first when the graphify hook is ins
 `hydrate --check` compiles twice against the same HEAD + state plane and asserts
 identical `bundle_sha256` (timestamp fields excluded from the hashed body, carried in
 the header only). CI-able. Cross-time: diffing bundle bodies between checkpoints is a
-ReplayLens-style drift report on the state plane itself — what changed in what the
+A replay-style drift report on the state plane itself — what changed in what the
 agent is told, commit over commit.
 
 ## CLI surface

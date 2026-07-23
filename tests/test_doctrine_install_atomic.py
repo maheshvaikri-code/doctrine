@@ -3,7 +3,7 @@
 A non-force install into a repo that already has `.Doctrine.md` would copy new
 framework files but skip changed ones, drifting the README counts + installer
 manifest and leaving the consumer's framework internally inconsistent (its own
-doctrine_lint / doctrine_packaging then fail — the OpenHawk drift, 2026-07-16).
+doctrine_lint / doctrine_packaging then fail — a consumer-repo drift, 2026-07-16).
 The installer must refuse a non-force update, and never touch the target.
 """
 import sys

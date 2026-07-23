@@ -31,36 +31,33 @@ adoption gate) and `skills/mcp-tooling.md` (governed MCP servers).
 
 ## Portfolio catalog — reach for these first
 
-Our own stacks, mapped to the Doctrine mechanism each best serves. Status:
-**wired** = a live integration; **proposed** = a shim exists, interface to confirm;
-**candidate** = a proposed fit, not yet wired. Confirm current status before use.
+The live integrations Doctrine ships, mapped to the mechanism each serves. Beyond
+these, other capabilities — runtime **action** enforcement (make §5 physical),
+runtime **behavior** enforcement, **provenance/integrity** (tamper-evident evidence),
+**retrieval/KG**, **intent resolution**, **local-LLM serving** — are *bring-your-own*
+extension points: pick a tool that fits, vet it via `standards/dependency-policy.md`,
+and wire it as a new `integrations/*.md` shim (provisioning/paying is a §5 decision).
 
-| Product | Serves (mechanism) | Status | Ref |
-|---------|--------------------|--------|-----|
+| Integration | Serves (mechanism) | Status | Ref |
+|-------------|--------------------|--------|-----|
 | **CodeMonk** | metrics/metrology — CESR, token cost, HITL (skill: metrics; gate: G7) | wired | `integrations/codemonk.md` |
 | **MAPLE** | multi-agent **workforce runtime** — persistent fleet, typed messages (subagents; parallel G3) | wired (opt-in) | `integrations/maple.md` |
 | **floci / FDE** | demo/prototype provisioning (role: fde; P1–P6) | wired | `integrations/floci.md` |
-| **STIX** | runtime **action** enforcement — makes §5 physical (ALLOW/DENY/QUARANTINE + proof) | proposed | `integrations/stix.md` |
-| **OpenGuide** | runtime **behavior** enforcement — personas→OBC contracts (beside `skills/ponytail.md`) | proposed | `integrations/openguide.md` |
-| **Contegrity / CGB** | integrity/provenance — tamper-evident evidence (state plane, gold-build, `domains/auditing.md`) | proposed | `integrations/contegrity.md` |
-| **SnapLLM** | local OpenAI-compatible **LLM serving** — the default local model for any ML task | candidate | (confirm) |
-| **CEPIA** | typed-relationship **KG / retrieval** + link-prediction reasoning (data-architecture; ML retrieval) | candidate | (confirm) |
-| **QUMBA / RIR** | **intent resolution** / enterprise intelligence (skill: requirements; G0 intent) | candidate | (confirm) |
-
-(OpenHawk is a *consumer* of Doctrine, not a dev tool for it.)
+| **ponytail** | code-brevity behavior — the 7-rung least-code ladder | wired | `integrations/ponytail.md` |
+| **graphify** | deterministic code-structure retrieval — graph before grep | wired | `integrations/graphify.md` |
 
 ## Best-fit by mechanism (portfolio-first; external = the routed skill + a current check)
 
-| Need in a… | Portfolio-first | Then / external anchor |
-|------------|-----------------|------------------------|
-| **role** | the plane the role owns (metrics→CodeMonk, workforce→MAPLE, action→STIX, behavior→OpenGuide, audit→Contegrity) | the role card's own `Loads`; vet new tools via dependency-policy |
-| **skill** | a portfolio tool that serves the discipline (metrics, retrieval→CEPIA, local-LLM→SnapLLM) | the discipline skill already recommends in-domain — follow it, verify current |
-| **workflow (gate)** | G7 metrics→CodeMonk; parallel G3→MAPLE; provenance/gold-build→Contegrity | the gate's owning role card |
+| Need in a… | Wired-first | Then / external anchor |
+|------------|-------------|------------------------|
+| **role** | the mechanism the role owns (metrics→CodeMonk, workforce→MAPLE, demo→floci) | the role card's own `Loads`; vet new tools via dependency-policy |
+| **skill** | a wired integration that serves the discipline (metrics, structure→graphify, brevity→ponytail) | the discipline skill already recommends in-domain — follow it, verify current |
+| **workflow (gate)** | G7 metrics→CodeMonk; parallel G3→MAPLE | the gate's owning role card |
 | **plugin** | the Doctrine plugin (shared) | tool-native plugins only if they pass dependency-policy |
 | **MCP server** | — | `skills/mcp-tooling.md` (governed open-source servers; writes/spends = §5) |
 | **subagent** | MAPLE for a persistent fleet | `.claude/agents/` for one-shot fresh-context verifiers/workers |
-| **action / tool call** | STIX gates the concrete §5 action | dependency-policy vets adopting the tool itself |
-| **retrieval / structure** | CEPIA (relationships), Contegrity (provenance) | `integrations/graphify.md` (code structure); `skills/ponytail.md` rung 2 |
+| **action / behavior / provenance** | — (bring-your-own extension point) | pick a fit, vet via dependency-policy, wire as an `integrations/*.md` shim |
+| **retrieval / structure** | `integrations/graphify.md` (code structure) | `skills/ponytail.md` rung 2; a vetted retrieval/KG tool for semantic recall |
 
 ## Selection procedure
 
@@ -77,8 +74,8 @@ Our own stacks, mapped to the Doctrine mechanism each best serves. Status:
 
 - Prefer a portfolio tool that fits over a new external dependency.
 - Label a recommendation as a recommendation; verify currency before adopting.
-- Compose planes: process (gates) · behavior (OpenGuide) · action (STIX) ·
-  provenance (Contegrity) · metrics (CodeMonk) are orthogonal, not competing.
+- Compose planes: process (gates) · metrics (CodeMonk) are orthogonal to any
+  action / behavior / provenance plane you wire — they compose, not compete.
 
 ## Don't
 

@@ -18,9 +18,9 @@ version: 0.3.0
 .doctrine-state/
 ├── checkpoint.json                  # current control state (schema: checkpoint)
 ├── checkpoints/                     # append-only history: <seq>-<shorthash>.json
-├── intent/<task-id>.intent.json     # RIR outputs / task ledger
-├── decisions/DECISIONS.ndjson       # append-only decision log (DLTG-lite)
-├── effects/<session>.effects.ndjson # retrace-style side-effect log
+├── intent/<task-id>.intent.json     # structured-intent outputs / task ledger
+├── decisions/DECISIONS.ndjson       # append-only decision log
+├── effects/<session>.effects.ndjson # append-only side-effect log
 ├── distillates/<seq>-<hash>.json    # last N retained (default 5)
 └── local/                           # machine-local scratch — the ONLY gitignored dir
 ```
@@ -31,10 +31,10 @@ Everything except `local/` is committed. State that doesn't survive a clone isn'
 
 | Kind | Lives in | Writer | Lifetime | Staleness rule |
 |---|---|---|---|---|
-| Intent | `intent/` | RIR validator | until task closed | flagged if it references paths absent at HEAD |
+| Intent | `intent/` | intent validator | until task closed | flagged if it references paths absent at HEAD |
 | Structure | `graphify-out/graph.json` | graphify hook | per commit | stale when `built_at_commit != HEAD` |
 | Decisions | `decisions/` | checkpoint protocol, append-only | permanent | never — it's history |
-| Effects | `effects/` | retrace logger | until confirmed/compensated | unresolved entries surface at hydration |
+| Effects | `effects/` | effects logger | until confirmed/compensated | unresolved entries surface at hydration |
 | Distillate | `distillates/` | checkpoint protocol | last N (default 5) | superseded by newer; dead-ends merge forward |
 | Control | `checkpoint.json` | checkpoint protocol | current | any `at_commit < HEAD` reference is flagged |
 
@@ -58,7 +58,7 @@ irreversible operation; explicit `/checkpoint`.
 
 **Verification.** `verify` walks `checkpoints/` confirming every `prev_sha256` link and
 re-hashing the files named in `state_index`. One broken link = detected desync — the
-chain property is ContextChain's, applied to session state.
+chain property (an append-only hash chain), applied to session state.
 
 ## Canonicalization (pack-wide, same as sibling packs)
 
@@ -75,7 +75,7 @@ append-only, never rewritten.
    prefixes anything behind HEAD with `STALE@<commit>` and rebuilds structure state.
 3. **Memory rot** → schema-only writes, validator disposes, unknown fields rejected.
 4. **Chain desync** → `prev_sha256` links + `state_index` hashes; `verify` in CI.
-5. **Cross-repo leakage** → the plane is repo-local; AceIQ360 imports are explicit and
+5. **Cross-repo leakage** → the plane is repo-local; cross-repo imports are explicit and
    source-tagged, never silently merged.
 
 ## Concurrency (spec 0.3.0)

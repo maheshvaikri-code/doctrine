@@ -19,9 +19,9 @@ is only checked by hand.
 3. Tests (stdlib `unittest`), `Makefile` targets, GitHub Actions workflow.
 
 ## Non-goals
-ISON emission (sibling pack not shipped — markdown bundle only, per the
-HYDRATION.md fallback); graphify integration beyond detecting its outputs;
-retrace/RIR effect and intent writers (the CLI reads those dirs if present).
+A separate binary serialization format (sibling pack not shipped — markdown bundle
+only, per the HYDRATION.md fallback); graphify integration beyond detecting its outputs;
+external effect and intent writers (the CLI reads those dirs if present).
 
 ## Acceptance criteria
 - `doctrine_state` round-trip on a fresh temp repo: init → checkpoint →

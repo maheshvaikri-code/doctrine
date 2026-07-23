@@ -2,7 +2,7 @@
 <!-- G6 artifact. Filed in the PRODUCT repo as docs/releases/stack-v<X.Y.Z>.md
      (or stack.lock). One manifest per product release. Topology: ADR-003. -->
 
-**Product:** <openhawk> v<X.Y.Z> · **Certified:** <YYYY-MM-DD> · **By:** Release Manager
+**Product:** <product-app> v<X.Y.Z> · **Certified:** <YYYY-MM-DD> · **By:** Release Manager
 
 ## Certified stack (the bill of materials)
 
@@ -10,7 +10,7 @@
 |-----------|------|----------------|--------------|-------|
 | Governance | `doctrine` | vA.B.C | <tag/sha> | law + tooling |
 | Runtime | `maple-oss` | vD.E.F | <tag/sha> | AGPL; opt-in |
-| Product | `<openhawk>` | vX.Y.Z | <tag/sha> | this release |
+| Product | `<product-app>` | vX.Y.Z | <tag/sha> | this release |
 
 Dependency direction (ADR-003): product → {doctrine, maple}; doctrine ⟂ maple. No cycles.
 If a pin is a range, the lockfile records the exact resolved version.

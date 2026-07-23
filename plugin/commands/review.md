@@ -1,4 +1,5 @@
 ---
+argument-hint: [diff | paths | PR | "the working changes"]
 description: Review the changes as the Code Reviewer at G4 (fresh-context, severity-ranked)
 ---
 

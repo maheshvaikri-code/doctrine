@@ -1,4 +1,5 @@
 ---
+argument-hint: [optional note]
 description: Write a doctrine state-plane checkpoint (propose → validate → commit)
 ---
 

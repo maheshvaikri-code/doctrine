@@ -22,6 +22,17 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.43] - 2026-07-22
+
+### Changed
+- **`argument-hint` frontmatter on all five slash commands** (`/doctrine`, `/role`,
+  `/review`, `/qa`, `/checkpoint`) — self-documenting arg placeholders so the
+  autocomplete shows what to type. Both `.claude/commands/` + `plugin/commands/`
+  (byte-parity). Note: the *root* cause of "selecting `/doctrine` auto-sends an empty
+  task" is the keystroke — **Enter** both selects *and* submits; **Tab** accepts the
+  suggestion WITHOUT submitting (then type the task, then Enter). The hint improves
+  discoverability; Tab-to-select is the definitive fix.
+
 ## [0.6.42] - 2026-07-22
 
 ### Added

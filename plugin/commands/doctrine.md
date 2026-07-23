@@ -1,4 +1,5 @@
 ---
+argument-hint: <task to engage the doctrine on>
 description: Engage the Doctrine on a task — classify, staff, gate, execute
 ---
 

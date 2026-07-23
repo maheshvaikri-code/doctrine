@@ -1,4 +1,5 @@
 ---
+argument-hint: [build | acceptance criteria | "the working changes"]
 description: Verify the change as the QA Engineer at G5 (adversarial; execute, don't inspect)
 ---
 

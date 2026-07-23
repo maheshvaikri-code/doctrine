@@ -1,4 +1,5 @@
 ---
+argument-hint: <role-name> [task]
 description: Adopt a Doctrine role and act as that hat (fresh-context for reviewer roles)
 ---
 

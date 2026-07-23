@@ -15,14 +15,19 @@ Two things ship, on two different vehicles:
 
 ```
 python tools/doctrine_install.py --target <repo> --tool claude,cursor,codex
-                                 [--enterprise] [--ci] [--force]
+                                 [--enterprise] [--ci] [--force] [--local]
 ```
 
 Copies the law + enforcement suite + tests + Makefile, the AGENTS.md boot
 (only if absent), per-tool adapter overlays, and the Claude wiring;
-appends (never replaces) CLAUDE.md imports and .gitignore lines. Files
-that exist with different content are skipped with a warning — `--force`
-is a deliberate act. `--enterprise` seeds the merge/promotion profile.
+appends (never replaces) CLAUDE.md imports, and writes a single
+marker-delimited managed block to `.gitignore`. Files that exist with
+different content are skipped with a warning — `--force` is a deliberate
+act. `--enterprise` seeds the merge/promotion profile. `--local` makes the
+managed block cover the WHOLE installed framework (corpus, tools, tests,
+adapters at their variable paths, MCP registration) instead of just
+machine-local state, so Doctrine stays out of the repo's history — one
+block to add or delete; `docs/` gate artifacts are never ignored.
 
 ## Install matrix
 

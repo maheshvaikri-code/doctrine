@@ -47,6 +47,19 @@ python tools/doctrine_install.py --target ../my-project \
 `--tool all` installs every adapter. Supported: claude, codex, cursor,
 windsurf, copilot, gemini, cline, roo, amazonq, continue, junie.
 
+**Keep Doctrine out of your repo's history?** Add `--local`. The installer
+writes one marker-delimited block to your `.gitignore` covering the whole
+framework it installed — corpus, tools, tests, MCP registration, and the
+per-tool adapter files at their (variable) paths — so nothing lands in your
+commits. Toggling it is one block: delete it to un-ignore, or re-run with
+`--local` to refresh. Your `docs/` gate artifacts (briefs, ADRs, reviews)
+are never ignored — they are your repo's own work product. Without `--local`
+the corpus is committable (default) and only machine-local state is ignored.
+
+```bash
+python tools/doctrine_install.py --target ../my-project --tool claude --local --verify
+```
+
 ## 3. Opt into profiles and the runtime (optional)
 
 Flags seed your project's `docs/brief.md`:

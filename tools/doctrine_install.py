@@ -20,6 +20,13 @@ and runs the gate suite in the target, so a single command ends in a
 proven-green install. --maple opts into the MAPLE runtime by seeding the
 brief.
 
+--local writes a single marker-delimited managed block into the target
+.gitignore that covers the WHOLE installed framework (corpus, tools, tests,
+adapters, MCP registration) instead of just machine-local state, so Doctrine
+stays out of the repo's history and toggling it is one block. Your docs/
+gate artifacts (briefs, ADRs, reviews) are never ignored -- they are the
+repo's own work product. Delete the block to un-ignore.
+
 Publishing/registry distribution stays human-gated (.Doctrine.md section 5).
 """
 
@@ -53,6 +60,63 @@ TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
               "doctrine_engage.py", "doctrine_awaken.py",
               "doctrine_signature.py"]
 GITIGNORE_LINES = [".doctrine-state/local/", "__pycache__/"]
+GITIGNORE_BEGIN = ("# >>> doctrine (managed by doctrine_install; "
+                   "delete this block to un-ignore) >>>")
+GITIGNORE_END = "# <<< doctrine <<<"
+
+
+def gitignore_block(tools: list[str], local: bool) -> list[str]:
+    """Lines for the managed .gitignore block.
+
+    Default (no --local): only machine-local state + bytecode, so the corpus
+    stays committable (today's behavior). With --local: the whole installed
+    framework footprint, computed for the SELECTED tools so the variable
+    per-adapter paths (.cursor/, .windsurf/, GEMINI.md, ...) are covered too.
+    docs/ artifacts (briefs, ADRs, reviews) are deliberately never listed --
+    they are the repo's OWN work product, authored via Doctrine but about the
+    repo. Makefile is framework-installed but a generic name the repo may own,
+    so it is offered commented rather than silently hiding the user's own.
+    """
+    if not local:
+        return list(GITIGNORE_LINES)
+    lines = [
+        ".Doctrine.md", ".Doctrine/", ".doctrine-state/", "__pycache__/",
+        ".mcp.json", "AGENTS.md",
+        "tools/doctrine_*.py", "tests/test_doctrine_*.py",
+    ]
+    if "claude" in tools:
+        lines += [".claude/agents/", "CLAUDE.md"]
+    for tool in tools:
+        lines += [dest for _src, dest in ADAPTERS.get(tool, [])]
+    lines.append("# Makefile   # uncomment if Doctrine created it (generic name)")
+    return lines
+
+
+def write_managed_block(path: Path, lines: list[str], report: Report,
+                        target: Path) -> None:
+    """Write or replace ONE marker-delimited managed block, preserving all
+    content outside the markers byte-exactly (a CRLF file stays CRLF -- raw
+    bytes, no universal-newline translation). Idempotent."""
+    existing = path.read_bytes().decode("utf-8") if path.exists() else ""
+    nl = "\r\n" if "\r\n" in existing else "\n"
+    block = nl.join([GITIGNORE_BEGIN, *lines, GITIGNORE_END])
+    b = existing.find(GITIGNORE_BEGIN)
+    e = existing.find(GITIGNORE_END)
+    if b != -1 and e > b:                      # replace the existing block
+        new = existing[:b] + block + existing[e + len(GITIGNORE_END):]
+    else:                                      # append a fresh block
+        new = existing
+        if new and not new.endswith("\n"):
+            new += nl
+        if new:
+            new += nl                          # blank line before the block
+        new += block + nl
+    if new == existing:
+        report.skipped_same += 1
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(new.encode("utf-8"))
+    report.copied.append(path.relative_to(target).as_posix())
 
 
 class Report:
@@ -142,7 +206,7 @@ def run_post_install(target: Path) -> int:
 def install(source: Path, target: Path, tools: list[str],
             enterprise: bool, ci: bool, force: bool,
             startup: bool = False, verify: bool = False,
-            maple: bool = False) -> int:
+            maple: bool = False, local: bool = False) -> int:
     if not (source / ".Doctrine.md").exists():
         print(f"error: {source} is not a doctrine source tree "
               "(.Doctrine.md missing)", file=sys.stderr)
@@ -234,9 +298,8 @@ def install(source: Path, target: Path, tools: list[str],
             copy_file(source / ".Doctrine" / "adapters" / src_name,
                       target / dest_rel, target, report, force)
 
-    append_lines(target / ".gitignore", GITIGNORE_LINES,
-                 "# doctrine state plane (machine-local only)", report,
-                 target)
+    write_managed_block(target / ".gitignore", gitignore_block(tools, local),
+                        report, target)
     brief_lines = []
     if enterprise:
         brief_lines.append("Merge profile: enterprise")
@@ -310,11 +373,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--force", action="store_true",
                         help="overwrite files that exist with different "
                              "content")
+    parser.add_argument("--local", action="store_true",
+                        help="keep the WHOLE framework out of git: the managed "
+                             ".gitignore block lists every installed framework "
+                             "path (corpus, tools, tests, adapters, MCP) rather "
+                             "than just machine-local state. docs/ artifacts "
+                             "stay committable; delete the block to un-ignore")
     args = parser.parse_args(argv)
     tools = [t.strip() for t in args.tool.split(",") if t.strip()]
     return install(args.source.resolve(), args.target.resolve(), tools,
                    args.enterprise, args.ci, args.force, args.startup,
-                   verify=args.verify, maple=args.maple)
+                   verify=args.verify, maple=args.maple, local=args.local)
 
 
 if __name__ == "__main__":

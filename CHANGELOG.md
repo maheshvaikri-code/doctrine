@@ -22,6 +22,40 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   `actions/deploy-pages`. Dormant until `DOCTRINE_PAGES_PUBLISH=on` **and**
   Settings→Pages→Source=GitHub Actions (the recorded §5 opt-in). Repo tooling only.
 
+## [0.6.46] - 2026-07-23
+
+### Added
+- **`--local` install + a managed `.gitignore` block — Doctrine is now
+  trivially easy to keep out of (or move off) a repo.** The framework footprint
+  is scattered by design (root dot-files, `tools/`, `tests/`, `.claude/`, and
+  per-tool adapter files at *variable* paths like `.cursor/rules/`, `GEMINI.md`,
+  `.github/copilot-instructions.md`), which made "gitignore all of Doctrine" a
+  manual, error-prone chore. The installer now writes a single marker-delimited
+  managed block:
+
+  ```
+  # >>> doctrine (managed by doctrine_install; delete this block to un-ignore) >>>
+  ...
+  # <<< doctrine <<<
+  ```
+
+  - **`--local`** fills that block with the WHOLE installed framework, computed
+    for the selected `--tool`s so the variable adapter paths are covered
+    automatically. Default (no flag) keeps today's behavior — only
+    machine-local state is ignored, the corpus stays committable — so this is
+    fully backward-compatible.
+  - **`docs/` gate artifacts (briefs, ADRs, reviews) are never ignored** — they
+    are the repo's own work product, authored via Doctrine but about the repo
+    (the lesson from ignoring a real repository-review by accident). `Makefile`
+    is offered commented (generic name the repo may own), not silently hidden.
+  - The block writer replaces (never duplicates) its block and preserves all
+    content outside the markers byte-exactly, CRLF included (raw bytes, no
+    universal-newline translation — the recurring Windows lesson).
+  - New `tests/test_doctrine_install_gitignore.py` (13 cases: block contents,
+    variable adapter paths, docs-never-ignored, replace-not-duplicate,
+    CRLF/outside-content preservation, idempotence, `--local` integration).
+  - Docs: `QUICKSTART.md` + `.Doctrine/05-packaging.md` document `--local`.
+
 ## [0.6.45] - 2026-07-23
 
 ### Changed

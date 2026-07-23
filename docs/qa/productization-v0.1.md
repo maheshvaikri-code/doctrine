@@ -2,7 +2,7 @@
 
 <!-- G5 artifact. File as docs/qa/<task>.md -->
 
-**Date:** 2026-07-13 · **Brief:** `docs/briefs/productization.md` · **Plan:** `docs/plans/productization-v0.1.md`
+**Date:** 2026-07-13 · **Brief:** (private) · **Plan:** `docs/plans/productization-v0.1.md`
 
 ## Acceptance criteria — evidence
 

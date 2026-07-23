@@ -9,8 +9,8 @@
 
 The stack has grown into a product family: DOCTRINE (governance law + the `doctrineos`
 tooling), MAPLE (`maple-oss`, the multi-agent runtime, AGPL, first-party), and a
-forthcoming first-party product — a "governed engineering organization you talk to"
-(the daemon + chat gateway scoped in `docs/briefs/productization.md`). These want
+forthcoming first-party product — a daemon + chat-gateway surface over the
+DOCTRINE+MAPLE core (product scope kept in a private brief). These want
 different licenses, release cadences, and
 visibility, so a monorepo would force the most restrictive of each on all. But three
 repos that must run together need a written contract for "which versions work with which,"

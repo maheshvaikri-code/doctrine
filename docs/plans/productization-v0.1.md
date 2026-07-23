@@ -2,7 +2,7 @@
 
 <!-- G2 artifact. File as docs/plans/<task>.md. Update as reality diverges. -->
 
-**Brief:** `docs/briefs/productization.md` · **Design/ADRs:** `docs/adr/001-turnkey-distribution.md` · **Class:** L (program) / this slice M
+**Brief:** (private) · **Design/ADRs:** `docs/adr/001-turnkey-distribution.md` · **Class:** L (program) / this slice M
 
 ## Slices (ordered; each leaves the tree green)
 

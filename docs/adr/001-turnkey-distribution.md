@@ -7,7 +7,7 @@
 
 ## Context
 
-The productization brief (`docs/briefs/productization.md`) makes v0.1 a *turnkey
+The productization brief (kept private) makes v0.1 a *turnkey
 distribution*: acceptance criterion 1 requires "one documented command → full stack
 installs and `doctrine_verify` passes 4 green gates, no manual fixups." Today the
 installer (`tools/doctrine_install.py`) copies the law + tools but stops at a printed

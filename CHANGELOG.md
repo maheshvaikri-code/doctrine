@@ -717,7 +717,7 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   steps). `--maple` seeds `Workforce runtime: maple` in the target brief
   (opt-in MAPLE runtime), mirroring `--enterprise`/`--startup`. New
   top-level `QUICKSTART.md` documents zero-to-verified. First slice of the
-  DoctrineOS productization program (`docs/briefs/productization.md`,
+  DoctrineOS productization program (strategy brief kept private;
   `docs/adr/001-turnkey-distribution.md`, `docs/plans/productization-v0.1.md`).
   Verification is honest: nothing is weakened to go green, the real gate
   exit code is surfaced, and a failing suite makes the install exit

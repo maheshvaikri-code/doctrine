@@ -14,8 +14,8 @@ installer (`tools/doctrine_install.py`) copies the law + tools but stops at a pr
 "next steps: init, then verify" — so a real install is three commands (install → state
 init → verify) plus flag knowledge. The law also "travels by repo" (05-packaging): the
 wheel carries only tools, so the source must be a doctrine clone. The repo is private,
-so a public `curl | bash` or PyPI bootstrap is not available yet (that unlocks at the
-OSS "proud moment"). MAPLE runtime opt-in currently has no install-time affordance.
+so a public `curl | bash` or PyPI bootstrap is not available yet (that unlocks if/when
+the repo goes public). MAPLE runtime opt-in currently has no install-time affordance.
 
 ## Decision
 

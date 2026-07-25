@@ -1,5 +1,5 @@
-import { ControlRoom } from "./control-room";
+import { LiveControlRoom } from "./live-control-room";
 
 export default function Home() {
-  return <ControlRoom />;
+  return <LiveControlRoom />;
 }

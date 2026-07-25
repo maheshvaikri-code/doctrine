@@ -30,34 +30,46 @@ test("server-renders the Doctrine control room", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Doctrine Control Room<\/title>/i);
-  assert.match(html, /Confidence has/);
-  assert.match(html, /Portfolio verification/);
-  assert.match(html, /Doctrine/);
-  assert.match(html, /Maple Runtime/);
-  assert.match(html, /Policy Shield/);
-  assert.match(html, /Trust Engine/);
+  assert.match(html, /Connecting to Doctrine/);
+  assert.match(html, /Reading the repository control state/);
+  assert.match(html, /local bridge is collecting activation/i);
   assert.match(html, /aria-label="Primary navigation"/);
   assert.match(html, /Skip to dashboard/);
-  assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
+  assert.doesNotMatch(
+    html,
+    /codex-preview|Your site is taking shape|Prototype data/i,
+  );
 });
 
 test("ships an accessible, state-complete, dependency-scoped surface", async () => {
-  const [controlRoom, css, layout, packageJson] = await Promise.all([
-    readFile(new URL("../app/control-room.tsx", import.meta.url), "utf8"),
+  const [controlRoom, apiClient, css, layout, packageJson] = await Promise.all([
+    readFile(new URL("../app/live-control-room.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/doctrine-api.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
   for (const state of ["live", "loading", "partial", "error", "empty"]) {
-    assert.match(controlRoom, new RegExp(`value="${state}"`));
+    assert.match(controlRoom, new RegExp(`"${state}"`));
   }
 
+  assert.match(controlRoom, /fetchSnapshot/);
+  assert.match(controlRoom, /startVerification/);
+  assert.match(controlRoom, /verification\.status === "running"/);
+  assert.match(controlRoom, /setInterval/);
+  assert.match(controlRoom, /AbortController/);
   assert.match(controlRoom, /role="dialog"/);
   assert.match(controlRoom, /aria-modal="true"/);
   assert.match(controlRoom, /role="alert"/);
   assert.match(controlRoom, /aria-live="polite"/);
   assert.match(controlRoom, /window\.addEventListener\("keydown"/);
+  assert.doesNotMatch(controlRoom, /prototype mode|Prototype data|48 repositories/);
+
+  assert.match(apiClient, /parseSnapshot\(value: unknown\)/);
+  assert.match(apiClient, /cache: "no-store"/);
+  assert.match(apiClient, /"Content-Type": "application\/json"/);
+  assert.match(apiClient, /NEXT_PUBLIC_DOCTRINE_API_URL/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /button:focus-visible/);
   assert.match(layout, /title:\s*"Doctrine Control Room"/);
@@ -68,5 +80,8 @@ test("ships an accessible, state-complete, dependency-scoped surface", async () 
 
   await assert.rejects(
     access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)),
+  );
+  await assert.rejects(
+    access(new URL("../app/control-room.tsx", import.meta.url)),
   );
 });

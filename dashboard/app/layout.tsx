@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Doctrine Control Room",
   description:
-    "Enterprise evidence, policy, agent execution, and release integrity in one operational surface.",
+    "Live Doctrine repository evidence, verification, state-chain integrity, and release identity.",
 };
 
 export default function RootLayout({

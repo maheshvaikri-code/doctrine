@@ -23,8 +23,22 @@ class TestSourceDetection(unittest.TestCase):
     def test_doctrineos_pyproject_is_source(self):
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "pyproject.toml").write_text(
-                '[project]\nname = "doctrineos"\n', encoding="utf-8")
+                '[project]\nname="doctrineos"\n', encoding="utf-8")
             self.assertTrue(dv.is_source_repo(Path(d)))
+
+    def test_doctrineos_text_in_comment_is_not_source(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "pyproject.toml").write_text(
+                '[project]\nname = "host"\n'
+                '# example: name = "doctrineos"\n', encoding="utf-8")
+            self.assertFalse(dv.is_source_repo(Path(d)))
+
+    def test_doctrineos_name_in_other_table_is_not_source(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "pyproject.toml").write_text(
+                '[project]\nname = "host"\n'
+                '[tool.example]\nname = "doctrineos"\n', encoding="utf-8")
+            self.assertFalse(dv.is_source_repo(Path(d)))
 
     def test_no_pyproject_is_consumer(self):
         with tempfile.TemporaryDirectory() as d:
@@ -72,6 +86,15 @@ class TestGateScoping(unittest.TestCase):
             rc, ran = self._run(Path(d))
         self.assertIn("lint", ran)
         self.assertIn("tests", ran)  # the doctrine dev suite runs in source
+
+    def test_source_fails_when_required_ruff_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "pyproject.toml").write_text(
+                '[project]\nname = "doctrineos"\n', encoding="utf-8")
+            with mock.patch.object(dv, "ruff_available", return_value=False):
+                rc, ran = self._run(Path(d))
+        self.assertEqual(rc, 1)
+        self.assertEqual(ran, ["lint", "tests"])
 
 
 if __name__ == "__main__":

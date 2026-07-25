@@ -57,9 +57,10 @@ def audit(root: Path) -> tuple[list[tuple[str, str, str]], bool]:
     rec("@.doctrine-state/local/hydration.bundle.md" in claude_txt,
         "CLAUDE.md imports the state hydration bundle",
         "add '@.doctrine-state/local/hydration.bundle.md' to CLAUDE.md")
-    rec((root / "AGENTS.md").is_file(),
-        "AGENTS.md present (boot for non-Claude agents)",
-        "copy .Doctrine/adapters/AGENTS.md to the repo root (Cursor/Copilot/Codex/...)")
+    crit((root / "AGENTS.md").is_file(),
+         "AGENTS.md present (boot for non-Claude agents)",
+         "copy .Doctrine/adapters/AGENTS.md to the repo root "
+         "(Cursor/Copilot/Codex/...)")
 
     # --- awakening hooks ---
     settings: dict = {}

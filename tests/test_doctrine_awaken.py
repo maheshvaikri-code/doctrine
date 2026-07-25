@@ -51,6 +51,17 @@ class TestAwaken(unittest.TestCase):
             self.assertEqual(len(ups), 1)
             self.assertEqual(ups[0][0], aw.MISS)
 
+    def test_missing_agents_boot_is_not_awake(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            _wire(root, ups=True)
+            (root / "AGENTS.md").unlink()
+            rows, awake = aw.audit(root)
+            self.assertFalse(awake)
+            agents = [r for r in rows if "AGENTS.md present" in r[1]]
+            self.assertEqual(len(agents), 1)
+            self.assertEqual(agents[0][0], aw.MISS)
+
     def test_non_doctrine_dir_is_not_awake(self):
         with tempfile.TemporaryDirectory() as d:
             _, awake = aw.audit(Path(d))

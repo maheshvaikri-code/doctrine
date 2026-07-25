@@ -6,6 +6,12 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+- **Repository-audit remediation** — source/consumer detection now parses
+  `[project].name` with stdlib `tomllib`; source verification fails closed when
+  its required Ruff gate is unavailable; the source checkout carries the
+  universal `AGENTS.md` boot and treats it as activation-critical; CI covers
+  Python 3.11 and 3.12 with Ruff pinned; and the MCP protocol test closes all
+  subprocess pipes.
 - **Dogfood: opt-in wiki publishing for this repo** — `.github/workflows/wiki.yml`
   + `scripts/build_wiki.py` apply `skills/web-publishing.md` to the Doctrine repo
   itself. On push to `main` — once the human sets repo variable

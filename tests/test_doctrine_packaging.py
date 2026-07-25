@@ -302,6 +302,8 @@ class TestMcpServer(unittest.TestCase):
         finally:
             proc.stdin.close()
             proc.wait(timeout=15)
+            proc.stdout.close()
+            proc.stderr.close()
 
 
 if __name__ == "__main__":

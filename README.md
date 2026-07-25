@@ -125,7 +125,7 @@ system (everything else loads on demand via its routing table).
 tools/                stdlib-only enforcement: state plane, corpus lint,
                       gold builds, MCP server, installer
 plugin/               Claude Code plugin (byte-parity lint-enforced)
-tests/                82 tests; `make verify` = lint + ruff + tests
+tests/               172 tests; `make verify` = lint + ruff + tests
 .doctrine-state/      this repo's own hash-chained session memory
 ```
 

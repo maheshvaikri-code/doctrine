@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 
@@ -45,9 +46,22 @@ def is_source_repo(root: Path) -> bool:
     if not pyproject.exists():
         return False
     try:
-        return 'name = "doctrineos"' in pyproject.read_text("utf-8")
-    except OSError:
+        with pyproject.open("rb") as fh:
+            project = tomllib.load(fh).get("project", {})
+        return isinstance(project, dict) and project.get("name") == "doctrineos"
+    except (OSError, tomllib.TOMLDecodeError):
         return False
+
+
+def ruff_available(root: Path) -> bool:
+    """Return whether the source repo's required Ruff gate can execute."""
+    try:
+        import ruff  # noqa: F401
+        return True
+    except ImportError:
+        return subprocess.run(
+            [sys.executable, "-m", "ruff", "--version"], cwd=root,
+            capture_output=True).returncode == 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -59,19 +73,13 @@ def main(argv: list[str] | None = None) -> int:
         "lint", [py, "tools/doctrine_lint.py"], root)))
 
     if is_source_repo(root):
-        try:
-            import ruff  # noqa: F401
-            has_ruff = True
-        except ImportError:
-            has_ruff = subprocess.run(
-                [py, "-m", "ruff", "--version"], cwd=root,
-                capture_output=True).returncode == 0
-        if has_ruff:
+        if ruff_available(root):
             results.append(("ruff", run_gate(
                 "ruff", [py, "-m", "ruff", "check", "tools", "tests"], root)))
         else:
-            print("=== ruff: not installed - skipped "
-                  "(pip install ruff to enable)\n")
+            print("=== ruff: FAIL - required source-repo gate is unavailable "
+                  "(install the pinned CI version: pip install ruff==0.15.15)\n")
+            results.append(("ruff", False))
         results.append(("tests", run_gate(
             "tests", [py, "-m", "unittest", "discover", "-s", "tests"], root)))
     else:

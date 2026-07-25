@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -33,6 +34,19 @@ ALLOWED_EXTERNAL = {
 REF_RE = re.compile(
     r"`((?:skills|standards|roles|templates|rubrics|schemas|examples|"
     r"integrations|state-plane|adapters|languages|domains)/[A-Za-z0-9._/-]+)`")
+
+
+def is_source_repo(root: Path) -> bool:
+    """Identify Doctrine's source repo from parsed PEP 621 metadata."""
+    pyproject = root / "pyproject.toml"
+    if not pyproject.exists():
+        return False
+    try:
+        with pyproject.open("rb") as fh:
+            project = tomllib.load(fh).get("project", {})
+        return isinstance(project, dict) and project.get("name") == "doctrineos"
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
 
 
 def check_references(root: Path, findings: list[str]) -> None:
@@ -118,8 +132,7 @@ def check_version(root: Path, findings: list[str]) -> None:
     # is the one carrier always checked. (This guards the whole bug class - the
     # pyproject-only fix in 0.6.16 missed the CHANGELOG, caught in a consumer repo.)
     pyproject = root / "pyproject.toml"
-    is_source = pyproject.exists() and \
-        'name = "doctrineos"' in pyproject.read_text("utf-8")
+    is_source = is_source_repo(root)
 
     if is_source:
         changelog = root / "CHANGELOG.md"
@@ -239,9 +252,7 @@ def check_signatures(root: Path, findings: list[str]) -> None:
     installed .Doctrine corpus is a read-only snapshot (§12 forbids editing it),
     so re-deriving signatures there would be noise - and the local import stays
     scoped to the one repo that ships the generator."""
-    pyproject = root / "pyproject.toml"
-    is_source = pyproject.exists() and \
-        'name = "doctrineos"' in pyproject.read_text("utf-8")
+    is_source = is_source_repo(root)
     if not is_source:
         return
     import doctrine_signature  # only present/relevant in the source repo

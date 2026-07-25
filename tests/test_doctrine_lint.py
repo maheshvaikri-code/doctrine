@@ -51,6 +51,26 @@ class TestVersionCarrierScope(unittest.TestCase):
                 any("pyproject" in f for f in findings),
                 "doctrineos pyproject desync should be caught")
 
+    def test_doctrineos_text_in_consumer_comment_is_not_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._doc(root, "0.6.16")
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "product-app"\nversion = "0.1.0"\n'
+                '# example: name = "doctrineos"\n', encoding="utf-8")
+            self.assertFalse(dl.is_source_repo(root))
+            findings: list[str] = []
+            dl.check_version(root, findings)
+            self.assertEqual(
+                [f for f in findings if "pyproject" in f], [], findings)
+
+    def test_compact_doctrineos_project_name_is_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "pyproject.toml").write_text(
+                '[project]\nname="doctrineos"\n', encoding="utf-8")
+            self.assertTrue(dl.is_source_repo(root))
+
     def test_consumer_changelog_not_a_carrier(self):
         # a consumer repo's own CHANGELOG (its product version) is not a desync
         with tempfile.TemporaryDirectory() as tmp:

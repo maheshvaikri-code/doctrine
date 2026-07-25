@@ -5,9 +5,8 @@
 # is the recorded Section-5 external-publish opt-in. Never default-on: adding this
 # file does not publish anything; flipping the variable does.
 #
-# Before enabling: pin actions/checkout to a full commit SHA (do NOT trust a
-# floating tag on a publish path -- and do not guess the SHA offline, that bricks
-# the workflow; look it up).
+# The checkout action is pinned to a verified full commit SHA; keep this publish
+# path free of floating tags.
 name: doctrine-wiki
 on:
   push:
@@ -23,7 +22,7 @@ jobs:
     if: ${{ vars.DOCTRINE_WIKI_PUBLISH == 'on' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4          # TODO: pin to a SHA before enabling
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build wiki + fail-closed gates (designated source, one-way)
         run: python scripts/build_wiki.py _wiki
       - name: Publish one-way to the repo wiki

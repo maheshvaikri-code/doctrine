@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render() {
@@ -107,11 +107,11 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
   assert.match(
     workflow,
-    /actions\/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5/,
+    /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/,
   );
   assert.match(
     workflow,
-    /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/,
+    /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020/,
   );
   assert.match(workflow, /node-version: "22\.13\.0"/);
   assert.match(workflow, /fail-fast: false/);
@@ -134,4 +134,19 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
   }
 
   assert.doesNotMatch(installer, /workflows[" /\\]+dashboard\.yml/);
+
+  const workflowDirectory = new URL("../../.github/workflows/", import.meta.url);
+  const workflowFiles = (await readdir(workflowDirectory)).filter((file) =>
+    file.endsWith(".yml"),
+  );
+  for (const file of workflowFiles) {
+    const source = await readFile(new URL(file, workflowDirectory), "utf8");
+    for (const match of source.matchAll(/uses:\s*[\w-]+\/[\w-]+@([^\s#]+)/g)) {
+      assert.match(
+        match[1],
+        /^[0-9a-f]{40}$/,
+        `${file} contains an unpinned action reference: ${match[0]}`,
+      );
+    }
+  }
 });

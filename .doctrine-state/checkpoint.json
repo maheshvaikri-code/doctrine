@@ -1,16 +1,22 @@
 {
-  "at_commit": "2cd3d56f594944abe00248321924afe530d5efe2",
+  "at_commit": "9f41ee3c26ab069c0485173a6fe018ddba9fa25f",
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
-    "gates_passed": [],
-    "phase": "g0",
+    "gates_passed": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4"
+    ],
+    "phase": "g5-degraded",
     "ponytail_mode": "full",
-    "role": "product-owner"
+    "role": "project-reviewer"
   },
-  "created_at": "2026-07-25T18:59:42Z",
-  "prev_sha256": "5921c933ab33da8a45e59b0865bc35999c527cc9a5f7acee0f924ec0c640a590",
-  "seq": 23,
+  "created_at": "2026-07-25T19:46:33Z",
+  "prev_sha256": "5127a7d938b561c4c59dd7c2a2599698b5305cbc99e0de6ed0dd92fe66c437f5",
+  "seq": 24,
   "session_id": "s-2026-07-25-doctrine-ui-wiring",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
@@ -18,7 +24,7 @@
       "built_at_commit": null
     },
     "intents": {},
-    "latest_distillate_sha256": "e8b0367d265c539f2f69bf386dfb7e920aea8bae8cd187251ec95dffc54afc01",
+    "latest_distillate_sha256": "ed8dc2fa72fdaa5e94f3b7d0fb8f2cc51e30df59ababab7dc3957c7d9ab45ac8",
     "unresolved_effects": 0
   },
   "worktree": "clean"

@@ -1,0 +1,57 @@
+{
+  "at_commit": "9f41ee3c26ab069c0485173a6fe018ddba9fa25f",
+  "created_at": "2026-07-25T19:46:33Z",
+  "dead_ends": [
+    {
+      "approach": "Cite the live verification attached to e40e81d7a348 as final evidence.",
+      "why_failed": "Later code and dependency changes made that result stale; only a clean run at the final commit is attributable."
+    },
+    {
+      "approach": "Force brace-expansion 5.0.8 beneath legacy ESLint consumers.",
+      "why_failed": "The audit cleared but lint crashed because old minimatch expected a CommonJS function export."
+    },
+    {
+      "approach": "Run the bridge test as tests.test_doctrine_dashboard.",
+      "why_failed": "tests is not an importable package; unittest discovery with -s tests -p is the supported command."
+    },
+    {
+      "approach": "existence-based version echo of client protocolVersion in MCP initialize",
+      "why_failed": "echoing arbitrary client strings (even 9999-12-31) misrepresents capability; clamp to the known-protocol set instead"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "The Control Room now reads real Doctrine repository evidence through a versioned loopback bridge and runs one bounded verification action.",
+      "confidence": "verified",
+      "evidence": "docs/qa/doctrine-control-room-runtime-wiring.md",
+      "kind": "fact"
+    },
+    {
+      "claim": "Verification evidence identity requires a clean worktree before acceptance and a second commit/worktree check after the verifier exits.",
+      "confidence": "verified",
+      "evidence": "tests/test_doctrine_dashboard.py",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "Automated, HTTP, security, and dependency gates pass; real-browser G5 interaction testing remains unavailable in this environment.",
+      "confidence": "verified",
+      "evidence": "docs/qa/doctrine-control-room-runtime-wiring.md",
+      "kind": "constraint"
+    }
+  ],
+  "next_actions": [
+    "Start the final bridge and dashboard preview from the clean checkpoint commit.",
+    "Run and poll verification through the live API, then confirm the snapshot has no stale-evidence reason.",
+    "Do not publish until real-browser G5 is signed."
+  ],
+  "open_threads": [
+    "Execute five-state, keyboard, focus, responsive, reduced-motion, and screen-reader QA when a supported browser backend is available.",
+    "Keep deployment and remote bridge work gated behind explicit human approval and a new authenticated design."
+  ],
+  "seq": 24,
+  "session_id": "s-2026-07-25-doctrine-ui-wiring",
+  "task_refs": [
+    "doctrine-control-room-runtime-wiring"
+  ]
+}

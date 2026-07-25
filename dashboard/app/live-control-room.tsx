@@ -564,7 +564,7 @@ export function LiveControlRoom() {
             <strong>{activeSection}</strong>
           </div>
           <div className="topbar-actions">
-            <span className="prototype-badge live-data-badge">
+            <span className="evidence-badge live-data-badge">
               <ShieldCheck size={13} /> Repository evidence
             </span>
             <button

@@ -58,7 +58,7 @@ TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
               "doctrine_mcp.py", "doctrine_install.py",
               "doctrine_metrics.py", "doctrine_verify.py",
               "doctrine_engage.py", "doctrine_awaken.py",
-              "doctrine_signature.py"]
+              "doctrine_signature.py", "doctrine_dashboard.py"]
 GITIGNORE_LINES = [".doctrine-state/local/", "__pycache__/"]
 GITIGNORE_BEGIN = ("# >>> doctrine (managed by doctrine_install; "
                    "delete this block to un-ignore) >>>")

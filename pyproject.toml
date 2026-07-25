@@ -20,6 +20,8 @@ doctrine-mcp = "doctrine_mcp:main"
 doctrine-install = "doctrine_install:main"
 doctrine-metrics = "doctrine_metrics:main"
 doctrine-signature = "doctrine_signature:main"
+doctrine-awaken = "doctrine_awaken:main"
+doctrine-dashboard = "doctrine_dashboard:main"
 
 [tool.setuptools]
 package-dir = { "" = "tools" }
@@ -31,6 +33,8 @@ py-modules = [
   "doctrine_install",
   "doctrine_metrics",
   "doctrine_signature",
+  "doctrine_awaken",
+  "doctrine_dashboard",
 ]
 
 [tool.ruff]

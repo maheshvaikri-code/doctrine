@@ -42,9 +42,14 @@ python -m unittest discover -s tests -p "test_doctrine_dashboard.py"
 python -m ruff check tools/doctrine_dashboard.py tests/test_doctrine_dashboard.py
 cd dashboard
 npm run lint
+npm run typecheck
 npm test
-npm audit --omit=dev --audit-level=high
+npm run audit
 ```
+
+The source repository runs those dashboard gates from the lockfile on
+Ubuntu and Windows with Node.js 22.13.0. Doctrine's installer does not copy
+that source-only dashboard workflow into consumer repositories.
 
 ## Security boundary
 

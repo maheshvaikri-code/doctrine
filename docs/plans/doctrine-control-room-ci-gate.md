@@ -24,10 +24,10 @@ unchanged.
 
 | # | Change | Evidence | Status |
 |---|---|---|---|
-| 1 | Add `typecheck` and `audit` dashboard scripts | local script execution | doing |
-| 2 | Add a pinned, source-only dashboard workflow | rendered contract test | todo |
-| 3 | Run clean install and all dashboard/Doctrine gates | command output + QA addendum | todo |
-| 4 | Review permissions, dependency posture, and consumer isolation | G4/G5 addendum | todo |
+| 1 | Add `typecheck` and `audit` dashboard scripts | local script execution | done |
+| 2 | Add a pinned, source-only dashboard workflow | rendered contract test | done |
+| 3 | Run clean install and all dashboard/Doctrine gates | command output + QA addendum | done |
+| 4 | Review permissions, dependency posture, and consumer isolation | G4/G5 addendum | done |
 
 ## Loop profile
 
@@ -50,3 +50,10 @@ returns the task to this plan.
 This gate prevents build and advisory drift. It does not satisfy real-browser
 keyboard, screen-reader, or five-state interaction QA; that release blocker
 remains open until a supported browser backend is available.
+
+## Result
+
+Local G3-G5 evidence is green. The first GitHub-hosted workflow execution
+cannot exist until these commits are pushed; this task does not authorize that
+external write, so the QA report labels hosted execution as pending rather than
+fabricating a CI run.

@@ -117,7 +117,9 @@ Open `http://localhost:3003/`. The bridge exposes no arbitrary command surface;
 its only mutation is the fixed Doctrine verifier. Remote hosting,
 multi-repository aggregation, and MAPLE/Shield/Trust connectors are
 intentionally not claimed by this release. Full operating and security notes:
-[dashboard/README.md](dashboard/README.md).
+[dashboard/README.md](dashboard/README.md). Source CI checks the dashboard
+lockfile, lint, types, production build/tests, and dependency audit on Ubuntu
+and Windows.
 
 ## How it's built (and proven)
 

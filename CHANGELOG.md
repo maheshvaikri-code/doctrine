@@ -19,8 +19,11 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   bounds verifier time/output, invalidates mid-run repository changes, and
   fails closed on contradictory gate output. The pinned dashboard toolchain was
   refreshed after a new advisory sweep and now audits with zero known
-  vulnerabilities. Local only — no external publication, remote auth,
-  portfolio aggregation, or MAPLE/Shield/Trust connector is claimed.
+  vulnerabilities. A source-only CI workflow now repeats lockfile install,
+  lint, TypeScript, build/tests, and audit on Ubuntu and Windows without
+  changing Doctrine's consumer workflow. Local only — no external publication,
+  remote auth, portfolio aggregation, or MAPLE/Shield/Trust connector is
+  claimed.
 
 - **Repository-audit remediation** — source/consumer detection now parses
   `[project].name` with stdlib `tomllib`; source verification fails closed when

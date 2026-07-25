@@ -1,6 +1,6 @@
 {
-  "at_commit": "e85841ecb1683404d26e62de47cbc2acc6cb377f",
-  "created_at": "2026-07-14T05:41:20Z",
+  "at_commit": "2cd3d56f594944abe00248321924afe530d5efe2",
+  "created_at": "2026-07-25T18:59:42Z",
   "dead_ends": [
     {
       "approach": "doctrine_verify running 'ruff check tools tests' + 'unittest discover -s tests' unconditionally",
@@ -26,28 +26,23 @@
   "distillate_version": "1",
   "learned": [
     {
-      "claim": "v0.6.13 (ADR-002): doctrine_verify is now scope-aware. is_source_repo() (true only when pyproject declares 'doctrineos', which the installer never copies) runs the full dev suite in source; a consumer verifies only lint + state, skipping ruff/tests on the host's own code.",
+      "claim": "The Control Room visual prototype is committed, but its operational values and controls are not yet connected to Doctrine runtime contracts.",
       "confidence": "verified",
-      "evidence": "tools/doctrine_verify.py; docs/adr/002-consumer-verify-scope.md; real consumer proof VERIFY OK",
-      "kind": "decision_ref"
-    },
-    {
-      "claim": "First real external-consumer bug (MAPLE): doctrine_verify ran ruff + the whole test suite on the host's code - flooded ruff with the host's findings and hung running doctrine's own git-spawning self-tests. The ADR-001 parked debt became a live defect.",
-      "confidence": "verified",
-      "evidence": "error_maple_verify_command.md paste; fix in v0.6.13",
+      "evidence": "git show --stat 2cd3d56",
       "kind": "fact"
     }
   ],
   "next_actions": [
-    "Productization v0.2 = daemon (doctrined) on MAPLE runtime; own G0/G1 with Head of AI + CISO",
-    "Then build the 5 MAPLE wishlist items in maple-oss under Doctrine (self-hosting)"
+    "File the G0 brief and G1 contract ADR.",
+    "Implement and test the first end-to-end runtime status slice."
   ],
   "open_threads": [
-    "maple-oss must re-install to get the fixed doctrine_verify: doctrine_install --target . --tool claude,codex --force"
+    "Define a least-privilege local runtime API and wire the dashboard's five UI states to it.",
+    "Keep production deployment gated until the human explicitly approves publishing."
   ],
-  "seq": 18,
-  "session_id": "s-2026-07-13-a",
+  "seq": 23,
+  "session_id": "s-2026-07-25-doctrine-ui-wiring",
   "task_refs": [
-    "consumer-verify-scope"
+    "doctrine-control-room-runtime-wiring"
   ]
 }

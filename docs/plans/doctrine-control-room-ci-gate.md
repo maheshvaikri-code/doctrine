@@ -17,8 +17,8 @@ unchanged.
    proves the source workflow invokes them in fail-fast order.
 4. The installer continues shipping only the dashboard-agnostic Doctrine
    workflow to consumer repositories.
-5. No workflow publishes, deploys, requests write permissions, or receives
-   repository secrets.
+5. The dashboard workflow does not publish, deploy, request write permissions,
+   or receive repository secrets.
 
 ## Slice
 
@@ -28,6 +28,8 @@ unchanged.
 | 2 | Add a pinned, source-only dashboard workflow | rendered contract test | done |
 | 3 | Run clean install and all dashboard/Doctrine gates | command output + QA addendum | done |
 | 4 | Review permissions, dependency posture, and consumer isolation | G4/G5 addendum | done |
+| 5 | Observe hosted Ubuntu/Windows and Python 3.11/3.12 matrices | GitHub Actions run links | done |
+| 6 | Repair hosted-only lockfile drift and action-runtime warnings | two bounded ratchet iterations | done |
 
 ## Loop profile
 
@@ -53,7 +55,11 @@ remains open until a supported browser backend is available.
 
 ## Result
 
-Local G3-G5 evidence is green. The first GitHub-hosted workflow execution
-cannot exist until these commits are pushed; this task does not authorize that
-external write, so the QA report labels hosted execution as pending rather than
-fabricating a CI run.
+Local G3-G5 evidence and hosted execution are green. The first hosted run
+correctly failed closed on npm 10 lockfile incompatibility. `abb949d` repaired
+the lock and matrix observability; `c890797` pinned current official Node
+24-based action runtimes across every repository workflow. Dashboard
+[run 30180068322](https://github.com/aroora-ai-labs/doctrine/actions/runs/30180068322)
+and Doctrine
+[run 30180068321](https://github.com/aroora-ai-labs/doctrine/actions/runs/30180068321)
+are the closing evidence.

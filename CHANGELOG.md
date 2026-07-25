@@ -6,6 +6,15 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+- **Doctrine Control Room prototype** — adds an isolated `dashboard/` React
+  module for portfolio gate posture, evidence integrity, agent/policy execution,
+  exceptions, and release readiness. The surface includes five operational
+  states, responsive navigation, a keyboard command palette, reduced-motion
+  handling, server-rendering tests, and clearly labeled prototype data. Motion
+  and Lucide are pinned after dependency review; patched PostCSS/Sharp overrides
+  clear the runtime audit. Local only — no external publication or production
+  connector is included.
+
 - **Repository-audit remediation** — source/consumer detection now parses
   `[project].name` with stdlib `tomllib`; source verification fails closed when
   its required Ruff gate is unavailable; the source checkout carries the

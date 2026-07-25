@@ -262,6 +262,20 @@ class TestHttpBoundary(unittest.TestCase):
         self.assertEqual(wrong_type_error.exception.code, 415)
         self.assertEqual(input_error.exception.code, 400)
 
+    def test_rejects_oversized_mutation_before_reading_it(self) -> None:
+        request = self._request(
+            "/api/v1/verifications",
+            data=b" " * (dashboard.MAX_REQUEST_BYTES + 1),
+            content_type="application/json",
+        )
+
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(request, timeout=2)
+
+        self.assertEqual(raised.exception.code, 413)
+        payload = json.loads(raised.exception.read())
+        self.assertEqual(payload["error"]["code"], "request_too_large")
+
 
 class TestContract(unittest.TestCase):
     def test_openapi_lists_only_the_bounded_v1_surface(self) -> None:

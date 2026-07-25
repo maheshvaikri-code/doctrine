@@ -402,7 +402,9 @@ export function LiveControlRoom() {
   };
 
   const scrollTo = (id: string) => {
-    document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
+    document
+      .querySelector(id)
+      ?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const chooseCommand = (id: CommandId) => {

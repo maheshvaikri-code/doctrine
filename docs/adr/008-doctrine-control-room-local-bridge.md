@@ -21,8 +21,8 @@ We will add a Python standard-library HTTP bridge that binds only to
 allowlisted verification operation. The React client parses the returned
 contract at its boundary and derives all five UI states from real conditions.
 The bridge rejects unknown browser origins, non-JSON or oversized mutations,
-and concurrent verification requests. It invokes a fixed script path using an
-argument array, never a shell.
+dirty-worktree verification, and concurrent verification requests. It invokes
+a fixed script path using an argument array, never a shell.
 
 The v1 boundary is:
 
@@ -80,9 +80,10 @@ verification is live negative evidence, not a transport error.
 - **Entry points:** HTTP headers, request path, JSON body, and browser origin.
 - **Worst plausible abuse:** a malicious webpage repeatedly starts expensive
   local verification or exfiltrates repository metadata.
-- **Controls:** loopback binding, exact origin allowlist, JSON-only mutation,
-  1 KiB body cap, one-job lock, fixed executable/script arguments, timeouts,
-  output bounds, and no arbitrary repository/path/action input in requests.
+- **Controls:** loopback binding, exact origin allowlist, clean-tree
+  attribution, JSON-only mutation, 1 KiB body cap, one-job lock, fixed
+  executable/script arguments, timeouts, output bounds, and no arbitrary
+  repository/path/action input in requests.
 
 ## Consequences
 

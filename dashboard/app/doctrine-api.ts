@@ -120,8 +120,8 @@ function nullableString(value: unknown, path: string): string | null {
   return value === null ? null : stringValue(value, path);
 }
 
-function numberValue(value: unknown, path: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+function integerValue(value: unknown, path: string): number {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
     throw new DoctrineApiError(
       "invalid_response",
       `The bridge returned an invalid ${path}.`,
@@ -130,8 +130,26 @@ function numberValue(value: unknown, path: string): number {
   return value;
 }
 
-function nullableNumber(value: unknown, path: string): number | null {
-  return value === null ? null : numberValue(value, path);
+function nonNegativeInteger(value: unknown, path: string): number {
+  const parsed = integerValue(value, path);
+  if (parsed < 0) {
+    throw new DoctrineApiError(
+      "invalid_response",
+      `The bridge returned an invalid ${path}.`,
+    );
+  }
+  return parsed;
+}
+
+function nullableInteger(value: unknown, path: string): number | null {
+  return value === null ? null : integerValue(value, path);
+}
+
+function nullableNonNegativeInteger(
+  value: unknown,
+  path: string,
+): number | null {
+  return value === null ? null : nonNegativeInteger(value, path);
 }
 
 function booleanValue(value: unknown, path: string): boolean {
@@ -175,7 +193,9 @@ function integerList(value: unknown, path: string): number[] {
       `The bridge returned an invalid ${path}.`,
     );
   }
-  return value.map((item, index) => numberValue(item, `${path}[${index}]`));
+  return value.map((item, index) =>
+    nonNegativeInteger(item, `${path}[${index}]`),
+  );
 }
 
 function parseGate(value: unknown, index: number): Gate {
@@ -223,8 +243,11 @@ export function parseVerification(value: unknown): Verification {
       verification.finishedAt,
       "verification.finishedAt",
     ),
-    exitCode: nullableNumber(verification.exitCode, "verification.exitCode"),
-    testCount: nullableNumber(verification.testCount, "verification.testCount"),
+    exitCode: nullableInteger(verification.exitCode, "verification.exitCode"),
+    testCount: nullableNonNegativeInteger(
+      verification.testCount,
+      "verification.testCount",
+    ),
     summary: stringValue(verification.summary, "verification.summary"),
     gates: verification.gates.map(parseGate),
   };
@@ -268,7 +291,7 @@ export function parseSnapshot(value: unknown): DoctrineSnapshot {
       branch: nullableString(repository.branch, "repository.branch"),
       commit: nullableString(repository.commit, "repository.commit"),
       isDirty: booleanValue(repository.isDirty, "repository.isDirty"),
-      trackedFiles: numberValue(
+      trackedFiles: nonNegativeInteger(
         repository.trackedFiles,
         "repository.trackedFiles",
       ),
@@ -279,8 +302,8 @@ export function parseSnapshot(value: unknown): DoctrineSnapshot {
         ["healthy", "degraded"] as const,
         "activation.status",
       ),
-      passing: numberValue(activation.passing, "activation.passing"),
-      total: numberValue(activation.total, "activation.total"),
+      passing: nonNegativeInteger(activation.passing, "activation.passing"),
+      total: nonNegativeInteger(activation.total, "activation.total"),
       findings: activation.findings.map((value, index) => {
         const finding = record(value, `activation.findings[${index}]`);
         return {
@@ -302,7 +325,7 @@ export function parseSnapshot(value: unknown): DoctrineSnapshot {
         ["healthy", "degraded", "missing"] as const,
         "statePlane.status",
       ),
-      checkpointSeq: nullableNumber(
+      checkpointSeq: nullableNonNegativeInteger(
         statePlane.checkpointSeq,
         "statePlane.checkpointSeq",
       ),
@@ -310,11 +333,11 @@ export function parseSnapshot(value: unknown): DoctrineSnapshot {
         statePlane.checkpointCommit,
         "statePlane.checkpointCommit",
       ),
-      checkpoints: numberValue(
+      checkpoints: nonNegativeInteger(
         statePlane.checkpoints,
         "statePlane.checkpoints",
       ),
-      unresolvedEffects: numberValue(
+      unresolvedEffects: nonNegativeInteger(
         statePlane.unresolvedEffects,
         "statePlane.unresolvedEffects",
       ),
@@ -323,11 +346,14 @@ export function parseSnapshot(value: unknown): DoctrineSnapshot {
     },
     verification: parseVerification(snapshot.verification),
     evidence: {
-      reviews: numberValue(evidence.reviews, "evidence.reviews"),
-      qaReports: numberValue(evidence.qaReports, "evidence.qaReports"),
-      adrs: numberValue(evidence.adrs, "evidence.adrs"),
-      plans: numberValue(evidence.plans, "evidence.plans"),
-      goldRecords: numberValue(evidence.goldRecords, "evidence.goldRecords"),
+      reviews: nonNegativeInteger(evidence.reviews, "evidence.reviews"),
+      qaReports: nonNegativeInteger(evidence.qaReports, "evidence.qaReports"),
+      adrs: nonNegativeInteger(evidence.adrs, "evidence.adrs"),
+      plans: nonNegativeInteger(evidence.plans, "evidence.plans"),
+      goldRecords: nonNegativeInteger(
+        evidence.goldRecords,
+        "evidence.goldRecords",
+      ),
       trend: {
         "7D": integerList(trend["7D"], "evidence.trend.7D"),
         "30D": integerList(trend["30D"], "evidence.trend.30D"),
@@ -357,7 +383,7 @@ export function parseSnapshot(value: unknown): DoctrineSnapshot {
         "release.currentVersion",
       ),
       latestTag: nullableString(release.latestTag, "release.latestTag"),
-      commitsAhead: nullableNumber(
+      commitsAhead: nullableNonNegativeInteger(
         release.commitsAhead,
         "release.commitsAhead",
       ),

@@ -74,7 +74,7 @@
     "/api/v1/verifications": {
       "post": {
         "operationId": "startVerification",
-        "description": "Starts the fixed Doctrine verifier. At most one run may be active.",
+        "description": "Starts the fixed Doctrine verifier for a clean worktree. At most one run may be active.",
         "requestBody": {
           "required": true,
           "content": {

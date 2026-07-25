@@ -12,6 +12,7 @@ import contextlib
 import copy
 import io
 import json
+import logging
 import re
 import secrets
 import subprocess
@@ -52,6 +53,7 @@ TEST_COUNT_RE: Final = re.compile(r"^Ran (\d+) tests? in ", re.MULTILINE)
 VERIFY_OK_RE: Final = re.compile(
     r"^VERIFY OK: (\d+) gate\(s\) green$", re.MULTILINE
 )
+LOGGER = logging.getLogger("doctrine.dashboard")
 
 
 class SnapshotError(RuntimeError):
@@ -60,6 +62,10 @@ class SnapshotError(RuntimeError):
 
 class VerificationInProgress(RuntimeError):
     """A second verification was requested while one is active."""
+
+
+class DirtyWorktree(RuntimeError):
+    """Verification evidence cannot be attributed to a dirty worktree."""
 
 
 def _now_iso() -> str:
@@ -210,14 +216,45 @@ def _collect_state_plane(repo: Path) -> dict[str, Any]:
     control = checkpoint.get("control", {})
     state_index = checkpoint.get("state_index", {})
     checkpoints_path = repo / ".doctrine-state" / "checkpoints"
+    sequence = checkpoint.get("seq")
+    checkpoint_commit = checkpoint.get("at_commit")
+    unresolved_effects = (
+        state_index.get("unresolved_effects", 0)
+        if isinstance(state_index, dict)
+        else 0
+    )
     return {
         "status": "healthy" if verify_code == 0 else "degraded",
-        "checkpointSeq": checkpoint.get("seq"),
-        "checkpointCommit": checkpoint.get("at_commit"),
+        "checkpointSeq": (
+            sequence
+            if isinstance(sequence, int)
+            and not isinstance(sequence, bool)
+            and sequence >= 0
+            else None
+        ),
+        "checkpointCommit": (
+            checkpoint_commit if isinstance(checkpoint_commit, str) else None
+        ),
         "checkpoints": _count_files(checkpoints_path, "*.json"),
-        "unresolvedEffects": state_index.get("unresolved_effects", 0),
-        "role": control.get("role") if isinstance(control, dict) else None,
-        "phase": control.get("phase") if isinstance(control, dict) else None,
+        "unresolvedEffects": (
+            unresolved_effects
+            if isinstance(unresolved_effects, int)
+            and not isinstance(unresolved_effects, bool)
+            and unresolved_effects >= 0
+            else 0
+        ),
+        "role": (
+            control.get("role")
+            if isinstance(control, dict)
+            and isinstance(control.get("role"), str)
+            else None
+        ),
+        "phase": (
+            control.get("phase")
+            if isinstance(control, dict)
+            and isinstance(control.get("phase"), str)
+            else None
+        ),
     }
 
 
@@ -317,8 +354,10 @@ def _default_verify_runner(repo: Path) -> subprocess.CompletedProcess[str]:
         process.kill()
         process.wait()
         reader.join(timeout=5)
+        process.stdout.close()
         raise
     reader.join(timeout=5)
+    process.stdout.close()
     return subprocess.CompletedProcess(
         arguments,
         return_code,
@@ -492,15 +531,37 @@ class VerificationStore:
                     for gate in _empty_gates()
                 ],
             }
+        except Exception:
+            LOGGER.exception("unexpected Doctrine verification worker failure")
+            final = {
+                **empty_verification(),
+                "id": job_id,
+                "status": "failed",
+                "commit": commit,
+                "startedAt": started_at,
+                "finishedAt": _now_iso(),
+                "summary": "Doctrine verification stopped unexpectedly.",
+                "gates": [
+                    {
+                        **gate,
+                        "status": "failed",
+                        "evidence": "Worker stopped unexpectedly",
+                    }
+                    for gate in _empty_gates()
+                ],
+            }
         with self._lock:
             if self._current.get("id") != job_id:
                 return
             self._current = final
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-            self.cache_path.write_text(
-                json.dumps(final, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+            try:
+                self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+                self.cache_path.write_text(
+                    json.dumps(final, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            except OSError:
+                LOGGER.warning("verification completed but its local cache failed")
 
 
 def collect_snapshot(
@@ -788,6 +849,13 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
                 )
                 return
             try:
+                if _run_git(
+                    application.repo,
+                    ["status", "--porcelain=v1"],
+                ).strip():
+                    raise DirtyWorktree(
+                        "Verification requires a clean worktree."
+                    )
                 commit = _run_git(
                     application.repo,
                     ["rev-parse", "--short=12", "HEAD"],
@@ -799,6 +867,15 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
                     _error(
                         "verification_in_progress",
                         "A Doctrine verification is already running.",
+                    ),
+                )
+                return
+            except DirtyWorktree:
+                self._send_json(
+                    HTTPStatus.CONFLICT,
+                    _error(
+                        "worktree_dirty",
+                        "Commit or stash local changes before verification.",
                     ),
                 )
                 return

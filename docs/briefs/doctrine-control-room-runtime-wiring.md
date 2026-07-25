@@ -36,18 +36,19 @@ placeholder data can be mistaken for evidence.
 1. Given the bridge is available, when the dashboard loads, it shows the
    current repository name, version, branch, commit, working-tree state,
    activation checks, state checkpoint, evidence counts, and recent commits.
-2. Given no verification is running, when an operator chooses **Run
-   verification**, the bridge returns an accepted job, the UI shows progress,
-   and the final status shows each Doctrine gate and the observed test count.
+2. Given a clean worktree and no verification is running, when an operator
+   chooses **Run verification**, the bridge returns an accepted job, the UI
+   shows progress, and the final status shows each Doctrine gate and the
+   observed test count.
 3. Given the bridge is unavailable, when the dashboard loads or retries, an
    accessible error state explains how to start the bridge and never presents
    prototype values as current evidence.
 4. Given partial repository state, such as no prior verification or a degraded
    activation check, the UI identifies the exact missing evidence while
    preserving the verified snapshot fields.
-5. Given an unapproved browser origin, non-JSON mutation request, body larger
-   than 1 KiB, or a second concurrent verification request, the bridge rejects
-   it without executing a command.
+5. Given an unapproved browser origin, dirty worktree, non-JSON mutation
+   request, body larger than 1 KiB, or a second concurrent verification
+   request, the bridge rejects it without executing a command.
 6. Given a verification request, the bridge invokes only the repository's
    fixed `tools/doctrine_verify.py` path with the current Python interpreter,
    no shell, and a bounded runtime/output.

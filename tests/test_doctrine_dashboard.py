@@ -179,6 +179,24 @@ class TestVerificationStore(unittest.TestCase):
             release.set()
             _wait_for_completion(store)
 
+    def test_unexpected_worker_failure_settles_the_job(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+
+            def runner(_: Path) -> subprocess.CompletedProcess[str]:
+                raise RuntimeError("synthetic worker defect")
+
+            store = dashboard.VerificationStore(repo, runner=runner)
+            with self.assertLogs("doctrine.dashboard", level="ERROR"):
+                store.start("abc1234")
+                result = _wait_for_completion(store)
+
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(
+                result["summary"],
+                "Doctrine verification stopped unexpectedly.",
+            )
+
 
 class TestHttpBoundary(unittest.TestCase):
     def setUp(self) -> None:
@@ -275,6 +293,24 @@ class TestHttpBoundary(unittest.TestCase):
         self.assertEqual(raised.exception.code, 413)
         payload = json.loads(raised.exception.read())
         self.assertEqual(payload["error"]["code"], "request_too_large")
+
+    def test_rejects_verification_when_worktree_is_dirty(self) -> None:
+        (self.repo / "uncommitted.txt").write_text(
+            "not attributable to HEAD\n",
+            encoding="utf-8",
+        )
+        request = self._request(
+            "/api/v1/verifications",
+            data=b"{}",
+            content_type="application/json",
+        )
+
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(request, timeout=2)
+
+        self.assertEqual(raised.exception.code, 409)
+        payload = json.loads(raised.exception.read())
+        self.assertEqual(payload["error"]["code"], "worktree_dirty")
 
 
 class TestContract(unittest.TestCase):

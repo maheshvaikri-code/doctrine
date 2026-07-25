@@ -1,6 +1,6 @@
 {
-  "at_commit": "a2a67be99f3299525aa8b80323756960c0652f4f",
-  "created_at": "2026-07-14T21:33:31Z",
+  "at_commit": "d9e8fb956bd46029d921f07613719e4798a134a2",
+  "created_at": "2026-07-25T23:23:09Z",
   "dead_ends": [
     {
       "approach": "naive commit-map parse + bare str.replace for sha remapping",
@@ -26,29 +26,29 @@
   "distillate_version": "1",
   "learned": [
     {
-      "claim": "v0.6.15: three-repo product family formalized (ADR-003) - doctrine + maple-oss + product(openhawk), one-way deps (product -> {doctrine, maple}; doctrine independent of maple; no cycles). templates/compatibility-manifest.md (G6) is the per-release stack BOM + family-gate evidence.",
+      "claim": "The source CI verifies Python and state gates but has no dashboard install, lint, typecheck, build/test, or dependency-audit job.",
       "confidence": "verified",
-      "evidence": "docs/adr/003-product-family-topology.md; templates/compatibility-manifest.md; routing row",
-      "kind": "decision_ref"
+      "evidence": ".github/workflows/doctrine.yml",
+      "kind": "fact"
     },
     {
-      "claim": "Deliberately deferred: the RUNNING family gate (CI pinning + testing three repos) waits until the openhawk repo exists - a gate over a missing repo is unenforceable. The contract (ADR + template) is written first to guide the repo's creation.",
+      "claim": "The installed consumer workflow must remain dashboard-agnostic because the installer does not ship the dashboard.",
       "confidence": "verified",
-      "evidence": "ADR-003 status line + option D",
-      "kind": "decision_ref"
+      "evidence": "tools/doctrine_install.py:273",
+      "kind": "constraint"
     }
   ],
   "next_actions": [
-    "Productization v0.2 = daemon (openhawk/doctrined) on the MAPLE runtime; own G0/G1 with Head of AI + CISO",
-    "Build the 5 wishlist done; next self-hosting work as the user directs"
+    "Add a source-only dashboard workflow and local typecheck/audit scripts.",
+    "Add a test that proves the workflow invokes every dashboard gate.",
+    "Run clean-install, lint, typecheck, build/tests, audit, and Doctrine verification."
   ],
   "open_threads": [
-    "openhawk product repo not yet created; when it exists, activate the family gate (its own G1) and fill the first compatibility-manifest",
-    "MAPLE still-open upstream: true post-delivery acknowledgement receipt (1.1.2 = send-time reachability only)"
+    "Real-browser G5 remains blocked because the browser controller reports no available backend."
   ],
-  "seq": 20,
-  "session_id": "s-2026-07-13-a",
+  "seq": 25,
+  "session_id": "s-2026-07-25-dashboard-ci",
   "task_refs": [
-    "product-family-topology"
+    "doctrine-control-room-ci-gate"
   ]
 }

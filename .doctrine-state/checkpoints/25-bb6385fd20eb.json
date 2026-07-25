@@ -1,0 +1,28 @@
+{
+  "at_commit": "d9e8fb956bd46029d921f07613719e4798a134a2",
+  "checkpoint_version": "1",
+  "control": {
+    "active_intents": [],
+    "gates_passed": [
+      "G0",
+      "G1"
+    ],
+    "phase": "g2",
+    "ponytail_mode": "full",
+    "role": "devops-engineer"
+  },
+  "created_at": "2026-07-25T23:23:09Z",
+  "prev_sha256": "e1ba25e5b16b1aa7c259a48d1355fb8c901c67df9b1706ea65cfd78c3688b4cd",
+  "seq": 25,
+  "session_id": "s-2026-07-25-dashboard-ci",
+  "state_index": {
+    "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
+    "graph": {
+      "built_at_commit": null
+    },
+    "intents": {},
+    "latest_distillate_sha256": "79fd89064c8234076c72acc3bc1c048510c470dc8d7af14282fd4a44ec6a6594",
+    "unresolved_effects": 0
+  },
+  "worktree": "clean"
+}

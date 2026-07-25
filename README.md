@@ -102,6 +102,23 @@ repo is the cue) — or be explicit:
 - **`/role <name> [task]`** — act as one hat: `/role security-reviewer`, `/role chief-architect` (reviewer roles run fresh-context)
 - **`/checkpoint`** — save session state so the repo remembers, not you
 
+### Control Room
+
+The optional Control Room turns the current repository's real activation,
+state-chain, Git, release, and verification evidence into a local dashboard.
+Start the loopback bridge from the repository root, then the web module:
+
+```bash
+python tools/doctrine_dashboard.py
+cd dashboard && npm ci && npm run dev
+```
+
+Open `http://localhost:3003/`. The bridge exposes no arbitrary command surface;
+its only mutation is the fixed Doctrine verifier. Remote hosting,
+multi-repository aggregation, and MAPLE/Shield/Trust connectors are
+intentionally not claimed by this release. Full operating and security notes:
+[dashboard/README.md](dashboard/README.md).
+
 ## How it's built (and proven)
 
 This repo governs itself. The enforcement tooling was shipped through
@@ -123,9 +140,9 @@ system (everything else loads on demand via its routing table).
 .Doctrine/            roles, skills, standards, templates, adapters,
                       state-plane spec, packaging
 tools/                stdlib-only enforcement: state plane, corpus lint,
-                      gold builds, MCP server, installer
+                      gold builds, MCP server, installer, dashboard bridge
 plugin/               Claude Code plugin (byte-parity lint-enforced)
-tests/               172 tests; `make verify` = lint + ruff + tests
+tests/               185 tests; `make verify` = lint + ruff + tests
 .doctrine-state/      this repo's own hash-chained session memory
 ```
 

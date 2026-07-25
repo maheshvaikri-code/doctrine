@@ -1,38 +1,62 @@
 # Doctrine Control Room
 
-Local dashboard prototype for Doctrine’s enterprise evidence and execution
-control plane.
+Local operational dashboard for a Doctrine-enabled repository.
 
-## What it demonstrates
+## What it reads
 
-- Portfolio-wide gate posture and evidence coverage
-- Evidence velocity and chain-integrity signals
-- Doctrine → MAPLE Runtime → Policy Shield → Trust Engine execution flow
-- Policy activity, release candidates, and keyboard command palette
-- Live, loading, partial, unavailable, and empty interface states
-- Responsive navigation and reduced-motion behavior
+- Repository identity from `pyproject.toml` and Git
+- Doctrine activation posture and state-chain status
+- Review, QA, ADR, plan, and Gold-record counts
+- Recent Git activity and package/tag distance
+- Current or most recent Doctrine verification, gate by gate
 
-All displayed organizations, events, metrics, and repository names are
-**prototype data**. The interface does not call production systems.
+The only executable action is the fixed Doctrine verifier. MAPLE Runtime,
+Policy Shield, and Trust Engine are shown as **not connected** until real
+connectors exist.
 
 ## Run locally
 
-Requires Node.js 22.13 or newer.
+Requires Python 3.11+ and Node.js 22.13+. From the repository root, start the
+loopback bridge:
 
 ```bash
-npm install
+python tools/doctrine_dashboard.py
+```
+
+In a second terminal:
+
+```bash
+cd dashboard
+npm ci
 npm run dev
 ```
 
-Then open the local address printed by the development server.
+Open `http://localhost:3003/`. The client defaults to
+`http://127.0.0.1:8765`; set `NEXT_PUBLIC_DOCTRINE_API_URL` before starting the
+dashboard only when the bridge uses another local port.
 
 Verification:
 
 ```bash
+python -m unittest discover -s tests -p "test_doctrine_dashboard.py"
+python -m ruff check tools/doctrine_dashboard.py tests/test_doctrine_dashboard.py
+cd dashboard
 npm run lint
 npm test
 npm audit --omit=dev --audit-level=high
 ```
+
+## Security boundary
+
+The bridge binds only to `127.0.0.1`. It allows the two local dashboard origins
+by default, rejects non-JSON and bodies over 1 KiB, permits one verification at
+a time, rejects dirty-worktree verification, and never accepts a command or
+path over HTTP. Verification is invoked with a fixed argument array, no shell,
+a 180-second timeout, and a 32-KiB output tail.
+
+This release is deliberately local-only. A hosted or multi-user Control Room
+needs a separate authenticated bridge design; publishing this frontend does
+not make local repository access work remotely.
 
 ## Design sources
 

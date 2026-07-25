@@ -13,8 +13,8 @@
 | 1 | Freeze the v1 snapshot and verification contract | Chief Architect | brief, ADR, plan, OpenAPI contract | `python -m json.tool docs/contracts/doctrine-control-room.openapi.json` | done - contract parses |
 | 2 | Serve truthful repository snapshots over loopback | Backend Engineer | `tools/doctrine_dashboard.py`, bridge tests | snapshot, origin, empty/degraded-state tests | done - 9 bridge tests pass |
 | 3 | Add bounded asynchronous verification | Backend Engineer | bridge tool and tests | accepted, concurrent rejection, completion/failure tests | done - job/concurrency/output-bound tests pass |
-| 4 | Replace prototype state/actions with the API client | Frontend Engineer | dashboard client, component, styles, UI tests | build, lint, rendered contract tests | doing |
-| 5 | Document operation and verify the complete surface | Tech Writer / QA | README, changelog, QA report | clean install, audits, all repository gates | todo |
+| 4 | Replace prototype state/actions with the API client | Frontend Engineer | dashboard client, component, styles, UI tests | build, lint, rendered contract tests | done - build/lint/2 tests pass |
+| 5 | Document operation and verify the complete surface | Tech Writer / QA | README, changelog, QA report | clean install, audits, all repository gates | doing |
 | 6 | Fresh-hat code, security, and scope review | Review roles | review and retrospective artifacts | zero open blocker/major findings | todo |
 
 ## Threat sketch
@@ -55,7 +55,6 @@ Three edits to the same file without a test delta return the work to this plan.
 Done (with evidence): task checkpoint 23 records the start boundary; G0 and G1
 artifacts drafted.
 
-Next: wire the typed browser client and derive all five interface states from
-the bridge contract.
+Next: run clean-install, audit, and full Doctrine gates; file G4/G5 evidence.
 
 Blocked on: none. External publishing remains gated.

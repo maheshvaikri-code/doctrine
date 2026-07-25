@@ -85,3 +85,48 @@ test("ships an accessible, state-complete, dependency-scoped surface", async () 
     access(new URL("../app/control-room.tsx", import.meta.url)),
   );
 });
+
+test("source CI enforces every dashboard gate without changing consumer CI", async () => {
+  const [workflow, packageJson, installer] = await Promise.all([
+    readFile(
+      new URL("../../.github/workflows/dashboard.yml", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(
+      new URL("../../tools/doctrine_install.py", import.meta.url),
+      "utf8",
+    ),
+  ]);
+  const scripts = JSON.parse(packageJson).scripts;
+
+  assert.equal(scripts.typecheck, "tsc --noEmit --incremental false");
+  assert.equal(scripts.audit, "npm audit --audit-level=moderate");
+  assert.match(workflow, /permissions:\s*\n\s+contents: read/);
+  assert.match(
+    workflow,
+    /actions\/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5/,
+  );
+  assert.match(
+    workflow,
+    /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/,
+  );
+  assert.match(workflow, /node-version: "22\.13\.0"/);
+  assert.match(workflow, /cache-dependency-path: dashboard\/package-lock\.json/);
+  assert.match(workflow, /working-directory: dashboard/);
+
+  let previousIndex = -1;
+  for (const command of [
+    "npm ci",
+    "npm run lint",
+    "npm run typecheck",
+    "npm test",
+    "npm run audit",
+  ]) {
+    const commandIndex = workflow.indexOf(`run: ${command}`);
+    assert.ok(commandIndex > previousIndex, `${command} is missing or out of order`);
+    previousIndex = commandIndex;
+  }
+
+  assert.doesNotMatch(installer, /workflows[" /\\]+dashboard\.yml/);
+});

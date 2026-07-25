@@ -1,0 +1,61 @@
+{
+  "at_commit": "fe66cecfa272dd076d81e845f47ecf197d43edc2",
+  "created_at": "2026-07-25T23:30:29Z",
+  "dead_ends": [
+    {
+      "approach": "Run npm ci while the local Vinext preview still held native modules open.",
+      "why_failed": "Windows returned EPERM on lightningcss; stopping the preview made the unchanged clean-install command pass."
+    },
+    {
+      "approach": "Use an alternate or locally installed browser to close G5.",
+      "why_failed": "The controller reported no backend and the Browser/Sites rules prohibit ad-hoc standalone browser fallback."
+    },
+    {
+      "approach": "printing em-dash and section-sign in OpenHawk CLI output on Windows",
+      "why_failed": "cp1252 terminal mojibakes them to replacement chars; use ASCII in runtime-printed strings (the recurring Windows lesson) - comments/docstrings are fine"
+    },
+    {
+      "approach": "backtick path 'adapters/doctrine_adapter.py' in the MAPLE integration doc to name a proposed upstream module",
+      "why_failed": "lint's REF_RE reads adapters/-prefixed backtick paths as corpus refs and failed the suite; prefix upstream paths with the package name (maple/adapters/...)"
+    },
+    {
+      "approach": "trusting a piped exit code (verify | grep | head) as gate evidence",
+      "why_failed": "pipeline exit code came from head, not doctrine_verify - a FAIL could read as 0; capture to a log file and take the runner's own exit code"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "The source dashboard now has lockfile, lint, typecheck, build/test, and moderate-audit CI gates on Ubuntu and Windows.",
+      "confidence": "verified",
+      "evidence": ".github/workflows/dashboard.yml",
+      "kind": "fact"
+    },
+    {
+      "claim": "Adding an explicit TypeScript gate exposed an undeclared Cloudflare Fetcher type that production builds had not reported.",
+      "confidence": "verified",
+      "evidence": "dashboard/worker/index.ts:5",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "The dashboard workflow is source-only; Doctrine consumer installs continue receiving only the dashboard-agnostic doctrine.yml.",
+      "confidence": "verified",
+      "evidence": "dashboard/tests/rendered-html.test.mjs",
+      "kind": "constraint"
+    }
+  ],
+  "next_actions": [
+    "Restart the local dashboard preview after the clean-install gate.",
+    "Do not claim hosted CI green until GitHub executes this exact commit.",
+    "Do not deploy or publish without explicit human approval."
+  ],
+  "open_threads": [
+    "Push the commits and observe the first GitHub-hosted Ubuntu and Windows dashboard jobs.",
+    "Execute the parent Control Room's real-browser keyboard and screen-reader QA when a supported backend is available."
+  ],
+  "seq": 26,
+  "session_id": "s-2026-07-25-dashboard-ci",
+  "task_refs": [
+    "doctrine-control-room-ci-gate"
+  ]
+}

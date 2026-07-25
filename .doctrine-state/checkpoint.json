@@ -1,19 +1,20 @@
 {
-  "at_commit": "d9e8fb956bd46029d921f07613719e4798a134a2",
+  "at_commit": "fe66cecfa272dd076d81e845f47ecf197d43edc2",
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
     "gates_passed": [
-      "G0",
-      "G1"
+      "G2",
+      "G3",
+      "G4"
     ],
-    "phase": "g2",
+    "phase": "g5-degraded",
     "ponytail_mode": "full",
-    "role": "devops-engineer"
+    "role": "security-reviewer"
   },
-  "created_at": "2026-07-25T23:23:09Z",
-  "prev_sha256": "e1ba25e5b16b1aa7c259a48d1355fb8c901c67df9b1706ea65cfd78c3688b4cd",
-  "seq": 25,
+  "created_at": "2026-07-25T23:30:29Z",
+  "prev_sha256": "bb6385fd20eb43dafc20ce115aea4c25902e52c85a98fd7fd303ca01136097c4",
+  "seq": 26,
   "session_id": "s-2026-07-25-dashboard-ci",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
@@ -21,7 +22,7 @@
       "built_at_commit": null
     },
     "intents": {},
-    "latest_distillate_sha256": "79fd89064c8234076c72acc3bc1c048510c470dc8d7af14282fd4a44ec6a6594",
+    "latest_distillate_sha256": "d5546c278b2efb32d4f28386797394efcef5e4f392835309f9fa6a61c23d9bcb",
     "unresolved_effects": 0
   },
   "worktree": "clean"

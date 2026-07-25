@@ -98,8 +98,10 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
       "utf8",
     ),
   ]);
-  const scripts = JSON.parse(packageJson).scripts;
+  const manifest = JSON.parse(packageJson);
+  const scripts = manifest.scripts;
 
+  assert.equal(manifest.packageManager, "npm@10.9.2");
   assert.equal(scripts.typecheck, "tsc --noEmit --incremental false");
   assert.equal(scripts.audit, "npm audit --audit-level=moderate");
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
@@ -112,6 +114,7 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
     /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/,
   );
   assert.match(workflow, /node-version: "22\.13\.0"/);
+  assert.match(workflow, /fail-fast: false/);
   assert.match(workflow, /os: \[ubuntu-latest, windows-latest\]/);
   assert.match(workflow, /runs-on: \$\{\{ matrix\.os \}\}/);
   assert.match(workflow, /cache-dependency-path: dashboard\/package-lock\.json/);

@@ -23,6 +23,8 @@ contract at its boundary and derives all five UI states from real conditions.
 The bridge rejects unknown browser origins, non-JSON or oversized mutations,
 dirty-worktree verification, and concurrent verification requests. It invokes
 a fixed script path using an argument array, never a shell.
+The bridge checks the commit and worktree again when the verifier exits; any
+mid-run repository change invalidates the result.
 
 The v1 boundary is:
 
@@ -81,9 +83,9 @@ verification is live negative evidence, not a transport error.
 - **Worst plausible abuse:** a malicious webpage repeatedly starts expensive
   local verification or exfiltrates repository metadata.
 - **Controls:** loopback binding, exact origin allowlist, clean-tree
-  attribution, JSON-only mutation, 1 KiB body cap, one-job lock, fixed
-  executable/script arguments, timeouts, output bounds, and no arbitrary
-  repository/path/action input in requests.
+  attribution before and after the run, JSON-only mutation, 1 KiB body cap,
+  one-job lock, fixed executable/script arguments, timeouts, output bounds, and
+  no arbitrary repository/path/action input in requests.
 
 ## Consequences
 

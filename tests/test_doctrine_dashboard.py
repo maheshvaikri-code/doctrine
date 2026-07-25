@@ -126,6 +126,33 @@ class TestVerificationStore(unittest.TestCase):
 
         self.assertEqual(output.value(), "efghi")
 
+    def test_default_runner_invalidates_a_changed_worktree(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            _make_repo(repo)
+            (repo / "tools" / "doctrine_verify.py").write_text(
+                "\n".join(
+                    [
+                        "from pathlib import Path",
+                        'Path("changed-during-run.txt").write_text("dirty")',
+                        'print("=== lint: PASS")',
+                        'print("=== ruff: PASS")',
+                        'print("=== tests: PASS")',
+                        'print("=== state: PASS")',
+                        'print("VERIFY OK: 4 gate(s) green")',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _run(repo, "git", "add", "tools/doctrine_verify.py")
+            _run(repo, "git", "commit", "-qm", "test: add verifier")
+
+            result = dashboard._default_verify_runner(repo)
+
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("Repository changed during verification.", result.stdout)
+            self.assertTrue(result.stdout.rstrip().endswith("=== state: FAIL"))
+
     def test_parses_passing_gate_evidence_and_test_count(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

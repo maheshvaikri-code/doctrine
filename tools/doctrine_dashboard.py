@@ -323,6 +323,12 @@ def _default_verify_runner(repo: Path) -> subprocess.CompletedProcess[str]:
     verifier = repo / "tools" / "doctrine_verify.py"
     if not verifier.is_file():
         raise OSError("Doctrine verifier is unavailable.")
+    starting_commit = _run_git(
+        repo,
+        ["rev-parse", "--short=12", "HEAD"],
+    ).strip()
+    if _run_git(repo, ["status", "--porcelain=v1"]).strip():
+        raise DirtyWorktree("Verification requires a clean worktree.")
     arguments = [sys.executable, str(verifier)]
     process = subprocess.Popen(
         arguments,
@@ -358,6 +364,22 @@ def _default_verify_runner(repo: Path) -> subprocess.CompletedProcess[str]:
         raise
     reader.join(timeout=5)
     process.stdout.close()
+    try:
+        ending_commit = _run_git(
+            repo,
+            ["rev-parse", "--short=12", "HEAD"],
+        ).strip()
+        repository_changed = (
+            ending_commit != starting_commit
+            or bool(_run_git(repo, ["status", "--porcelain=v1"]).strip())
+        )
+    except SnapshotError:
+        repository_changed = True
+    if repository_changed:
+        output.append("\nRepository changed during verification.\n")
+        for key in GATE_LABELS:
+            output.append(f"=== {key}: FAIL\n")
+        return_code = 1
     return subprocess.CompletedProcess(
         arguments,
         return_code,
@@ -510,6 +532,24 @@ class VerificationStore:
                 "summary": "Doctrine verification exceeded 180 seconds.",
                 "gates": [
                     {**gate, "status": "failed", "evidence": "Run timed out"}
+                    for gate in _empty_gates()
+                ],
+            }
+        except DirtyWorktree:
+            final = {
+                **empty_verification(),
+                "id": job_id,
+                "status": "failed",
+                "commit": commit,
+                "startedAt": started_at,
+                "finishedAt": _now_iso(),
+                "summary": "Repository changes invalidated verification.",
+                "gates": [
+                    {
+                        **gate,
+                        "status": "failed",
+                        "evidence": "Worktree changed",
+                    }
                     for gate in _empty_gates()
                 ],
             }

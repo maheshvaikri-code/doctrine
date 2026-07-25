@@ -426,7 +426,13 @@ def _parse_verification(
         )
 
     ok_matches = VERIFY_OK_RE.findall(output)
-    passed = result.returncode == 0 and len(observed) == len(GATE_LABELS)
+    passed = (
+        result.returncode == 0
+        and set(observed) == set(GATE_LABELS)
+        and all(verdict == "pass" for verdict in observed.values())
+        and bool(ok_matches)
+        and int(ok_matches[-1]) == len(GATE_LABELS)
+    )
     if passed and ok_matches:
         summary = f"{ok_matches[-1]} Doctrine gates passed."
     elif passed:

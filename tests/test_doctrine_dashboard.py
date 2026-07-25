@@ -188,6 +188,37 @@ class TestVerificationStore(unittest.TestCase):
             )
             self.assertTrue(store.cache_path.is_file())
 
+    def test_exit_zero_with_a_failed_gate_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            output = "\n".join(
+                [
+                    "=== lint: PASS",
+                    "=== ruff: PASS",
+                    "=== tests: FAIL",
+                    "=== state: PASS",
+                    "VERIFY OK: 4 gate(s) green",
+                ]
+            )
+
+            def runner(_: Path) -> subprocess.CompletedProcess[str]:
+                return subprocess.CompletedProcess(
+                    ["verify"],
+                    0,
+                    stdout=output,
+                    stderr="",
+                )
+
+            store = dashboard.VerificationStore(repo, runner=runner)
+            store.start("abc1234")
+            result = _wait_for_completion(store)
+
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(
+                [gate["status"] for gate in result["gates"]],
+                ["passed", "passed", "failed", "passed"],
+            )
+
     def test_rejects_a_second_concurrent_verification(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

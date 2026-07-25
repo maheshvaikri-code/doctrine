@@ -112,6 +112,8 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
     /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/,
   );
   assert.match(workflow, /node-version: "22\.13\.0"/);
+  assert.match(workflow, /os: \[ubuntu-latest, windows-latest\]/);
+  assert.match(workflow, /runs-on: \$\{\{ matrix\.os \}\}/);
   assert.match(workflow, /cache-dependency-path: dashboard\/package-lock\.json/);
   assert.match(workflow, /working-directory: dashboard/);
 

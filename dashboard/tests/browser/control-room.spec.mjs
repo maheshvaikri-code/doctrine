@@ -155,7 +155,7 @@ test("keeps keyboard focus inside the command dialog and restores it", async ({
   const dialog = page.getByRole("dialog", { name: "Run a Doctrine action" });
   const close = dialog.getByRole("button", { name: "Close command palette" });
   const run = dialog.getByRole("button", { name: /^Run verification/ });
-  const release = dialog.getByRole("button", { name: /^Open release record/ });
+  const release = dialog.getByRole("button", { name: /^Inspect release identity/ });
   await expect(dialog).toBeVisible();
   await expect(page.locator(".command-palette")).toHaveCSS("opacity", "1");
   await expect(run).toBeFocused();

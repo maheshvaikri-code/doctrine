@@ -18,9 +18,9 @@
 | # | Slice | Role | Files touched | Proven by | Status |
 |---|---|---|---|---|---|
 | 1 | Reproduce shell-200/assets-404 failure and isolate the Windows separator mismatch | Frontend Engineer | runtime probes | six rendered assets returned 404 before repair | done |
-| 2 | Add a scoped production-launch compatibility shim and remove host-path font output | Frontend Engineer | launcher, layout, CSS, package scripts | production HTTP regression | done - 4/4 dashboard tests |
+| 2 | Add a scoped production-launch compatibility shim and remove host-path font output | Frontend Engineer | launcher, layout, CSS, package scripts | production HTTP regression | done - 5/5 dashboard tests |
 | 3 | Document local production startup and occupied-port handling | Tech Writer | dashboard README, changelog | rendered contract and manual command review | done |
-| 4 | Run review, security, QA, and hosted browser gates | Reviewer roles | review/QA artifacts | local + hosted gate results | doing |
+| 4 | Run review, security, QA, and hosted browser gates | Reviewer roles | review/QA artifacts | local + hosted gate results | done |
 
 ## Risks and rollback
 
@@ -43,10 +43,12 @@ Ratchet, budget 3:
 
 ## Status snapshot
 
-Done with local evidence: page `200`; six of six rendered assets `200`; bridge
+Complete. Local evidence: page `200`; six of six rendered assets `200`; bridge
 snapshot `200`, correct CORS origin, verification passed, zero partial reasons;
-lint, types, build, four tests, and audit green.
+lint, types, build, five tests, and audit green. Hosted evidence: Windows and
+Ubuntu dashboard gates passed, Chromium passed all seven browser scenarios, and
+Doctrine passed on Python 3.11 and 3.12 on both operating systems.
 
-Next: fresh-hat review, full Doctrine verification, hosted browser gate, commit
-and push. Blocked on: no local interactive browser backend; hosted Chromium is
-the real-browser evidence path.
+The local interactive browser controller had no available backend. Hosted
+Chromium therefore supplies the real-browser automation evidence; no remote
+site was deployed for this local Control Room repair.

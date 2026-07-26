@@ -267,6 +267,11 @@ export function LiveControlRoom() {
   const firstCommandRef = useRef<HTMLButtonElement>(null);
   const lastVerificationStatus = useRef<string | null>(null);
 
+  const closeCommands = useCallback(() => {
+    setCommandOpen(false);
+    window.requestAnimationFrame(() => commandButtonRef.current?.focus());
+  }, []);
+
   const refreshSnapshot = useCallback(async (announce = false) => {
     requestRef.current?.abort();
     const controller = new AbortController();
@@ -358,13 +363,13 @@ export function LiveControlRoom() {
         setCommandOpen(true);
       }
       if (event.key === "Escape") {
-        setCommandOpen(false);
+        if (commandOpen) closeCommands();
         setMobileNavOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [closeCommands, commandOpen]);
 
   useEffect(() => {
     if (commandOpen) firstCommandRef.current?.focus();
@@ -394,11 +399,6 @@ export function LiveControlRoom() {
     } finally {
       window.clearTimeout(timeout);
     }
-  };
-
-  const closeCommands = () => {
-    setCommandOpen(false);
-    commandButtonRef.current?.focus();
   };
 
   const scrollTo = (id: string) => {

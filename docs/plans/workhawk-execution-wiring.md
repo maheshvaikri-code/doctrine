@@ -15,7 +15,7 @@
 | 3 | Add start locking, current polling, terminal reconciliation, and dirty preflight | Frontend Engineer | Doctrine module | browser accepted/running/terminal/dirty/rejected/poll-error flows | done |
 | 4 | Render the authoritative execution record and degraded synchronization state | Frontend / UX Engineer | Doctrine module, styles | semantic metadata and responsive browser assertions | done |
 | 5 | Update operating docs and close local gates | Tech Writer / QA Engineer | README, changelog, tests, QA artifacts | lint, typecheck, build/tests, audit, Doctrine lint | done |
-| 6 | Run fresh-hat review, security sweep, and hosted gates | Reviewer roles | review, QA, retro | zero open major findings + exact-commit CI | doing |
+| 6 | Run fresh-hat review, security sweep, and exact-commit gates | Reviewer roles | review, QA, retro | zero open major findings + exact-commit local candidate | done |
 
 ## Acceptance-criterion trace
 
@@ -69,11 +69,15 @@ real-browser evidence delta.
   tracing uses the documented source-reading fallback. No coverage is claimed
   beyond the inspected WorkHawk client, Doctrine bridge, v1 contract, and
   browser tests.
+- 2026-07-26: Exact-commit gates ran locally because this task did not grant
+  authority to push or deploy. The existing source workflow will repeat the
+  same Ubuntu, Windows, and hosted Chromium gates on the next authorized push;
+  no hosted result is claimed here.
 
 ## Status snapshot
 
-Done: G0-G4 artifacts and gates, pre-change state checkpoint, client
-operation, execution lifecycle, operator record, and 12-scenario Chromium
-regression suite.
-Next: exact-commit QA, security, project review, and checkpoint.
+Done: G0-G6 artifacts and gates, pre-change state checkpoint, client
+operation, execution lifecycle, operator record, exact-commit QA/security, and
+12-scenario Chromium regression suite.
+Next: retrospective and state-plane checkpoint.
 Blocked on: none. External deployment remains intentionally gated.

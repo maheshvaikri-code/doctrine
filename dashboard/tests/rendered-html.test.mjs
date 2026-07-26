@@ -102,6 +102,7 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
   const scripts = manifest.scripts;
 
   assert.equal(manifest.packageManager, "npm@10.9.2");
+  assert.equal(manifest.scripts.start, "node scripts/start.mjs");
   assert.equal(manifest.scripts["test:e2e"], "playwright test");
   assert.equal(scripts.typecheck, "tsc --noEmit --incremental false");
   assert.equal(scripts.audit, "npm audit --audit-level=moderate");

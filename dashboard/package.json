@@ -10,8 +10,8 @@
     "audit": "npm audit --audit-level=moderate",
     "dev": "vinext dev",
     "build": "vinext build",
-    "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "start": "node scripts/start.mjs",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/production-server.test.mjs",
     "test:e2e": "playwright test",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --incremental false"

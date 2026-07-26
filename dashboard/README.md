@@ -35,6 +35,24 @@ Open `http://localhost:3003/`. The client defaults to
 `http://127.0.0.1:8765`; set `NEXT_PUBLIC_DOCTRINE_API_URL` before starting the
 dashboard only when the bridge uses another local port.
 
+To exercise the production build locally:
+
+```bash
+cd dashboard
+npm run build
+npm start -- --port 3003
+```
+
+The repository-owned production launcher includes a Windows compatibility fix
+for vinext's static-asset cache. If port 3003 is occupied, choose another port
+and add that exact loopback origin when starting the bridge:
+
+```bash
+python tools/doctrine_dashboard.py --origin http://localhost:3011 --origin http://127.0.0.1:3011
+cd dashboard
+npm start -- --port 3011
+```
+
 Verification:
 
 ```bash

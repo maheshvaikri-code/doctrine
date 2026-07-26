@@ -6,6 +6,13 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+- **Control Room Windows production loading repair** - the repository-owned
+  production launcher now normalizes vinext's Windows static-cache keys so
+  rendered CSS and JavaScript assets no longer return `404`. The layout uses
+  network-free native font stacks instead of emitting host filesystem font
+  URLs, and an HTTP regression starts the built server and verifies every
+  rendered asset and content type.
+
 - **Doctrine Control Room + local runtime bridge** — adds an isolated
   `dashboard/` React module and the stdlib-only `doctrine-dashboard` bridge. The
   UI now reads real project/Git identity, activation wiring, state-chain status,

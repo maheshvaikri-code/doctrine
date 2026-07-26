@@ -64,6 +64,10 @@ without making Doctrine depend on the frontend.
 9. Given the human-supplied WorkHawk logo, when the application is built from a
    fresh checkout, then the exact raster is served by the production server and
    its hawk/W mark identifies the compact shell without regenerating the logo.
+10. Given live Doctrine evidence, when an operator reads the overview, then
+    health/status, gate completion, and evidence trend are expressed with
+    accessible native semantics and values derived only from the current
+    snapshot.
 
 ## Constraints
 

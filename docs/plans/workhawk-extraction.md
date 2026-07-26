@@ -16,6 +16,7 @@
 | 5 | Run review, security, browser, OS, and repository gates | Reviewer roles | review and QA artifacts | lint, types, tests, audit, Chromium, Doctrine verify | done |
 | 6 | Checkpoint release evidence without publishing and capture lessons | Release Manager / Project Reviewer | changelog, retro, state | clean pushed commit + hosted gates | done |
 | 7 | Preserve and wire the human-supplied official WorkHawk raster | Frontend / QA Engineer | public asset, shell mark, tests, docs | render + production HTTP + hosted Chromium | done |
+| 8 | Improve truthful metric, gate-score, and evidence-trend visualization | Frontend / QA Engineer | Doctrine module, styles, browser and render contracts | semantic meter/progress/chart assertions + hosted Chromium | doing |
 
 ## Acceptance-criterion trace
 
@@ -30,6 +31,7 @@
 | AC7 Windows assets | real production-server HTTP regression |
 | AC8 consumer isolation | installer/workflow contract assertion |
 | AC9 official brand asset | source-presence, server-render, production HTTP, and hosted browser assertions |
+| AC10 evidence visualization | semantic meter/progress/chart browser assertions against the live fixture |
 
 ## Threat sketch
 

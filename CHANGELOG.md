@@ -15,6 +15,8 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   Sites metadata now follow the WorkHawk application path. No external site or
   package is published by this change. The human-supplied official WorkHawk
   raster is preserved and wired into the shell as a production-served asset.
+  Overview cards now pair exact values with semantic status/progress, while
+  verification and repository trends use accessible, evidence-derived graphics.
 
 - **Control Room Windows production loading repair** - the repository-owned
   production launcher now normalizes vinext's Windows static-cache keys so

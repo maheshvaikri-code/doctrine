@@ -11,8 +11,8 @@
 | 2 | Refine visual tokens, surfaces, responsive KPI cards, and panel hierarchy | UX Designer / Frontend Engineer | production render at desktop and mobile | done |
 | 3 | Implement searchable action palette and keyboard behavior | Frontend Engineer | filtered-result and focus-loop browser assertions | done |
 | 4 | Implement native progress, gate meter, and SVG evidence chart | Frontend Engineer | semantic browser assertions against fixture values | done |
-| 5 | Add desktop/mobile accessibility and source regression contracts | QA Engineer | Axe, rendered source tests, reduced-motion checks | doing |
-| 6 | Run repository, security, and hosted gates; record evidence | Reviewer roles | local commands plus exact-commit CI | pending |
+| 5 | Add desktop/mobile accessibility and source regression contracts | QA Engineer | Axe, rendered source tests, reduced-motion checks | done |
+| 6 | Run repository, security, and hosted gates; record evidence | Reviewer roles | local commands plus exact-commit CI | done |
 
 ## Acceptance-criterion trace
 
@@ -49,5 +49,8 @@ real-browser observation.
 
 ## Status snapshot
 
-Implementation and local real-browser review are in progress. External
-deployment remains outside scope.
+Done. Exact application commit `ae04e20` passed WorkHawk Windows, Ubuntu, six
+production tests per OS, and seven hosted Chromium scenarios plus Doctrine's
+Windows/Ubuntu and Python 3.11/3.12 matrix. Review, QA, security, and
+retrospective evidence are recorded. External deployment remains outside
+scope.

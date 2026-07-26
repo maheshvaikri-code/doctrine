@@ -76,8 +76,8 @@ real-browser evidence delta.
 
 ## Status snapshot
 
-Done: G0-G6 artifacts and gates, pre-change state checkpoint, client
-operation, execution lifecycle, operator record, exact-commit QA/security, and
-12-scenario Chromium regression suite.
-Next: retrospective and state-plane checkpoint.
-Blocked on: none. External deployment remains intentionally gated.
+Done: G0-G7 artifacts and gates, pre-change state checkpoint, client
+operation, execution lifecycle, operator record, exact-commit QA/security,
+project sign-off, retrospective, and 12-scenario Chromium regression suite.
+Next: run the existing hosted workflow on the next authorized push.
+Blocked on: none. External push and deployment remain intentionally gated.

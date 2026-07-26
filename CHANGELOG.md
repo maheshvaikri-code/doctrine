@@ -17,6 +17,10 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
   raster is preserved and wired into the shell as a production-served asset.
   Overview cards now pair exact values with semantic status/progress, while
   verification and repository trends use accessible, evidence-derived graphics.
+  The enterprise visual refinement adds a functional keyboard-first action
+  search, a native gate meter, a real-series SVG activity chart, responsive
+  WCAG checks, and a cohesive analytical surface system without adding another
+  animation runtime or copying external registry source.
 
 - **Control Room Windows production loading repair** - the repository-owned
   production launcher now normalizes vinext's Windows static-cache keys so

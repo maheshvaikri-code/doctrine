@@ -16,7 +16,7 @@
 | 5 | Run review, security, browser, OS, and repository gates | Reviewer roles | review and QA artifacts | lint, types, tests, audit, Chromium, Doctrine verify | done |
 | 6 | Checkpoint release evidence without publishing and capture lessons | Release Manager / Project Reviewer | changelog, retro, state | clean pushed commit + hosted gates | done |
 | 7 | Preserve and wire the human-supplied official WorkHawk raster | Frontend / QA Engineer | public asset, shell mark, tests, docs | render + production HTTP + hosted Chromium | done |
-| 8 | Improve truthful metric, gate-score, and evidence-trend visualization | Frontend / QA Engineer | Doctrine module, styles, browser and render contracts | semantic meter/progress/chart assertions + hosted Chromium | doing |
+| 8 | Improve truthful metric, gate-score, evidence-trend, and command visualization | Frontend / QA Engineer | Doctrine module, styles, browser and render contracts | semantic meter/progress/chart assertions + searchable command QA | done |
 
 ## Acceptance-criterion trace
 
@@ -84,8 +84,10 @@ acceptance criterion; repeated path or browser failures return to this plan.
 
 ## Status snapshot
 
-Done: all seven slices. Exact commit `751e284` passed hosted WorkHawk Windows,
+Done: the extraction and official-brand slices. Exact commit `751e284` passed hosted WorkHawk Windows,
 Ubuntu, six production tests per OS, and seven-scenario Chromium jobs plus
 Doctrine's Windows/Ubuntu and Python 3.11/3.12 matrix. Review, QA, security, and
-retrospective evidence are recorded. Blocked on: none. External publishing
-remains intentionally out of scope.
+retrospective evidence are recorded. The subsequent enterprise-UI refinement
+is tracked separately in
+[`workhawk-enterprise-ui.md`](workhawk-enterprise-ui.md). Blocked on: none.
+External publishing remains intentionally out of scope.

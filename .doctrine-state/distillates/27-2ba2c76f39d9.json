@@ -1,6 +1,6 @@
 {
-  "at_commit": "347dee26a0ffea18729150dc63db1939bf7c6959",
-  "created_at": "2026-07-15T02:34:01Z",
+  "at_commit": "9f3a8d01b2251e15ece557814c8fc456ad286f83",
+  "created_at": "2026-07-26T06:28:00Z",
   "dead_ends": [
     {
       "approach": "patching only the pyproject instance of the consumer-vs-source version bug in check_version (v0.6.16)",
@@ -26,30 +26,29 @@
   "distillate_version": "1",
   "learned": [
     {
-      "claim": "OpenHawk fleet design captured (ADR-006): scale without sprawl = one control plane over many uniform workers, O(1) in fleet size. Invariants: uniform WORK.PACKAGE contract, bounded persistent worker pool, capability dispatch, token budget, flat governance. FleetRegistry = v0.5.",
+      "claim": "The Doctrine v1 bridge exposes the current verification endpoint, but WorkHawk does not consume it.",
       "confidence": "verified",
-      "evidence": "OpenHawk docs/adr/006-fleet-scaling.md; roadmap v0.5 row",
-      "kind": "decision_ref"
+      "evidence": "workhawk/app/doctrine-api.ts:423",
+      "kind": "fact"
     },
     {
-      "claim": "v0.6.17: doctrine_lint check_version was still consumer-unsafe for the CHANGELOG check - v0.6.16 fixed only pyproject. OpenHawk's own CHANGELOG 0.2.0 falsely desynced. Now is_source gates ALL Doctrine-owned carriers; only doctrine_mcp.py always checked.",
+      "claim": "Graphify structure state is unavailable in this checkout, so this task uses the documented source-reading fallback.",
       "confidence": "verified",
-      "evidence": "tools/doctrine_lint.py is_source; tests; OpenHawk consumer verify now VERIFY OK",
-      "kind": "decision_ref"
+      "evidence": "python tools/doctrine_state.py status",
+      "kind": "constraint"
     }
   ],
   "next_actions": [
-    "OpenHawk v0.5 Fleet phase: build FleetRegistry (bounded pool, capability map, MAPLE discovery/health, token budget)",
-    "When fixing a bug class in a function, audit the whole function for siblings before shipping"
+    "File the execution brief, ADR, and implementation plan.",
+    "Wire current-run polling and execution evidence into WorkHawk.",
+    "Run local and hosted browser verification without deploying."
   ],
   "open_threads": [
-    "OpenHawk v0.2 is uncommitted in the user's working tree (they are actively developing: orchestrator, session, tests, ADR-005); ADR-006 + roadmap Fleet phase added by me, also uncommitted there",
-    "Doctrine local main ahead of origin: v0.6.15-v0.6.17 + checkpoints"
+    "Define and implement the bounded WorkHawk verification execution lifecycle."
   ],
-  "seq": 22,
-  "session_id": "s-2026-07-13-a",
+  "seq": 27,
+  "session_id": "s-2026-07-26-workhawk-execution",
   "task_refs": [
-    "fleet-scaling",
-    "consumer-lint-changelog"
+    "workhawk-execution-wiring"
   ]
 }

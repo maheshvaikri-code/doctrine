@@ -102,6 +102,7 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
   const scripts = manifest.scripts;
 
   assert.equal(manifest.packageManager, "npm@10.9.2");
+  assert.equal(manifest.scripts["test:e2e"], "playwright test");
   assert.equal(scripts.typecheck, "tsc --noEmit --incremental false");
   assert.equal(scripts.audit, "npm audit --audit-level=moderate");
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
@@ -119,6 +120,8 @@ test("source CI enforces every dashboard gate without changing consumer CI", asy
   assert.match(workflow, /runs-on: \$\{\{ matrix\.os \}\}/);
   assert.match(workflow, /cache-dependency-path: dashboard\/package-lock\.json/);
   assert.match(workflow, /working-directory: dashboard/);
+  assert.match(workflow, /npx playwright install --with-deps chromium/);
+  assert.match(workflow, /npm run test:e2e/);
 
   let previousIndex = -1;
   for (const command of [

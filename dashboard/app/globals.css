@@ -3,8 +3,9 @@
 :root {
   --ink: #11120f;
   --ink-soft: #30322d;
-  --muted: #6f7169;
+  --muted: #64675f;
   --muted-strong: #555850;
+  --muted-on-dark: #8f9589;
   --canvas: #f2f2ec;
   --surface: #fbfbf7;
   --surface-strong: #ffffff;
@@ -148,7 +149,7 @@ select:focus-visible {
 }
 
 .brand-copy small {
-  color: #858a7f;
+  color: var(--muted-on-dark);
   font-size: 11px;
   letter-spacing: 0.01em;
 }
@@ -168,7 +169,7 @@ select:focus-visible {
 .nav-label {
   display: block;
   margin: 0 9px 10px;
-  color: #686e63;
+  color: var(--muted-on-dark);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -281,7 +282,7 @@ select:focus-visible {
 .sidebar-workspace small,
 .runtime-status small {
   margin-top: 2px;
-  color: #747a70;
+  color: var(--muted-on-dark);
   font-size: 9px;
 }
 
@@ -334,7 +335,7 @@ select:focus-visible {
 }
 
 .sidebar .icon-button {
-  color: #83897e;
+  color: var(--muted-on-dark);
 }
 
 .sidebar .icon-button:hover {
@@ -618,7 +619,7 @@ main:focus {
 
 .metric-card p {
   margin: 10px 0 0;
-  color: #95988e;
+  color: var(--muted);
   font-size: 9px;
 }
 
@@ -734,7 +735,7 @@ main:focus {
 .gate-table-head {
   min-height: 28px;
   padding: 0 10px;
-  color: #9a9c94;
+  color: var(--muted);
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -769,7 +770,7 @@ main:focus {
 
 .gate-row small {
   margin-top: 3px;
-  color: #999c93;
+  color: var(--muted);
   font-size: 9px;
 }
 
@@ -902,7 +903,7 @@ progress::-moz-progress-bar {
   display: flex;
   justify-content: space-between;
   margin-top: 7px;
-  color: #a0a299;
+  color: var(--muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 8px;
 }
@@ -931,7 +932,7 @@ progress::-moz-progress-bar {
 
 .evidence-callout small {
   margin-top: 3px;
-  color: #7b8371;
+  color: var(--muted);
   font-size: 8px;
 }
 
@@ -1012,7 +1013,7 @@ progress::-moz-progress-bar {
 }
 
 .runtime-node small {
-  color: #93968d;
+  color: var(--muted);
   font-size: 8px;
   text-transform: uppercase;
 }
@@ -1079,7 +1080,7 @@ progress::-moz-progress-bar {
 }
 
 .runtime-stats span {
-  color: #92958b;
+  color: var(--muted);
   font-size: 8px;
 }
 
@@ -1125,7 +1126,7 @@ progress::-moz-progress-bar {
 
 .activity-list time {
   padding-top: 2px;
-  color: #9c9f96;
+  color: var(--muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 8px;
 }
@@ -1166,7 +1167,7 @@ progress::-moz-progress-bar {
 .activity-list p {
   overflow: hidden;
   margin: 4px 0 0;
-  color: #8a8d84;
+  color: var(--muted);
   font-size: 8px;
   line-height: 1.45;
   text-overflow: ellipsis;
@@ -1233,7 +1234,7 @@ progress::-moz-progress-bar {
 
 .release-candidates small {
   margin-top: 4px;
-  color: #737a6f;
+  color: var(--muted-on-dark);
   font-size: 8px;
 }
 
@@ -1253,7 +1254,7 @@ progress::-moz-progress-bar {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  color: #999c92;
+  color: var(--muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 8px;
 }
@@ -1349,7 +1350,7 @@ progress::-moz-progress-bar {
 .command-group-label {
   margin: 0;
   padding: 17px 18px 8px;
-  color: #989b91;
+  color: var(--muted);
   font-size: 8px;
   font-weight: 720;
   letter-spacing: 0.12em;
@@ -1404,7 +1405,7 @@ progress::-moz-progress-bar {
 
 .command-list small {
   margin-top: 4px;
-  color: #868980;
+  color: var(--muted);
   font-size: 9px;
 }
 
@@ -1416,7 +1417,7 @@ progress::-moz-progress-bar {
   gap: 18px;
   padding: 0 15px;
   border-top: 1px solid var(--line);
-  color: #8d9087;
+  color: var(--muted);
   background: #f1f1ec;
   font-size: 8px;
 }
@@ -1514,7 +1515,7 @@ progress::-moz-progress-bar {
 
 .workspace-summary small {
   margin-top: 2px;
-  color: #747a70;
+  color: var(--muted-on-dark);
   font-size: 9px;
 }
 
@@ -1648,11 +1649,11 @@ progress::-moz-progress-bar {
 
 .runtime-node-offline .node-icon,
 .runtime-node-offline strong {
-  color: #858980;
+  color: var(--muted);
 }
 
 .runtime-node-offline em {
-  color: #9b6b39;
+  color: #80562c;
 }
 
 .flow-connector-dormant {

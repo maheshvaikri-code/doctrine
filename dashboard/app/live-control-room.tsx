@@ -763,7 +763,11 @@ export function LiveControlRoom() {
                     </span>
                   </header>
                   <p className="panel-subcopy">Commits observed in the selected window.</p>
-                  <div className="evidence-chart" aria-label={`${range} commit trend`}>
+                  <div
+                    className="evidence-chart"
+                    role="img"
+                    aria-label={`${range} commit trend`}
+                  >
                     <div className="chart-grid" aria-hidden="true">
                       <span />
                       <span />

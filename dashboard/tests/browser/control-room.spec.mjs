@@ -136,6 +136,7 @@ test("renders live evidence and passes automated WCAG A/AA checks", async ({
   await expect(page.getByRole("table", { name: "Gate status" })).toBeVisible();
   await expect(page.getByText("186 tests passed")).toBeVisible();
   await expect(page.getByText(/prototype/i)).toHaveCount(0);
+  await expect(page.locator(".evidence-panel")).toHaveCSS("opacity", "1");
 
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -148,14 +149,15 @@ test("keeps keyboard focus inside the command dialog and restores it", async ({
 }) => {
   await openLiveControlRoom(page);
   const trigger = page.getByRole("button", { name: "Search or run" });
-  const close = page.getByRole("button", { name: "Close command palette" });
-  const run = page.getByRole("button", { name: /^Run verification/ });
-  const release = page.getByRole("button", { name: /^Open release record/ });
 
   await trigger.focus();
   await page.keyboard.press("/");
   const dialog = page.getByRole("dialog", { name: "Run a Doctrine action" });
+  const close = dialog.getByRole("button", { name: "Close command palette" });
+  const run = dialog.getByRole("button", { name: /^Run verification/ });
+  const release = dialog.getByRole("button", { name: /^Open release record/ });
   await expect(dialog).toBeVisible();
+  await expect(page.locator(".command-palette")).toHaveCSS("opacity", "1");
   await expect(run).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
@@ -193,7 +195,11 @@ test("supports skip navigation and narrow keyboard navigation", async ({
   await menu.focus();
   await page.keyboard.press("Enter");
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("button", { name: "Close navigation" })).toBeVisible();
+  await expect(
+    page
+      .getByRole("complementary")
+      .getByRole("button", { name: "Close navigation" }),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveAttribute("aria-expanded", "false");
 

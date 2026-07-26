@@ -6,6 +6,20 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+- **WorkHawk verification execution lifecycle** - completes the existing
+  fixed Doctrine verification operation without expanding browser authority.
+  WorkHawk now locks every verification trigger while a start is unsettled,
+  blocks dirty-tree starts with commit-or-stash remediation, polls the dedicated
+  current-verification resource instead of repeatedly collecting the full
+  repository snapshot, and reconciles one snapshot after terminal completion.
+  A semantic execution record exposes only authoritative run identity, commit,
+  timing, exit code, observed test count, summary, and gate evidence. Poll
+  failures preserve the last valid record and surface delayed synchronization.
+  Browser QA covers the accepted/running/terminal sequence, exact one-POST
+  behavior, dirty preflight, rejected starts, degraded polling, modal isolation,
+  responsive overflow, reduced motion, and WCAG A/AA with no new dependency or
+  bridge/API capability.
+
 - **WorkHawk application boundary** - moves the source-only frontend from
   `dashboard/` to `workhawk/`, presents WorkHawk as the agentic engineering
   workbench, and keeps Doctrine as its independently installable governance

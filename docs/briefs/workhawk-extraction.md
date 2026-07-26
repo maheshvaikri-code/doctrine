@@ -61,6 +61,9 @@ without making Doctrine depend on the frontend.
 8. Given a Doctrine consumer install, when its manifest and CI are inspected,
    then WorkHawk source and its source-only workflow are not copied into the
    consumer.
+9. Given the human-supplied WorkHawk logo, when the application is built from a
+   fresh checkout, then the exact raster is served by the production server and
+   its hawk/W mark identifies the compact shell without regenerating the logo.
 
 ## Constraints
 

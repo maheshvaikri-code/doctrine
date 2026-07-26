@@ -33,10 +33,10 @@ evidence and a manual screen-reader pass.
 
 | # | Change | Evidence | Status |
 |---|---|---|---|
-| 1 | Add Playwright/Axe browser harness and deterministic API fixtures | local type/lint/build contracts | planned |
-| 2 | Cover keyboard, modal, responsive, reduced-motion, and five UI states | hosted Chromium test report | planned |
-| 3 | Add a separate Ubuntu Chromium job to dashboard CI | workflow contract + hosted run | planned |
-| 4 | Record review, QA, and remaining manual screen-reader limitation | review/QA artifacts | planned |
+| 1 | Add Playwright/Axe browser harness and deterministic API fixtures | local type/lint/build contracts | done |
+| 2 | Cover keyboard, modal, responsive, reduced-motion, and five UI states | hosted Chromium test report | done |
+| 3 | Add a separate Ubuntu Chromium job to dashboard CI | workflow contract + hosted run | done |
+| 4 | Record review, QA, and remaining manual screen-reader limitation | review/QA artifacts | done |
 
 ## Loop profile
 
@@ -60,3 +60,25 @@ regression or return to this plan. No retry-until-green behavior is permitted.
 Hosted Chromium plus Axe is real-browser automated evidence. It does not claim
 to be a manual NVDA, JAWS, VoiceOver, or TalkBack session. Manual screen-reader
 sign-off remains open until an appropriate interactive environment exists.
+
+## Result
+
+Implemented in `d682301`, repaired in `6f87761` and `55cee5d`, and verified by
+[dashboard run 30185799191](https://github.com/aroora-ai-labs/doctrine/actions/runs/30185799191).
+The browser job ran seven scenarios in hosted Chromium and passed in 18.0
+seconds. The final source commit also passed both dashboard OS legs and all four
+Doctrine Python/OS legs.
+
+The three-iteration ratchet produced named regressions rather than unchanged
+retries:
+
+1. The first run exposed an unlabeled chart semantic, transient/real contrast
+   defects, and two ambiguous locators.
+2. The second run proved Axe clean and narrowed the only failure to one stale
+   dialog-label assertion.
+3. The final run passed all seven scenarios.
+
+Review and QA evidence:
+
+- `docs/reviews/doctrine-control-room-browser-qa.md`
+- `docs/qa/doctrine-control-room-browser-qa.md`

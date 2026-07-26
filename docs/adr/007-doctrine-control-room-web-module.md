@@ -1,6 +1,6 @@
 # ADR-007 — Doctrine Control Room web module
 
-**Status:** Accepted
+**Status:** Superseded by ADR-009 for frontend ownership and naming
 **Date:** 2026-07-25
 
 ## Context

@@ -1,4 +1,4 @@
-"""Tests for the loopback Doctrine Control Room bridge."""
+"""Tests for the loopback Doctrine operations bridge consumed by WorkHawk."""
 from __future__ import annotations
 
 import json
@@ -294,7 +294,7 @@ class TestHttpBoundary(unittest.TestCase):
             method="POST" if data is not None else "GET",
         )
 
-    def test_health_and_snapshot_allow_the_dashboard_origin(self) -> None:
+    def test_health_and_snapshot_allow_the_workhawk_origin(self) -> None:
         for path in ("/api/v1/health", "/api/v1/snapshot"):
             with urllib.request.urlopen(self._request(path), timeout=2) as response:
                 payload = json.load(response)
@@ -383,6 +383,11 @@ class TestContract(unittest.TestCase):
             ).read_text("utf-8")
         )
 
+        self.assertEqual(
+            contract["info"]["title"],
+            "Doctrine Local Operations Bridge",
+        )
+        self.assertIn("WorkHawk", contract["info"]["description"])
         self.assertEqual(
             set(contract["paths"]),
             {

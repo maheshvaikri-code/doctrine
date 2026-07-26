@@ -6,6 +6,15 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+- **WorkHawk application boundary** - moves the source-only frontend from
+  `dashboard/` to `workhawk/`, presents WorkHawk as the agentic engineering
+  workbench, and keeps Doctrine as its independently installable governance
+  module over the unchanged v1 loopback contract. A typed registry names
+  Doctrine, MAPLE, STIX, and Trust while exposing only Doctrine as connected.
+  Source CI, Chromium QA, production asset regression, operating docs, and
+  Sites metadata now follow the WorkHawk application path. No external site or
+  package is published by this change.
+
 - **Control Room Windows production loading repair** - the repository-owned
   production launcher now normalizes vinext's Windows static-cache keys so
   rendered CSS and JavaScript assets no longer return `404`. The layout uses

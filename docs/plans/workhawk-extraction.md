@@ -13,8 +13,8 @@
 | 2 | Move the tracked application to `workhawk/` without duplication | DevOps / Frontend Engineer | application tree, Sites metadata | Git path assertions + build | done |
 | 3 | Rebrand the shell and add a truthful typed module registry | Frontend / Interop Engineer | metadata, shell, registry, styles | rendered contract + browser states | done |
 | 4 | Rewire bridge language, CI, tests, and operating documentation | Interop / DevOps Engineer | bridge, OpenAPI, workflow, tests, READMEs | Python + Node contract tests | done |
-| 5 | Run review, security, browser, OS, and repository gates | Reviewer roles | review and QA artifacts | lint, types, tests, audit, Chromium, Doctrine verify | doing |
-| 6 | Checkpoint release evidence without publishing and capture lessons | Release Manager / Project Reviewer | changelog, retro, state | clean pushed commit + hosted gates | todo |
+| 5 | Run review, security, browser, OS, and repository gates | Reviewer roles | review and QA artifacts | lint, types, tests, audit, Chromium, Doctrine verify | done |
+| 6 | Checkpoint release evidence without publishing and capture lessons | Release Manager / Project Reviewer | changelog, retro, state | clean pushed commit + hosted gates | done |
 
 ## Acceptance-criterion trace
 
@@ -73,10 +73,15 @@ acceptance criterion; repeated path or browser failures return to this plan.
 - The moved Sites build plug-in matched the repository's broad `build/` ignore
   rule. It was force-added as the exact tracked migration target and a contract
   test now proves that a fresh checkout contains it.
+- The first hosted Chromium run passed six scenarios but failed the live-state
+  scenario because its non-exact WorkHawk locator matched the brand, fixture
+  activity, and footer. The locator was narrowed and exact-commit run
+  `30189259820` passed all seven scenarios.
 
 ## Status snapshot
 
-Done: boundary artifacts, tracked extraction, product/module identity, Doctrine
-contract wiring, and local automated gates. Next: hosted Windows, Ubuntu, and
-Chromium evidence followed by final review/QA/retro artifacts. Blocked on:
-none; hosted evidence begins after the implementation commit is pushed.
+Done: all six slices. Exact commit `43d1a30` passed hosted WorkHawk Windows,
+Ubuntu, and seven-scenario Chromium jobs plus Doctrine's Windows/Ubuntu and
+Python 3.11/3.12 matrix. Review, QA, security, and retrospective evidence are
+recorded. Blocked on: none. External publishing remains intentionally out of
+scope.

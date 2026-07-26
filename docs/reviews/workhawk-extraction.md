@@ -1,4 +1,4 @@
-# Code Review - WorkHawk application extraction @ 43d1a30
+# Code Review - WorkHawk application extraction @ 751e284
 
 **Reviewer roles:** Code Reviewer, Security Reviewer, Project Reviewer
 **Date:** 2026-07-25
@@ -20,7 +20,7 @@ npm run typecheck
 exit 0
 
 npm test
-5 tests; 5 pass; 0 fail
+6 tests; 6 pass; 0 fail
 
 npm run audit
 found 0 vulnerabilities
@@ -37,12 +37,12 @@ doctrine_lint: corpus clean
 ```
 
 Hosted evidence for exact commit
-`43d1a3055244560558022c69bc6c4f52c52562e3`:
+`751e2849785709406be7be0298c1a2adebfb7cf5`:
 
-- [WorkHawk run 30189259820](https://github.com/aroora-ai-labs/doctrine/actions/runs/30189259820):
-  Ubuntu success, Windows success, five of five production tests on both
+- [WorkHawk run 30189529300](https://github.com/aroora-ai-labs/doctrine/actions/runs/30189529300):
+  Ubuntu success, Windows success, six of six production tests on both
   systems, zero dependency vulnerabilities, and hosted Chromium seven of seven.
-- [Doctrine run 30189259821](https://github.com/aroora-ai-labs/doctrine/actions/runs/30189259821):
+- [Doctrine run 30189529281](https://github.com/aroora-ai-labs/doctrine/actions/runs/30189529281):
   Ubuntu and Windows on Python 3.11 and 3.12 all succeeded; each combination
   executed 186 tests.
 
@@ -55,6 +55,7 @@ Hosted evidence for exact commit
 | 3 | [MINOR] | `workhawk/app/globals.css` | Adding four module rows could make the fixed navigation inaccessible on a short viewport because the sidebar did not scroll independently. | Add contained vertical scrolling and exercise a 390 x 600 viewport in hosted Chromium. fixed@`b61a086` |
 | 4 | [MINOR] | `workhawk/tests/browser/workhawk.spec.mjs` | The first module assertion proved only one “Unavailable” label rather than the individual MAPLE, STIX, and Trust rows required by AC4. | Assert Doctrine connected and each future module unavailable by its own row. fixed@`b61a086` |
 | 5 | [MINOR] | `workhawk/tests/browser/workhawk.spec.mjs:135` | The first hosted run used a non-exact `WORKHAWK` locator that also matched the footer and fixture commit title. The UI was correct, but one browser scenario failed strict locator resolution. | Scope the assertion to exact brand text; the next hosted run passed seven of seven. fixed@`43d1a30` |
+| 6 | [MINOR] | `workhawk/public/workhawk-logo.png` | The human-supplied official logo arrived after the initial extraction review and was not part of the reviewed commit. | Preserve the exact raster in public assets, crop it non-destructively in the compact shell, and prove source presence, SSR reference, production HTTP delivery, and hosted browser rendering. fixed@`751e284` |
 
 All findings are resolved. The diff preserves the one-way
 `WorkHawk -> Doctrine API` dependency, adds no executable module connector, and
@@ -65,13 +66,14 @@ the frontend.
 
 The implementation matches the approved extraction slices: application move,
 product identity, typed module registry, Doctrine adapter preservation,
-workflow migration, operating documentation, and automated evidence. It does
-not deploy, publish, copy the frontend into Doctrine consumers, or claim that
-MAPLE, STIX, and Trust are connected.
+workflow migration, official brand raster, operating documentation, and
+automated evidence. It does not deploy, publish, copy the frontend into
+Doctrine consumers, or claim that MAPLE, STIX, and Trust are connected.
 
-The user-created `workhawk/logo/WorkHawk_Logo.png` appeared after the
-implementation was staged. It remains untouched and untracked, and is not
-represented as part of the reviewed build.
+The official raster is tracked byte-for-byte at
+`workhawk/public/workhawk-logo.png`. A separate derived
+`workhawk/public/brand/workhawk-mark.png` remains untouched and untracked; it
+is unused and is not represented as part of the reviewed build.
 
 ## Security review
 

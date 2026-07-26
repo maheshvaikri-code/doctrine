@@ -8,8 +8,8 @@ the live Doctrine v1 adapter, truthful unavailable states for MAPLE/STIX/Trust,
 renamed cross-platform CI, seven hosted browser scenarios, and updated
 architecture/operating documentation.
 
-Implementation commits: `b61a086` and `43d1a30`. Gates G0 through G7 were
-walked. No site, package, tag, or external release was created.
+Implementation commits: `b61a086`, `43d1a30`, and `751e284`. Gates G0 through
+G7 were walked. No site, package, tag, or external release was created.
 
 Defects caught after the initial extraction: an ignored Sites build plug-in, a
 short-viewport sidebar overflow risk, incomplete per-module browser assertions,
@@ -37,9 +37,9 @@ a locally occupied E2E port, and one ambiguous hosted brand locator.
   local Playwright cache had no Chromium executable.
 - The first hosted browser rerun exposed a strict-mode locator ambiguity caused
   by the new brand correctly appearing in several places.
-- A user-created WorkHawk logo arrived during verification. It was preserved
-  untouched as untracked work and was not silently folded into the reviewed
-  product commit.
+- A user-created WorkHawk logo arrived during verification. The original raster
+  was preserved byte-for-byte and integrated only after source, render,
+  production HTTP, and browser checks were added.
 
 ## Root causes
 
@@ -84,5 +84,5 @@ Hosted CI already installed fresh Chromium and supplied authoritative evidence.
   service, multi-repository backend, or public deployment.
 - Automated Axe and keyboard coverage is strong evidence, but it is not manual
   screen-reader or enterprise accessibility certification.
-- The untracked WorkHawk logo is outside commits `b61a086` and `43d1a30`; a
-  deliberate asset treatment and UI integration decision remains separate.
+- The original WorkHawk logo is tracked in `751e284`; the unused derived
+  `public/brand/workhawk-mark.png` remains untracked and outside the product.

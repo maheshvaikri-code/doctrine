@@ -1,0 +1,79 @@
+{
+  "at_commit": "ece964fc37e8460c04f6fede46c96cd1566c39f2",
+  "created_at": "2026-07-26T07:01:26Z",
+  "dead_ends": [
+    {
+      "approach": "Guard verification only at the primary action rendered in the live dashboard.",
+      "why_failed": "The global command palette exists before snapshot readiness and could authorize a POST; one shared ready/connected/clean eligibility rule plus an imperative guard closed the whole path."
+    },
+    {
+      "approach": "Run Playwright on the default port 3003 without checking the listener.",
+      "why_failed": "A stale unrelated service returned 404 and prevented the managed server from becoming ready; the documented WORKHAWK_E2E_PORT path used verified fresh port 3317."
+    },
+    {
+      "approach": "Assume the Playwright package implies its matching Chromium binary is installed.",
+      "why_failed": "The headless shell was absent. Installing Playwright's pinned browser to the machine cache enabled the suite without changing repository dependencies."
+    },
+    {
+      "approach": "doctrine_verify running 'ruff check tools tests' + 'unittest discover -s tests' unconditionally",
+      "why_failed": "in a consumer repo tools/ and tests/ also hold the host's code; it linted foreign files and ran the host suite + doctrine's 9-min self-tests. Scope by is_source_repo()"
+    },
+    {
+      "approach": "git add -A before committing with an untracked diagnostic paste in the repo root",
+      "why_failed": "swept error_maple_verify_command.md into a tagged release; amended out + gitignored error_*.md. Stage explicitly or check status first"
+    },
+    {
+      "approach": "counting bare verdict tokens (VETO/FAIL/PASS) across artifact diffs",
+      "why_failed": "review artifacts quote prose and pasted tool output containing those words; requiring 'verdict' on the same line removed the false positives"
+    },
+    {
+      "approach": "mtime-sorted _latest_gold for chain head discovery",
+      "why_failed": "git does not track mtimes; clones equalize them and attackers forge them - v1.12.0 chained to the wrong predecessor with check still passing"
+    },
+    {
+      "approach": "existence-only checks for council verdict and sign-offs",
+      "why_failed": "empty files satisfy existence; 'no verdict, no gold' must mean bytes, so hashedref content-pinning replaced it"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "WorkHawk now consumes the dedicated Doctrine current-verification resource while a job runs and performs one full snapshot reconciliation after terminal state.",
+      "confidence": "verified",
+      "evidence": "workhawk/app/doctrine-module.tsx and tests/browser/workhawk.spec.mjs",
+      "kind": "fact"
+    },
+    {
+      "claim": "Execution eligibility must be derived once for every invocation path, including global command surfaces that remain available during loading and error states.",
+      "confidence": "verified",
+      "evidence": "docs/reviews/workhawk-execution-wiring.md finding 1",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "A modal operator surface requires both keyboard focus containment and background accessibility-tree isolation.",
+      "confidence": "verified",
+      "evidence": "workhawk/app/doctrine-module.tsx and the command-dialog Axe scenario",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "The exact implementation commit passed six production tests, twelve Chromium scenarios, a zero-vulnerability audit, 186 Doctrine tests, Ruff, and the 28-checkpoint state chain.",
+      "confidence": "verified",
+      "evidence": "docs/qa/workhawk-execution-wiring.md",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "Push the local commits only after human authorization and observe exact hosted results.",
+    "Keep external deployment and publication gated.",
+    "Consider a cheap port/browser preflight in a separate test-runner task."
+  ],
+  "open_threads": [
+    "Run the existing Ubuntu, Windows, and hosted Chromium workflow on the next human-authorized push.",
+    "Cancellation, streamed output, durable history, connectors, and remote capability brokerage remain explicitly deferred."
+  ],
+  "seq": 28,
+  "session_id": "s-2026-07-26-workhawk-execution",
+  "task_refs": [
+    "workhawk-execution-wiring"
+  ]
+}

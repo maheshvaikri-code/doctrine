@@ -1,16 +1,25 @@
 {
-  "at_commit": "9f3a8d01b2251e15ece557814c8fc456ad286f83",
+  "at_commit": "ece964fc37e8460c04f6fede46c96cd1566c39f2",
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
-    "gates_passed": [],
-    "phase": "g0",
+    "gates_passed": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7"
+    ],
+    "phase": "g7",
     "ponytail_mode": "full",
-    "role": "chief-architect"
+    "role": "project-reviewer"
   },
-  "created_at": "2026-07-26T06:28:00Z",
-  "prev_sha256": "713fb7224b8983a168bddeca561f5c19e0816ff7fa9611309b5f65b703b3c820",
-  "seq": 27,
+  "created_at": "2026-07-26T07:01:26Z",
+  "prev_sha256": "a96b491b53d1316427416dc459f7321c9fc9001a923ab5792ac7079dc4f38976",
+  "seq": 28,
   "session_id": "s-2026-07-26-workhawk-execution",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
@@ -18,7 +27,7 @@
       "built_at_commit": null
     },
     "intents": {},
-    "latest_distillate_sha256": "2ba2c76f39d9d6f3c3088565be35e76a3ee4499609f3a5642938cc702d3db535",
+    "latest_distillate_sha256": "56dfbf2e9284b93d38625aa27847f50d9eac6c2424c44fce642ea93db92f4e1d",
     "unresolved_effects": 0
   },
   "worktree": "dirty"

@@ -1,7 +1,7 @@
 # Code Review - Doctrine Control Room Windows asset repair @ f371825
 
-**Reviewer roles:** Code Reviewer, Security Reviewer, Project Reviewer  
-**Date:** 2026-07-25  
+**Reviewer roles:** Code Reviewer, Security Reviewer, Project Reviewer
+**Date:** 2026-07-25
 **Reviewed against:** [implementation plan](../plans/doctrine-control-room-windows-assets.md)
 and [ADR-008](../adr/008-doctrine-control-room-local-bridge.md)
 

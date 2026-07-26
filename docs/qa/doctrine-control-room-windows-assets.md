@@ -1,6 +1,6 @@
 # QA Report - Doctrine Control Room Windows asset repair @ f371825
 
-**QA Engineer / Date:** serial role-hat validation, 2026-07-25  
+**QA Engineer / Date:** serial role-hat validation, 2026-07-25
 **Build under test:** `f3718255bc63297c7e3f39f3e54cc193d430cc68`
 
 ## Acceptance criteria

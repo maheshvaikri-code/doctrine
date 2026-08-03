@@ -56,6 +56,23 @@ Deployment is a promotion, not a build:
 4. **Deploy** — only from a gold record. **Rollback is the previous gold
    record**, not a rebuild: the chain IS the rollback ladder.
 
+### Attestation — proving WHO promoted
+
+The hash chain proves the record is internally consistent. It cannot prove
+authorship: anyone with repository write can recompute the whole chain. A
+**signed annotated tag** can, so `doctrine_gold record` reads git's own
+verification of the tag and stores `{signed, signer, key}` in the record;
+`check` fails if a record promoted from a signed tag no longer verifies.
+
+On a repo where signing keys are configured, run both sides with
+`--require-signature` — `record` then refuses to promote an unsigned tag and
+`check` refuses to green-light one, so "who approved this deploy" has an
+answer that survives a hostile audit. Without configured keys the flag is
+honest friction with nothing behind it: attestation is recorded as
+`signed: false` rather than quietly omitted. Doctrine adds no key custody,
+no certificate authority, and no network dependency — the keys are the ones
+the organization already manages.
+
 ## Do / Don't
 
 - Do run `doctrine_gold check --tag vX.Y.Z` in the deploy pipeline —

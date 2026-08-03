@@ -23,6 +23,17 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import os,subprocess,sys; sys.exit(subprocess.call([sys.executable,'tools/doctrine_guard.py']) if os.path.exists('tools/doctrine_guard.py') else 0)\""
+          }
+        ]
+      }
     ]
   }
 }

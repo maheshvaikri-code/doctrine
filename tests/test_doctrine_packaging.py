@@ -29,7 +29,28 @@ class TestInstaller(unittest.TestCase):
         return di.install(REPO, self.target,
                           [t for t in tools.split(",")],
                           kw.get("enterprise", False), kw.get("ci", False),
-                          kw.get("force", False))
+                          kw.get("force", False),
+                          ci_provider=kw.get("ci_provider", "github"))
+
+    def test_ci_wiring_lands_at_each_providers_canonical_path(self):
+        for provider, rel in (("github", ".github/workflows/doctrine.yml"),
+                              ("gitlab", ".gitlab-ci.yml"),
+                              ("azure", "azure-pipelines.yml")):
+            with self.subTest(provider=provider):
+                self._tmp.cleanup()
+                self._tmp = tempfile.TemporaryDirectory()
+                self.target = Path(self._tmp.name) / "consumer"
+                self.assertEqual(
+                    self.install(ci=True, ci_provider=provider), 0)
+                installed = self.target / rel
+                self.assertTrue(installed.is_file(), rel)
+                self.assertIn("doctrine_lint.py",
+                              installed.read_text("utf-8"))
+
+    def test_an_unknown_ci_provider_is_refused_before_any_write(self):
+        self.assertEqual(self.install(ci=True, ci_provider="jenkins"), 2)
+        self.assertFalse(self.target.exists(),
+                         "a refused install must write nothing")
 
     def test_claude_install_round_trip(self):
         self.assertEqual(self.install("claude,cursor"), 0)
@@ -47,21 +68,89 @@ class TestInstaller(unittest.TestCase):
         gitignore = (self.target / ".gitignore").read_text("utf-8")
         self.assertIn(".doctrine-state/local/", gitignore)
 
-    def test_maple_flag_seeds_brief(self):
-        # v0.1 turnkey: --maple records the runtime opt-in in the brief
+    def test_maple_flag_remains_an_idempotent_compatibility_alias(self):
         self.assertEqual(
             di.install(REPO, self.target, ["claude"], False, False, False,
                        maple=True), 0)
         brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertEqual(brief.count("Workforce runtime: maple"), 1)
+
+    def test_maple_is_enabled_by_default(self):
+        self.assertEqual(self.install(), 0)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Workforce runtime: maple", brief)
+        self.assertNotIn("Agent latitude:", brief)
+
+    def test_personal_profile_seeds_canonical_marker(self):
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], False, False, False,
+                       personal=True), 0)
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], False, False, False,
+                       personal=True), 0)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Delivery profile: personal", brief)
+        self.assertEqual(brief.count("Agent latitude: creative"), 1)
         self.assertIn("Workforce runtime: maple", brief)
 
-    def test_maple_absent_by_default(self):
-        di.install(REPO, self.target, ["claude"], False, False, False)
+    def test_solo_cli_alias_seeds_personal_profile(self):
+        self.assertEqual(di.main([
+            "--source", str(REPO),
+            "--target", str(self.target),
+            "--tool", "codex",
+            "--solo",
+        ]), 0)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Delivery profile: personal", brief)
+        self.assertIn("Agent latitude: creative", brief)
+
+    def test_personal_reinstall_preserves_explicit_agent_latitude(self):
+        brief_path = self.target / "docs" / "brief.md"
+        brief_path.parent.mkdir(parents=True)
+        brief_path.write_text(
+            "Delivery profile: personal\n"
+            "**Agent latitude:** deterministic\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], False, False, False,
+                       personal=True), 0)
+        brief = brief_path.read_text("utf-8")
+        self.assertIn("**Agent latitude:** deterministic", brief)
+        self.assertNotIn("Agent latitude: creative", brief)
+
+    def test_personal_and_enterprise_are_rejected_before_copy(self):
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], True, False, False,
+                       personal=True), 2)
+        self.assertFalse((self.target / ".Doctrine.md").exists())
+
+    def test_personal_rejects_existing_enterprise_brief_before_copy(self):
         brief = self.target / "docs" / "brief.md"
-        # brief is only seeded when a profile/runtime line is requested
-        if brief.exists():
-            self.assertNotIn("Workforce runtime: maple",
-                             brief.read_text("utf-8"))
+        brief.parent.mkdir(parents=True)
+        brief.write_text("Merge profile: enterprise\n", encoding="utf-8")
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], False, False, False,
+                       personal=True), 2)
+        self.assertFalse((self.target / ".Doctrine.md").exists())
+
+    def test_enterprise_rejects_existing_personal_brief_before_copy(self):
+        brief = self.target / "docs" / "brief.md"
+        brief.parent.mkdir(parents=True)
+        brief.write_text("Delivery profile: personal\n", encoding="utf-8")
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], True, False, False),
+            2,
+        )
+        self.assertFalse((self.target / ".Doctrine.md").exists())
+
+    def test_personal_remains_compatible_with_startup(self):
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"], False, False, False,
+                       startup=True, personal=True), 0)
+        brief = (self.target / "docs" / "brief.md").read_text("utf-8")
+        self.assertIn("Delivery profile: personal", brief)
+        self.assertIn("Company profile: startup", brief)
 
     def test_verify_flag_runs_init_then_gates(self):
         # --verify must init state THEN run the gate suite, both in the
@@ -153,6 +242,35 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(self.install(force=True), 0)
         self.assertNotEqual(marker.read_text("utf-8"), "locally edited\n")
 
+    def test_force_reinstall_preserves_repo_state_memory_and_plans(self):
+        self.assertEqual(self.install(enterprise=True), 0)
+        protected = {
+            ".doctrine-state/checkpoint.json": b'{"seq":7}\n',
+            ".doctrine-state/checkpoints/7-session.json": b'{"seq":7}\n',
+            ".doctrine-state/local/openhawk/sessions.jsonl": b'{"id":"s1"}\n',
+            "memory/project.ndjson": b'{"fact":"keep"}\n',
+            "sessions/current.json": b'{"session":"keep"}\n',
+            "docs/plans/current-program.md": b"# Keep this plan\n",
+            "docs/briefs/current-task.md": b"# Keep this brief\n",
+            "docs/adr/999-project-decision.md": b"# Keep this decision\n",
+        }
+        brief = self.target / "docs" / "brief.md"
+        protected["docs/brief.md"] = (
+            brief.read_bytes() + b"\nRepository-owned acceptance data.\n"
+        )
+        for rel, data in protected.items():
+            path = self.target / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+
+        self.assertEqual(self.install(enterprise=True, force=True), 0)
+        for rel, expected in protected.items():
+            self.assertEqual(
+                (self.target / rel).read_bytes(),
+                expected,
+                f"force reinstall changed repository-owned data: {rel}",
+            )
+
     def test_existing_agents_md_untouched(self):
         self.target.mkdir(parents=True)
         (self.target / "AGENTS.md").write_text("mine\n", encoding="utf-8")
@@ -179,6 +297,20 @@ class TestInstaller(unittest.TestCase):
         self.install(enterprise=True)
         brief = (self.target / "docs" / "brief.md").read_text("utf-8")
         self.assertIn("Merge profile: enterprise", brief)
+
+    def test_reinstall_preserves_inline_profile_brief_byte_exact(self):
+        brief = self.target / "docs" / "brief.md"
+        brief.parent.mkdir(parents=True)
+        original = (
+            b"# Project brief\n\n"
+            b"**Profiles:** `Merge profile: enterprise` | "
+            b"`Workforce runtime: maple`\n"
+            b"Repository-owned acceptance data.\n"
+        )
+        brief.write_bytes(original)
+
+        self.assertEqual(self.install(enterprise=True, force=True), 0)
+        self.assertEqual(brief.read_bytes(), original)
 
     def test_startup_seeds_brief(self):
         di.install(REPO, self.target, ["claude"], False, False, False,
@@ -207,6 +339,15 @@ class TestInstaller(unittest.TestCase):
         on_disk = {p.name for p in (REPO / "tools").glob("doctrine_*.py")}
         self.assertEqual(on_disk, set(di.TOOL_FILES),
                          "installer TOOL_FILES out of sync with tools/")
+
+    def test_installer_ships_dashboard_openapi_contract(self):
+        """Regression: consumer dashboard tests need their public contract."""
+        self.assertEqual(self.install(), 0)
+        rel = Path("docs/contracts/doctrine-control-room.openapi.json")
+        self.assertEqual(
+            (self.target / rel).read_bytes(),
+            (REPO / rel).read_bytes(),
+        )
 
     def test_installed_target_lints_clean(self):
         """Regression: PD-1 — a consumer repo must verify out of the box

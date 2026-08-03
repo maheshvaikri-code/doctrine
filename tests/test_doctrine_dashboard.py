@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import subprocess
 import sys
 import tempfile
@@ -338,11 +339,49 @@ class TestHttpBoundary(unittest.TestCase):
         self.assertEqual(wrong_type_error.exception.code, 415)
         self.assertEqual(input_error.exception.code, 400)
 
+    def test_early_rejection_answers_a_late_arriving_body(self) -> None:
+        """Regression: a rejected POST must consume the body it announced.
+
+        Answering and closing while the body is still in flight makes the late
+        bytes land on a closed socket; the OS replies RST and the client loses
+        the response (ConnectionAbortedError / WinError 10053). That race is
+        what made this suite flake ~1 run in 6 under load. Sending the headers
+        and the body in separate segments reproduces it deterministically.
+        """
+        headers = (
+            b"POST /api/v1/verifications HTTP/1.0\r\n"
+            b"Host: localhost\r\n"
+            b"Origin: http://localhost:3003\r\n"
+            b"Content-Type: text/plain\r\n"
+            b"Content-Length: 2\r\n"
+            b"\r\n"
+        )
+        host, port = self.server.server_address
+        with socket.create_connection((host, port), timeout=5) as sock:
+            sock.sendall(headers)
+            time.sleep(0.3)      # a broken server answers and closes here
+            sock.sendall(b"{}")  # ... and this lands on a closed socket
+            received = b""
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                received += chunk
+
+        self.assertTrue(
+            received.startswith(b"HTTP/1.0 415 "),
+            f"expected a 415 status line, got {received[:60]!r}",
+        )
+
     def test_rejects_oversized_mutation_before_reading_it(self) -> None:
-        request = self._request(
-            "/api/v1/verifications",
-            data=b" " * (dashboard.MAX_REQUEST_BYTES + 1),
-            content_type="application/json",
+        request = urllib.request.Request(
+            f"{self.base_url}/api/v1/verifications",
+            headers={
+                "Origin": "http://localhost:3003",
+                "Content-Type": "application/json",
+                "Content-Length": str(dashboard.MAX_REQUEST_BYTES + 1),
+            },
+            method="POST",
         )
 
         with self.assertRaises(urllib.error.HTTPError) as raised:

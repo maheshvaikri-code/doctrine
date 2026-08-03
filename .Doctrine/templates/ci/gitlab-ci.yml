@@ -1,0 +1,49 @@
+# Doctrine gate suite - GitLab CI
+# Parity with .github/workflows/doctrine.yml: corpus lint -> ruff -> suite.
+# Install with: python tools/doctrine_install.py --target . --ci
+#               --ci-provider gitlab
+#
+# The gates are the same commands you run locally (one-command truth,
+# skills/repo-devops.md); nothing here is CI-only.
+
+stages:
+  - verify
+
+.doctrine-verify:
+  stage: verify
+  image: python:${PYTHON_VERSION}-slim
+  before_script:
+    - python --version
+  script:
+    # 1. the corpus must be internally consistent
+    - python tools/doctrine_lint.py
+    # 2. the Python profile lint (pinned: a moving linter is a moving gate)
+    - pip install --quiet ruff==0.15.15
+    - python -m ruff check tools tests
+    # 3. the tooling suite
+    - python -m unittest discover -s tests -v
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+doctrine:python-3.11:
+  extends: .doctrine-verify
+  variables:
+    PYTHON_VERSION: "3.11"
+
+doctrine:python-3.12:
+  extends: .doctrine-verify
+  variables:
+    PYTHON_VERSION: "3.12"
+
+# Gold-build deploy gate. Deployment is a promotion, not a build: the record
+# must exist and re-verify before anything ships
+# (standards/merge-and-promotion.md). Add --require-signature once the team's
+# signing keys are configured, and this refuses an unsigned promotion.
+doctrine:gold-check:
+  stage: verify
+  image: python:3.12-slim
+  script:
+    - python tools/doctrine_gold.py check --tag "$CI_COMMIT_TAG"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/

@@ -37,6 +37,9 @@ MAX_REQUEST_BYTES: Final = 1024
 MAX_OUTPUT_CHARS: Final = 32 * 1024
 GIT_TIMEOUT_SECONDS: Final = 5
 VERIFY_TIMEOUT_SECONDS: Final = 180
+# A socket read that never completes must not hold a request thread forever;
+# every read on a connection (request line, headers, body drain) is bounded.
+REQUEST_TIMEOUT_SECONDS: Final = 10
 DEFAULT_ORIGINS: Final = frozenset(
     {"http://localhost:3003", "http://127.0.0.1:3003"}
 )
@@ -744,9 +747,43 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
     class Handler(BaseHTTPRequestHandler):
         server_version = "DoctrineBridge/1"
         sys_version = ""
+        timeout = REQUEST_TIMEOUT_SECONDS
+        _body_consumed = False
 
         def log_message(self, format: str, *args: object) -> None:
             return
+
+        def _read_body(self, content_length: int) -> bytes:
+            self._body_consumed = True
+            return self.rfile.read(content_length)
+
+        def _drain_request_body(self) -> None:
+            """Consume the announced request body before answering it.
+
+            A response written while the body is still in flight is followed
+            by close(); the body then lands on a closed socket, the OS answers
+            RST, and the client loses a response it had not read yet
+            (ConnectionAbortedError / WinError 10053). Reading first removes
+            the race for every early-rejection path at once.
+
+            The drain is bounded by the endpoint's own cap, so an oversized
+            body is still never buffered whole - a client that ignored the
+            documented limit gets the connection closed under it, which is the
+            correct answer.
+            """
+            if self._body_consumed:
+                return
+            self._body_consumed = True
+            try:
+                declared = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return
+            if declared <= 0:
+                return
+            try:
+                self.rfile.read(min(declared, MAX_REQUEST_BYTES))
+            except OSError:      # client vanished mid-body; nothing to salvage
+                self.close_connection = True
 
         def _origin(self) -> str | None:
             return self.headers.get("Origin")
@@ -761,6 +798,9 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
             value: dict[str, Any],
         ) -> None:
             body = json.dumps(value, separators=(",", ":")).encode("utf-8")
+            # One choke point for the whole early-rejection class: never write
+            # a response while the request body is still arriving.
+            self._drain_request_body()
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -869,6 +909,10 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
                 )
                 return
             if content_length > MAX_REQUEST_BYTES:
+                # Deliberately do NOT drain: refusing to read an oversized body
+                # is the point of this branch, and blocking on bytes a client
+                # may never send would hold the thread to its read timeout.
+                self._body_consumed = True
                 self._send_json(
                     HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                     _error(
@@ -878,7 +922,7 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
                 )
                 return
             try:
-                body = json.loads(self.rfile.read(content_length))
+                body = json.loads(self._read_body(content_length))
             except (UnicodeDecodeError, ValueError):
                 self._send_json(
                     HTTPStatus.BAD_REQUEST,

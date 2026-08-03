@@ -1,0 +1,47 @@
+# Doctrine gate suite - Azure DevOps
+# Parity with .github/workflows/doctrine.yml: corpus lint -> ruff -> suite.
+# Install with: python tools/doctrine_install.py --target . --ci
+#               --ci-provider azure
+#
+# The gates are the same commands you run locally (one-command truth,
+# skills/repo-devops.md); nothing here is CI-only.
+
+trigger:
+  - main
+
+pr:
+  - main
+
+strategy:
+  matrix:
+    linux-py311:
+      imageName: "ubuntu-latest"
+      pythonVersion: "3.11"
+    linux-py312:
+      imageName: "ubuntu-latest"
+      pythonVersion: "3.12"
+    # windows covers the cp1252-pipe output class by environment, not by
+    # hoping someone remembers it
+    windows-py312:
+      imageName: "windows-latest"
+      pythonVersion: "3.12"
+
+pool:
+  vmImage: $(imageName)
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "$(pythonVersion)"
+    displayName: "Use Python $(pythonVersion)"
+
+  - script: python tools/doctrine_lint.py
+    displayName: "Corpus lint (doctrine self-consistency gate)"
+
+  - script: |
+      pip install --quiet ruff==0.15.15
+      python -m ruff check tools tests
+    displayName: "Ruff (python profile lint)"
+
+  - script: python -m unittest discover -s tests -v
+    displayName: "State-plane + lint test suite"

@@ -262,5 +262,100 @@ class TestRecordAndCheck(GoldRepo):
         self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
 
 
+class TestAttestation(GoldRepo):
+    """Signature attestation: the chain proves WHAT was promoted, a signed
+    tag proves WHO promoted it."""
+
+    def test_an_unsigned_tag_is_recorded_as_unsigned(self):
+        self.record()
+
+        record = json.loads(
+            (self.root / "docs" / "releases" / "gold" / "v1.0.0.json")
+            .read_text("utf-8"))
+
+        self.assertEqual(record["attestation"],
+                         {"signed": False, "signer": None, "key": None})
+
+    def test_require_signature_refuses_an_unsigned_tag(self):
+        proposal = self.root / "gold-proposal.json"
+        proposal.write_text(json.dumps(self.proposal()), encoding="utf-8")
+
+        with self.assertRaises(dg.StateError) as raised:
+            dg.cmd_record(self.root, proposal, require_signature=True)
+
+        self.assertIn("no signature", str(raised.exception))
+        self.assertFalse((self.root / "docs" / "releases" / "gold").exists(),
+                         "a refused promotion must write nothing")
+
+    def test_check_with_require_signature_refuses_an_unsigned_tag(self):
+        self.record()
+
+        self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 0)
+        self.assertEqual(
+            dg.cmd_check(self.root, "v1.0.0", require_signature=True), 1)
+
+    def test_records_written_before_attestation_still_validate(self):
+        """Records are immutable: v0.6.x records must not become invalid."""
+        self.record()
+        out = self.root / "docs" / "releases" / "gold" / "v1.0.0.json"
+        record = json.loads(out.read_text("utf-8"))
+        del record["attestation"]
+        out.write_bytes(ds.canonical_bytes(record))
+
+        self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 0)
+
+    def test_a_record_that_claims_a_signature_fails_when_the_tag_lost_it(self):
+        self.record()
+        out = self.root / "docs" / "releases" / "gold" / "v1.0.0.json"
+        record = json.loads(out.read_text("utf-8"))
+        record["attestation"] = {"signed": True, "signer": "Someone",
+                                 "key": "DEADBEEF"}
+        out.write_bytes(ds.canonical_bytes(record))
+
+        self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
+
+
+class TestSignatureParsing(unittest.TestCase):
+    """The parse is pure so it is testable without provisioning a key.
+
+    Fixtures are git's real output shapes; the parser fails CLOSED on
+    anything it does not recognise, so a format drift can only ever
+    under-report a signature, never invent one.
+    """
+
+    def test_gpg_good_signature_yields_signer_and_fingerprint(self):
+        raw = (
+            "[GNUPG:] NEWSIG\n"
+            "[GNUPG:] GOODSIG 4AEE18F83AFDEB23 Ada Lovelace <ada@example.org>\n"
+            "[GNUPG:] VALIDSIG "
+            "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234 2026-08-03\n"
+        )
+
+        self.assertEqual(
+            dg.parse_signature_status(0, raw),
+            {"signed": True, "signer": "Ada Lovelace <ada@example.org>",
+             "key": "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234"},
+        )
+
+    def test_ssh_good_signature_is_recognised(self):
+        raw = ('Good "git" signature for ada@example.org with ED25519 key '
+               "SHA256:abcdef0123456789\n")
+
+        self.assertEqual(
+            dg.parse_signature_status(0, raw),
+            {"signed": True, "signer": "ada@example.org",
+             "key": "SHA256:abcdef0123456789"},
+        )
+
+    def test_a_failed_verification_is_never_reported_as_signed(self):
+        for code, raw in ((1, "error: no signature found\n"),
+                          (1, "[GNUPG:] BADSIG 4AEE18F83AFDEB23 Ada\n"),
+                          (0, "some output git never produced")):
+            with self.subTest(code=code):
+                self.assertEqual(
+                    dg.parse_signature_status(code, raw),
+                    {"signed": False, "signer": None, "key": None})
+
+
 if __name__ == "__main__":
     unittest.main()

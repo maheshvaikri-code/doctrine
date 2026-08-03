@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doctrineos"
-version = "0.6.46"
+version = "0.7.0"
 description = "The Doctrine System: a gated engineering operating system for AI coding agents - roles, skills, adversarial review gates, hash-chained session state, gold-build deployment."
 readme = ".Doctrine/README.md"
 requires-python = ">=3.11"
@@ -22,6 +22,8 @@ doctrine-metrics = "doctrine_metrics:main"
 doctrine-signature = "doctrine_signature:main"
 doctrine-awaken = "doctrine_awaken:main"
 doctrine-dashboard = "doctrine_dashboard:main"
+doctrine-guard = "doctrine_guard:main"
+doctrine-fleet = "doctrine_fleet:main"
 
 [tool.setuptools]
 package-dir = { "" = "tools" }
@@ -35,6 +37,8 @@ py-modules = [
   "doctrine_signature",
   "doctrine_awaken",
   "doctrine_dashboard",
+  "doctrine_guard",
+  "doctrine_fleet",
 ]
 
 [tool.ruff]

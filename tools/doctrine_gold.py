@@ -50,6 +50,56 @@ from doctrine_state import (  # noqa: E402
 GOLD_DIR = Path("docs") / "releases" / "gold"
 TAG_RE = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
 
+# Attestation. The hash chain proves the record is internally consistent; it
+# cannot prove WHO promoted, because anyone with repo write can recompute the
+# whole chain. A signed annotated tag can: it carries an identity the signer
+# controls, verified by keys the org already manages. Doctrine adds no key
+# custody, no CA, no network - it reads git's own verdict.
+#
+# GPG status lines are authoritative. Git's ssh-signing text is parsed as a
+# fallback; if that format ever shifts, the parse fails CLOSED (reports
+# unsigned) and never invents a signature.
+GOODSIG_RE = re.compile(r"^\[GNUPG:\] GOODSIG (\S+) (.*)$", re.MULTILINE)
+VALIDSIG_RE = re.compile(r"^\[GNUPG:\] VALIDSIG (\S+)", re.MULTILINE)
+SSH_GOOD_RE = re.compile(
+    r'^Good "git" signature for (.+?) with (\S+) key (\S+)', re.MULTILINE)
+UNSIGNED = {"signed": False, "signer": None, "key": None}
+
+
+def parse_signature_status(returncode: int, raw: str) -> dict:
+    """git's verification output -> the attestation recorded in the record.
+
+    Pure, so the parse is testable without provisioning a signing key.
+    """
+    if returncode != 0:
+        return dict(UNSIGNED)
+    good = GOODSIG_RE.search(raw)
+    if good:
+        valid = VALIDSIG_RE.search(raw)
+        return {
+            "signed": True,
+            "signer": good.group(2).strip() or None,
+            "key": (valid.group(1) if valid else good.group(1)),
+        }
+    ssh = SSH_GOOD_RE.search(raw)
+    if ssh:
+        return {"signed": True, "signer": ssh.group(1).strip() or None,
+                "key": ssh.group(3)}
+    return dict(UNSIGNED)
+
+
+def verify_tag_signature(repo: Path, tag: str) -> dict:
+    """Ask git whether this tag carries a signature it can verify."""
+    require_tag_format(tag)          # never let a tag string reach argv raw
+    try:
+        proc = subprocess.run(
+            ["git", "verify-tag", "--raw", tag], cwd=repo,
+            capture_output=True, text=True, check=False, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return dict(UNSIGNED)
+    return parse_signature_status(proc.returncode,
+                                  f"{proc.stderr}\n{proc.stdout}")
+
 
 def load_gold_schema(repo: Path) -> dict:
     path = repo / ".Doctrine" / "schemas" / "gold-build.schema.json"
@@ -140,7 +190,8 @@ def load_chain(repo: Path) -> list[Path]:
     return ordered
 
 
-def cmd_record(repo: Path, input_path: Path) -> int:
+def cmd_record(repo: Path, input_path: Path,
+               require_signature: bool = False) -> int:
     proposal = load_json(input_path, "gold proposal")
     if not isinstance(proposal, dict):
         raise StateError("gold proposal must be a JSON object")
@@ -157,6 +208,13 @@ def cmd_record(repo: Path, input_path: Path) -> int:
 
     # ---- dispose: every claim verified before anything is written ----
     at_commit = tag_commit(repo, tag)
+    attestation = verify_tag_signature(repo, tag)
+    if require_signature and not attestation["signed"]:
+        raise StateError(
+            f"--require-signature: {tag} carries no signature git can "
+            "verify. A gold record proves WHAT was promoted; only a signed "
+            "tag proves WHO promoted it. Sign the tag (git tag -s) or drop "
+            "the flag knowingly.")
     if head_commit(repo) != at_commit:
         print(f"warning: HEAD is not {tag}'s commit - artifacts are "
               "hashed from THIS worktree; make sure they were built from "
@@ -192,6 +250,7 @@ def cmd_record(repo: Path, input_path: Path) -> int:
         "artifacts": artifacts,
         "soak": proposal["soak"],
         "human_approval": proposal["human_approval"],
+        "attestation": attestation,
         "prev_gold_sha256": sha256_file(prev) if prev else None,
     }
     validate(record, load_gold_schema(repo))
@@ -205,15 +264,18 @@ def cmd_record(repo: Path, input_path: Path) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     data = canonical_bytes(record)
     out.write_bytes(data)
+    signer = attestation["signer"] or attestation["key"]
     print(f"GOLD: {tag} at {at_commit[:12]} "
           f"({sha256_bytes(data)[:12]}); {len(artifacts)} artifact(s)"
-          + (f"; chained to {prev.name}" if prev else "; genesis record"))
+          + (f"; chained to {prev.name}" if prev else "; genesis record")
+          + (f"; signed by {signer}" if attestation["signed"]
+             else "; UNSIGNED tag (attested as unsigned)"))
     print(f"remember: git add {out.relative_to(repo).as_posix()} && "
           f"git commit -m \"release: gold {tag}\"")
     return 0
 
 
-def cmd_check(repo: Path, tag: str) -> int:
+def cmd_check(repo: Path, tag: str, require_signature: bool = False) -> int:
     require_tag_format(tag)
     path = repo / GOLD_DIR / f"{tag}.json"
     if not path.exists():
@@ -255,6 +317,19 @@ def cmd_check(repo: Path, tag: str) -> int:
             findings.append(f"{what} hash mismatch: {entry['path']} - "
                             "content changed after promotion")
 
+    # Attestation: what git says NOW versus what the record claimed then.
+    # A tag that lost its signature (deleted and re-cut) is a promotion whose
+    # authorship no longer holds, even when every hash still matches.
+    recorded = record.get("attestation")
+    current = verify_tag_signature(repo, tag)
+    if recorded is not None and recorded.get("signed") and \
+            not current["signed"]:
+        findings.append("attestation: the record was promoted from a signed "
+                        "tag, but that tag no longer verifies")
+    if require_signature and not current["signed"]:
+        findings.append("--require-signature: this tag carries no signature "
+                        "git can verify - promotion authorship is unproven")
+
     try:
         chain = load_chain(repo)
         if path.resolve() not in [p.resolve() for p in chain]:
@@ -267,8 +342,11 @@ def cmd_check(repo: Path, tag: str) -> int:
         for msg in findings:
             print(f"  - {msg}")
         return 1
+    signer = current["signer"] or current["key"]
     print(f"check OK: {tag} is GOLD - schema valid, artifacts/verdict/"
-          "sign-offs match their recorded hashes, chain intact")
+          "sign-offs match their recorded hashes, chain intact"
+          + (f", signed by {signer}" if current["signed"]
+             else ", tag UNSIGNED (authorship unproven)"))
     return 0
 
 
@@ -277,18 +355,24 @@ def main(argv: list[str] | None = None) -> int:
                                      description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     sub = parser.add_subparsers(dest="command", required=True)
+    signature_help = ("refuse unless the tag carries a signature git can "
+                      "verify (proves WHO promoted, not just what)")
     p_rec = sub.add_parser("record")
     p_rec.add_argument("--input", type=Path, required=True)
+    p_rec.add_argument("--require-signature", action="store_true",
+                       help=signature_help)
     p_chk = sub.add_parser("check")
     p_chk.add_argument("--tag", required=True)
+    p_chk.add_argument("--require-signature", action="store_true",
+                       help=signature_help)
     args = parser.parse_args(argv)
 
     repo = args.root.resolve()
     try:
         if args.command == "record":
-            return cmd_record(repo, args.input)
+            return cmd_record(repo, args.input, args.require_signature)
         if args.command == "check":
-            return cmd_check(repo, args.tag)
+            return cmd_check(repo, args.tag, args.require_signature)
     except (SchemaError, StateError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

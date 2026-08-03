@@ -57,6 +57,17 @@
         "statement": { "type": "string", "minLength": 1, "maxLength": 400 }
       }
     },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signed", "signer", "key"],
+      "description": "Cryptographic authorship of the promotion, read from git's own verification of the annotated tag. OPTIONAL: records written before v0.7.0 predate attestation and stay valid (records are immutable; a correction is a NEW tag). signed=false is recorded honestly rather than omitted.",
+      "properties": {
+        "signed": { "type": "boolean" },
+        "signer": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+        "key": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+      }
+    },
     "prev_gold_sha256": {
       "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }],
       "description": "null only for the first gold record in the repo."

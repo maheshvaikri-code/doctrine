@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
-  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.6.46-1a2b5e" alt="version v0.6.46"></a>
+  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.7.0-1a2b5e" alt="version v0.7.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1a2b5e" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
   <a href="#quick-start"><img src="https://img.shields.io/badge/Claude_Code-plugin-e8642c" alt="Claude Code plugin"></a>
@@ -16,12 +16,17 @@ turns a repository into a disciplined software company: explicit
 requirements, adversarial review gates, tested code, honest reports —
 enforced by tooling, not vibes.
 
-- **38 roles** with tool-enforced separation of duties (reviewers
+- **39 roles** with tool-enforced separation of duties (reviewers
   physically cannot edit code)
 - **58 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
   coverage from backend to mobile, ML, data, privacy, incident response
 - **Gates G0→G7** with right-sized ceremony (a typo fix never convenes
   a council; a release always does)
+- **Personal/solo builder profile** — `--personal` / `--solo` routes routine
+  work through a creatively free Solo Builder phase, then deterministic DevOps
+  verification; governance fences real risks rather than ordinary ideation
+- **MAPLE by default** — selected for every install, with native/serial fallback
+  and explicit installation of the free/open-source AGPL runtime
 - **Hash-chained session state** — the repo remembers, the model doesn't
   have to (`.doctrine-state/`, checkpoint → hydrate)
 - **Gold Build deployment** (opt-in enterprise profile) — deploy only
@@ -48,6 +53,13 @@ The classic OS primitives map onto real components:
 - **Memory** — the hash-chained **state plane** (`.doctrine-state/`): checkpoint →
   hydrate; the repo remembers so the model doesn't have to
 - **Syscalls** — **§5** gates every irreversible or external action; the human is root
+- **Protection ring** — the `PreToolUse` guard (`doctrine_guard`) *denies* before
+  the tool runs: secrets, immutable evidence, and §5/test-weakening escalations.
+  The rules stop being advice the model may skip
+- **Provenance** — gold records carry the tag's cryptographic **attestation**
+  (`--require-signature`): the chain proves *what* shipped, the signature *who*
+- **`ps` for a fleet** — `doctrine_fleet status` shows every governed repo's
+  version, drift, state and release distance in one read-only table
 
 It's agent-count-agnostic: one agent wearing role hats, or a fleet of workers +
 fresh-context verifiers. Full mapping — including where the metaphor holds and
@@ -73,7 +85,7 @@ MCP server.
 ```bash
 git clone https://github.com/aroora-ai-labs/doctrine
 python doctrine/tools/doctrine_install.py --target <your-repo> \
-    --tool claude,cursor,codex   # add --enterprise --ci as needed
+    --tool claude,cursor,codex   # add --solo, --startup, or --enterprise
 cd <your-repo> && python tools/doctrine_state.py init && make verify
 ```
 
@@ -148,7 +160,7 @@ tools/                stdlib-only enforcement: state plane, corpus lint,
                       gold builds, MCP server, installer, WorkHawk bridge
 workhawk/             source-only agentic engineering workbench
 plugin/               Claude Code plugin (byte-parity lint-enforced)
-tests/               186 tests; `make verify` = lint + ruff + tests
+tests/               195 tests; `make verify` = lint + ruff + tests
 .doctrine-state/      this repo's own hash-chained session memory
 ```
 

@@ -2,23 +2,27 @@
 """doctrine_install — install the Doctrine System into any target repo.
 
 Copies the committed law (.Doctrine.md + .Doctrine/), the enforcement
-tools, the Claude Code wiring, and the adapter overlays for the tools you
-name. Idempotent: unchanged files are skipped; files that exist with
-DIFFERENT content are never silently clobbered (skipped with a warning
-unless --force). An existing CLAUDE.md gets the import lines APPENDED,
-never replaced; an existing AGENTS.md is left alone (use
-`doctrine_state.py hydrate --emit-agents` for the state block).
+tools and their companion artifacts, the Claude Code wiring, and the
+adapter overlays for the tools you name. Idempotent: unchanged files are
+skipped; files that exist with DIFFERENT content are never silently
+clobbered (skipped with a warning unless --force). An existing CLAUDE.md
+gets the import lines APPENDED, never replaced; an existing AGENTS.md is
+left alone (use `doctrine_state.py hydrate --emit-agents` for the state
+block).
 
 Usage:
   python tools/doctrine_install.py --target ../my-repo --tool claude
   python tools/doctrine_install.py --target . --tool claude,cursor,codex
   python tools/doctrine_install.py --target ../svc --tool all --enterprise
+  python tools/doctrine_install.py --target ../app --tool codex --solo
   python tools/doctrine_install.py --target . --verify   # turnkey: one command
 
 --verify makes it turnkey: after copying, it initializes the state plane
 and runs the gate suite in the target, so a single command ends in a
-proven-green install. --maple opts into the MAPLE runtime by seeding the
-brief.
+proven-green install. MAPLE is the default workforce runtime; the legacy
+--maple flag remains accepted as an idempotent compatibility alias.
+--personal and --solo are aliases for the solo-builder delivery profile:
+creative reversible work, deterministic verification.
 
 --local writes a single marker-delimited managed block into the target
 .gitignore that covers the WHOLE installed framework (corpus, tools, tests,
@@ -58,7 +62,21 @@ TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
               "doctrine_mcp.py", "doctrine_install.py",
               "doctrine_metrics.py", "doctrine_verify.py",
               "doctrine_engage.py", "doctrine_awaken.py",
-              "doctrine_signature.py", "doctrine_dashboard.py"]
+              "doctrine_signature.py", "doctrine_dashboard.py",
+              "doctrine_guard.py", "doctrine_fleet.py"]
+COMPANION_FILES = [
+    "docs/contracts/doctrine-control-room.openapi.json",
+]
+# CI wiring per provider: (source file, dest under the target root). GitHub
+# ships as a live workflow; the others ship as templates under .Doctrine/ so
+# they land at each provider's canonical path.
+CI_PROVIDERS: dict[str, tuple[str, str]] = {
+    "github": (".github/workflows/doctrine.yml",
+               ".github/workflows/doctrine.yml"),
+    "gitlab": (".Doctrine/templates/ci/gitlab-ci.yml", ".gitlab-ci.yml"),
+    "azure": (".Doctrine/templates/ci/azure-pipelines.yml",
+              "azure-pipelines.yml"),
+}
 GITIGNORE_LINES = [".doctrine-state/local/", "__pycache__/"]
 GITIGNORE_BEGIN = ("# >>> doctrine (managed by doctrine_install; "
                    "delete this block to un-ignore) >>>")
@@ -206,7 +224,8 @@ def run_post_install(target: Path) -> int:
 def install(source: Path, target: Path, tools: list[str],
             enterprise: bool, ci: bool, force: bool,
             startup: bool = False, verify: bool = False,
-            maple: bool = False, local: bool = False) -> int:
+            maple: bool = False, local: bool = False,
+            personal: bool = False, ci_provider: str = "github") -> int:
     if not (source / ".Doctrine.md").exists():
         print(f"error: {source} is not a doctrine source tree "
               "(.Doctrine.md missing)", file=sys.stderr)
@@ -220,6 +239,10 @@ def install(source: Path, target: Path, tools: list[str],
               "subdirectory of the source re-ingests itself on rerun)",
               file=sys.stderr)
         return 2
+    if ci_provider not in CI_PROVIDERS:
+        print(f"error: unknown CI provider {ci_provider!r}; choose from "
+              f"{sorted(CI_PROVIDERS)}", file=sys.stderr)
+        return 2
     unknown = [t for t in tools if t not in ADAPTERS and t != "all"]
     if unknown:
         print(f"error: unknown tool(s) {unknown}; choose from "
@@ -227,6 +250,18 @@ def install(source: Path, target: Path, tools: list[str],
         return 2
     if "all" in tools:
         tools = sorted(ADAPTERS)
+    brief_path = target / "docs" / "brief.md"
+    existing_brief = (brief_path.read_text("utf-8", "replace")
+                      if brief_path.is_file() else "")
+    if personal and (enterprise
+                     or "Merge profile: enterprise" in existing_brief):
+        print("error: personal/solo and enterprise delivery profiles are "
+              "mutually exclusive", file=sys.stderr)
+        return 2
+    if enterprise and "Delivery profile: personal" in existing_brief:
+        print("error: enterprise and personal/solo delivery profiles are "
+              "mutually exclusive", file=sys.stderr)
+        return 2
     # Atomic-update guard. copy_file preserves (skips) different-content files
     # without --force -- fine for a locally-edited playbook, but if the skipped
     # set includes a framework CONSISTENCY CARRIER (the README that states the
@@ -266,13 +301,14 @@ def install(source: Path, target: Path, tools: list[str],
                   target, report, force)
     for test in sorted((source / "tests").glob("test_doctrine_*.py")):
         copy_file(test, target / "tests" / test.name, target, report, force)
+    for rel in COMPANION_FILES:
+        copy_file(source / rel, target / rel, target, report, force)
     if not (target / "Makefile").exists():
         copy_file(source / "Makefile", target / "Makefile", target,
                   report, force)
     if ci:
-        copy_file(source / ".github" / "workflows" / "doctrine.yml",
-                  target / ".github" / "workflows" / "doctrine.yml",
-                  target, report, force)
+        src_rel, dest_rel = CI_PROVIDERS[ci_provider]
+        copy_file(source / src_rel, target / dest_rel, target, report, force)
 
     # AGENTS.md universal boot (never overwrite an existing one)
     agents = target / "AGENTS.md"
@@ -300,15 +336,30 @@ def install(source: Path, target: Path, tools: list[str],
 
     write_managed_block(target / ".gitignore", gitignore_block(tools, local),
                         report, target)
-    brief_lines = []
+    # MAPLE is the universal workforce selection. The legacy ``maple``
+    # argument is intentionally accepted for API/CLI compatibility; append_lines
+    # keeps the marker singular on both old and new invocations.
+    brief_lines = ["Workforce runtime: maple"]
     if enterprise:
         brief_lines.append("Merge profile: enterprise")
     if startup:
         brief_lines.append("Company profile: startup")
-    if maple:
-        brief_lines.append("Workforce runtime: maple")
+    if personal:
+        brief_lines.append("Delivery profile: personal")
+        has_agent_latitude = any(
+            line.strip().startswith("Agent latitude:")
+            or "**Agent latitude:**" in line
+            for line in existing_brief.splitlines()
+        )
+        if not has_agent_latitude:
+            brief_lines.append("Agent latitude: creative")
+    # A project may keep these canonical markers inside a richer Markdown
+    # profile line (for example, wrapped in backticks). Treat the exact marker
+    # text anywhere in the existing brief as already selected. Reinstall must
+    # not append a duplicate block or rewrite repository-owned planning data.
+    brief_lines = [line for line in brief_lines if line not in existing_brief]
     if brief_lines:
-        append_lines(target / "docs" / "brief.md", brief_lines,
+        append_lines(brief_path, brief_lines,
                      "<!-- G0 artifact - complete via "
                      ".Doctrine/templates/project-brief.md -->", report,
                      target)
@@ -360,11 +411,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--startup", action="store_true",
                         help="seed 'Company profile: startup' in the brief "
                              "(activates the founder-ops roles)")
+    parser.add_argument("--personal", "--solo", dest="personal",
+                        action="store_true",
+                        help="use creative Solo Builder work with deterministic "
+                             "DevOps verification ('Delivery profile: "
+                             "personal')")
     parser.add_argument("--ci", action="store_true",
-                        help="also install the GitHub Actions workflow")
+                        help="also install the CI gate suite (see "
+                             "--ci-provider)")
+    parser.add_argument("--ci-provider", default="github",
+                        choices=sorted(CI_PROVIDERS),
+                        help="which CI system to wire the gates into "
+                             "(default: github)")
     parser.add_argument("--maple", action="store_true",
-                        help="seed 'Workforce runtime: maple' in the brief "
-                             "(opt-in MAPLE runtime; see "
+                        help="deprecated compatibility alias; MAPLE is the "
+                             "default workforce runtime (see "
                              ".Doctrine/integrations/maple.md)")
     parser.add_argument("--verify", action="store_true",
                         help="turnkey: after install, initialize state and "
@@ -383,7 +444,8 @@ def main(argv: list[str] | None = None) -> int:
     tools = [t.strip() for t in args.tool.split(",") if t.strip()]
     return install(args.source.resolve(), args.target.resolve(), tools,
                    args.enterprise, args.ci, args.force, args.startup,
-                   verify=args.verify, maple=args.maple, local=args.local)
+                   verify=args.verify, maple=args.maple, local=args.local,
+                   personal=args.personal, ci_provider=args.ci_provider)
 
 
 if __name__ == "__main__":

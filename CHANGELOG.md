@@ -6,6 +6,88 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-03
+
+> Release **prepared**, not cut: the version carriers are bumped and the gates
+> are green, but the annotated tag and any publication remain the human's
+> call (§5). Everything below is on disk and tested.
+
+### Added
+
+- **`tools/doctrine_guard.py` — mechanical enforcement at the tool boundary.**
+  The L3 `PreToolUse` gate ADR-004 left on the roadmap. Until now every
+  Non-Negotiable was prose the agent chose to obey; the guard *denies* at the
+  point of action: secret-shaped content (#2), writes to immutable evidence
+  (gold records, the state checkpoint, the installed corpus in a consumer
+  repo), and *escalates* §5 actions (force-push, history rewrite, publish,
+  `terraform destroy`, `curl | sh`) and test-weakening edits (#4) to the human.
+  Outside a Doctrine repo it is silent; inside one, an unparseable request is
+  denied — a governed repo must not gain a bypass by malforming a request.
+  Local policy at `.doctrine-state/guard.json` (`protected_paths`, `allow`).
+- **Gold-build attestation.** `doctrine_gold record` now reads git's own
+  verification of the annotated tag and stores `{signed, signer, key}` in the
+  record; `--require-signature` (on `record` and `check`) refuses a promotion
+  whose authorship is unproven. The hash chain proved *what* was promoted;
+  a signed tag proves *who*. No new dependency, no key custody, no network —
+  it reads keys the org already manages. Records written before 0.7.0 stay
+  valid (`attestation` is optional; records are immutable).
+- **`tools/doctrine_fleet.py` — the cross-repo view.** `status` reports
+  doctrine version, drift from a source tree (`current` / `behind vX` /
+  `ahead` / `modified` / `incomplete`), state-plane posture, worktree
+  cleanliness, release distance, and gold-record count for N repos, as a table
+  or `--json`. Strictly read-only (a test hashes the whole tree before and
+  after); exits 1 on drift so a scheduled job can watch a portfolio.
+- **CI parity beyond GitHub.** `.Doctrine/templates/ci/gitlab-ci.yml` and
+  `.Doctrine/templates/ci/azure-pipelines.yml` run the same gate sequence as
+  the Actions workflow; `doctrine_install --ci --ci-provider github|gitlab|azure`
+  lands each at its provider's canonical path.
+
+### Fixed
+
+- **The bridge suite's intermittent failure** (~1 full-suite run in 6 under
+  load). Early-rejection paths in the control-room bridge answered and closed
+  while the request body was still in flight; the late body landed on a closed
+  socket, the OS replied RST, and the client lost the response it had not read
+  (`ConnectionAbortedError` / WinError 10053). The body is now drained at the
+  single `_send_json` choke point — the oversized branch deliberately opts out
+  — and every connection read is bounded by `REQUEST_TIMEOUT_SECONDS`, closing
+  a slowloris hold-open at the same time. A deterministic reproduction
+  (headers, pause, late body) ships as a regression test: it fails 10/10
+  against the pre-fix module and passes 10/10 after.
+- **`.env.example` is no longer treated as a secrets file** by the guard's
+  protected-path rule — the repo-devops skill *requires* it. The secret rules
+  still apply to it: names yes, values no.
+
+- **Reinstall preservation hardening** — force updates now explicitly preserve
+  repository-owned Doctrine state, memory/session roots, and planning artifacts.
+  Existing profile markers embedded in richer Markdown brief lines are detected,
+  preventing duplicate append blocks. Regression coverage force-reinstalls over
+  seeded state, session, memory, brief, plan, and ADR data and requires
+  byte-for-byte identity.
+
+- **Personal/solo delivery profile + universal MAPLE selection** — installer
+  flags `--personal` and `--solo` now select one canonical
+  `Delivery profile: personal`, routing ordinary work through the new Solo
+  Builder role and a DevOps evidence gate without mandatory organizational,
+  governance, privacy, compliance, or legal ceremony. Real risk surfaces still
+  activate their matching controls, and the permanent safety/§5 floor is
+  unchanged. Personal installs default to `Agent latitude: creative`: agents
+  may explore reversible local solutions freely before deterministic
+  tests/evidence, while governance fences only the effect that activated it.
+  Existing explicit latitude is preserved; the marker is a portable work
+  policy, not a provider temperature claim. Every install now records
+  `Workforce runtime: maple`; legacy
+  `--maple` remains an idempotent compatibility flag, no MAPLE package is
+  installed or linked, and unavailable runtimes degrade to native/serial
+  execution. Personal and enterprise profiles fail closed as mutually
+  exclusive; startup remains composable.
+
+- **Consumer dashboard contract packaging fix** — the repository installer now
+  copies `docs/contracts/doctrine-control-room.openapi.json` with the dashboard
+  tool and its tests. Consumer installs can run the advertised optional
+  `test_doctrine_*.py` suite without the source-only contract test failing on a
+  missing file; a packaging regression test verifies byte-for-byte delivery.
+
 - **WorkHawk verification execution lifecycle** - completes the existing
   fixed Doctrine verification operation without expanding browser authority.
   WorkHawk now locks every verification trigger while a start is unsettled,

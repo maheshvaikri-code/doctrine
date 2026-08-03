@@ -16,6 +16,8 @@ file is only the ignition key — the doctrine is the source of truth.
    §6. Progressive disclosure: never bulk-read the folder.
 4. Wear one role at a time and announce it: `[ROLE: Code Reviewer]`.
    Role cards live in `.Doctrine/roles/`.
+   On `Delivery profile: personal`, default to `[ROLE: Solo Builder]` and
+   switch to DevOps only for routine verification.
 
 ## Non-negotiables (these bind ALWAYS — full list in `.Doctrine.md` §7)
 
@@ -41,6 +43,14 @@ Iteration budgets (5 per criterion Class S, 10 for M/L), thrash detector
 no retry-until-lucky on flaky tests. Budget out = stop and report
 honestly what was tried.
 
+Personal/solo repos use the direct path: Solo Builder G3 + self-review →
+DevOps verification. Other gates/roles are optional unless the task's actual
+risk surface activates them. `Agent latitude: creative` is the personal
+default: explore reversible local solutions freely, then converge at
+deterministic tests/evidence. Governance fences risky effects, not ideation.
+MAPLE is the default workforce runtime; if it is unavailable, degrade to native
+subagents or serial roles.
+
 ## Reviews when this tool has no subagents
 
 Run the G4/G5 verifiers as FRESH sessions, serially: open a new
@@ -54,6 +64,8 @@ verifier must never inherit the author's narrative about the code.
 Acceptance criteria met with pasted evidence · tests/lint/types green
 locally · docs + CHANGELOG updated · artifacts filed under `docs/` per
 `.Doctrine.md` §8 · clean tree, conventional commits.
+On the personal profile, routine gate artifacts and organizational handoffs are
+not required; acceptance evidence, self-review, and DevOps verification are.
 
 ## Cloud stage
 

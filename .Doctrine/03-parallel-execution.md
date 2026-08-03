@@ -5,6 +5,12 @@ Claude Code subagents (`.claude/agents/`). Parallelism is a tool for Class
 M/L tasks with genuinely independent work — not a default. A wrong parallel
 split costs more than serial execution.
 
+MAPLE is the default persistent workforce transport when it is available.
+It applies the same work-package and separation rules in
+`integrations/maple.md`; when unavailable, use native subagents or the serial
+fallback. Personal-profile routine work stays in the Solo Builder main thread
+unless parallelism has concrete information value.
+
 ## 1. When to fan out
 
 Fan out only when ALL of these hold:
@@ -67,6 +73,8 @@ publishing, the P1/P6 sign-offs) and must not happen in a detached context.
 (FDE's P4 build and P5 instrumentation harness may still fan out as workers.)
 ALL startup-profile roles are main-thread for the same reason: everything
 they produce points outward, and external sends belong to the human.
+Solo Builder is also a main-thread role; personal mode does not create a
+ceremonial workforce for routine work.
 
 ## 6. Provided agents
 

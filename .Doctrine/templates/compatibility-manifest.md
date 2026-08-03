@@ -9,7 +9,7 @@
 | Component | Repo | Pinned version | Commit / tag | Notes |
 |-----------|------|----------------|--------------|-------|
 | Governance | `doctrine` | vA.B.C | <tag/sha> | law + tooling |
-| Runtime | `maple-oss` | vD.E.F | <tag/sha> | AGPL; opt-in |
+| Runtime | `maple-oss` | vD.E.F | <tag/sha> | AGPL; default selection, external/not vendored |
 | Product | `<product-app>` | vX.Y.Z | <tag/sha> | this release |
 
 Dependency direction (ADR-003): product → {doctrine, maple}; doctrine ⟂ maple. No cycles.

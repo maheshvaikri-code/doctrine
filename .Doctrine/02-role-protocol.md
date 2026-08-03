@@ -1,7 +1,7 @@
 # 02 — Role Protocol
 
-One AI, thirty hats (nineteen engineering + seven startup-profile +
-four governance heads). The value of the hats comes from keeping them
+One AI, thirty-nine hats (twenty-five engineering + seven startup-profile +
+four governance heads + three domain specialists). The value of the hats comes from keeping them
 genuinely distinct. These mechanics make that real.
 
 ## Adoption
@@ -11,6 +11,11 @@ genuinely distinct. These mechanics make that real.
 - Stay in the role for the whole gate. Don't drift from Reviewer back into
   Builder to "just quickly fix" a finding — log the finding, close the
   review, then switch and fix.
+- On `Delivery profile: personal`, default to `[ROLE: Solo Builder]` and switch
+  to `[ROLE: DevOps Engineer]` for routine verification. Other hats activate
+  only when the task's real surface needs them. Default `Agent latitude` to
+  `creative`; governance may fence a risky effect but does not become the
+  steering wheel for reversible local work.
 
 ## Separation of duties (the important part)
 

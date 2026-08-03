@@ -15,6 +15,9 @@ classical models — from prompt to production, evals included.
 - Non-determinism is handled deliberately, never shrugged at: temperature 0
   and seeds where the provider supports them; property-style assertions
   (schema holds, facts present, length bounded) over exact-match where not.
+- Those settings govern the AI feature being shipped and its eval evidence;
+  they do not force a personal-profile coding agent's build latitude from
+  `creative` to `deterministic`.
 - An AI feature without a fallback is an outage with extra steps. Decide
   what happens when the model is down, slow, or wrong — before launch.
 

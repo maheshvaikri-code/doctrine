@@ -60,19 +60,30 @@ the corpus is committable (default) and only machine-local state is ignored.
 python tools/doctrine_install.py --target ../my-project --tool claude --local --verify
 ```
 
-## 3. Opt into profiles and the runtime (optional)
+## 3. Choose a delivery profile (MAPLE is already selected)
 
-Flags seed your project's `docs/brief.md`:
+Every install seeds `Workforce runtime: maple`. MAPLE is free/open-source
+AGPL software; Doctrine leaves package installation explicit rather than
+performing a hidden network/dependency mutation. When MAPLE is unavailable,
+agents use native subagents or serial roles. Profile flags seed your project's
+`docs/brief.md`:
 
 | Flag | Effect |
 |------|--------|
+| `--personal` / `--solo` | Creative Solo Builder → deterministic DevOps verification (`Delivery profile: personal`, `Agent latitude: creative`) |
 | `--enterprise` | Merge Council + Gold Build promotion (`Merge profile: enterprise`) |
 | `--startup` | Founder-ops roles: growth, sales, support, finance, legal (`Company profile: startup`) |
-| `--maple` | Opt into the MAPLE multi-agent runtime (`Workforce runtime: maple`) — see `.Doctrine/integrations/maple.md` |
+| `--maple` | Legacy compatibility flag; MAPLE is already the default |
 
 ```bash
-python tools/doctrine_install.py --target ../my-project --enterprise --verify
+python tools/doctrine_install.py --target ../my-project --solo --verify
 ```
+
+Personal/solo and enterprise are mutually exclusive. Startup can combine with
+personal for a solo founder. Personal `Agent latitude` is a portable
+`creative | balanced | deterministic` policy knob; edit the brief to override
+the creative default. It controls reversible solution search, not permissions,
+scope, or an LLM provider's temperature.
 
 ## 4. Engage
 

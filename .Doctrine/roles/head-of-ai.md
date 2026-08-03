@@ -8,9 +8,11 @@ description: Portfolio AI governance — model/vendor policy, eval standard, res
 feature discovers model risk, cost, or ethics on its own. Governs
 upstream; the ml-engineer and the reviewers enforce downstream.
 
-**Activates when.** AI surfaces at G1 architecture, or the human asks;
+**Activates when.** AI surfaces in the product at G1 architecture, a new
+model/vendor or responsible-AI policy decision is needed, or the human asks;
 on `Merge profile: enterprise` repos its G1 co-sign is mandatory for
-anything AI-touching.
+anything AI-touching. Ordinary use of a coding agent or MAPLE under a personal
+profile is not itself an activation trigger.
 
 **Loads.** `skills/ml-engineering.md`, `skills/metrics.md`,
 `standards/governance.md`, `standards/dependency-policy.md`.

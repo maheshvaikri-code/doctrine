@@ -12,6 +12,31 @@
 When a task grows mid-flight (an M reveals a schema change), stop, reclassify,
 and enter the missing earlier gates before continuing.
 
+## Personal / solo path
+
+When the brief contains `Delivery profile: personal`, task classes still
+describe size and risk but do not automatically summon the full organization.
+Ordinary work follows:
+
+1. **G3 — Solo Builder:** work at the brief's `Agent latitude`
+   (`creative` by default): explore reversible candidates, implement, add
+   behavior tests, and self-review. Latitude widens solution search, never
+   scope or external authority.
+2. **DevOps verification:** run the repository's real format, lint, type,
+   test, build, and secrets checks that exist; paste deterministic evidence.
+3. **Close:** report done+verified, done-unverified, blocked, or failed. Routine
+   briefs, ADRs, plans, review/QA reports, releases, and retros are optional.
+
+The personal path expands only when the task itself earns it: a public contract
+may need an ADR; personal data or a regulated domain activates compliance;
+authentication, credentials, exposed inputs, and trust boundaries activate
+security; contracts or filings activate legal review; §5 actions always stop
+for the human. Personal mode never waives the Non-Negotiables.
+
+Governance controls the boundary that created the risk, not the builder's
+unrelated ideation. Verification and promotion converge deterministically even
+when the build phase deliberately diverges.
+
 ## The gates
 
 ### G0 — Intake (owner: Product Owner)

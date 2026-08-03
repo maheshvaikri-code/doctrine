@@ -1,7 +1,8 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository: thirty-eight roles (twenty-four engineering + seven startup-profile
+repository—or a low-ceremony Solo Builder in personal mode: thirty-nine roles
+(twenty-five engineering + seven startup-profile
 founder-ops + four governance heads + three domain specialists), fifty-eight skill
 playbooks, eight standards plus ten language profiles, a gated workflow, domain
 overlays, integrations, a state plane, and templates for every artifact the
@@ -19,7 +20,7 @@ workflow produces.
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              38 role cards (24 engineering incl. FDE, SRE, data/ML,
+├── roles/              39 role cards (25 engineering incl. Solo Builder, FDE, SRE, data/ML,
 │                       compliance + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
 │                       ciso, risk-officer — policy above the gates
@@ -59,6 +60,10 @@ workflow produces.
   reported status must match executed reality.
 - **Right-sized ceremony.** Task classes (S/M/L/HOTFIX) prevent a typo fix
   from triggering a seven-gate parade.
+- **Personal/solo delivery.** `--personal` / `--solo` keeps ordinary work in
+  creative Solo Builder → deterministic DevOps verification; specialist
+  governance fences actual risky effects instead of steering ordinary local
+  ideation.
 - **Every discipline carries a Signature.** Each skill and role declares its
   composition across the eight mechanism dimensions — **roles · skills · tools ·
   plugins · workflows · hooks · MCP servers · subagents** (multiples where they

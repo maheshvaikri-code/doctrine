@@ -19,6 +19,36 @@ Hands-on security work is NOT a separate role: engineers build under
 `skills/security.md`, the security-reviewer gates it, the CISO sets the
 policy they build and gate against. Three hats, no fourth.
 
+## Personal / solo profile
+
+`Delivery profile: personal` has no standing GRC ceremony. Governance heads,
+registers, compliance, privacy, and legal roles do not activate merely because
+Doctrine is installed or because software is being written. They activate only
+when the task introduces their actual governed surface:
+
+- AI/vendor policy, portfolio model decisions, or responsible-AI boundaries;
+- personal/regulated data, retention, consent, or third-party data flow;
+- authentication, credentials, exposed inputs, or trust-boundary changes;
+- contracts, ToS, filings, regulated claims, or explicit human request.
+
+For ordinary local personal work, Solo Builder + DevOps verification is enough.
+This is reduced ceremony, not a risk exception: §5 actions and the permanent
+security/truth/secrets floor remain unchanged.
+
+Governance is a **fence around effects, not a steering wheel for ideation**.
+`Agent latitude: creative` is the personal default: the builder may explore
+and discard reversible local candidates without a governance co-sign.
+Governance can gate the particular data flow, credential boundary, contract,
+regulated output, deployment, or other effect that activated it; it cannot
+silently lower the whole build to `balanced` or `deterministic`. The human may
+change the latitude explicitly. Tests, evidence, and promotion remain
+deterministic at every latitude.
+
+Using a coding agent or the declared MAPLE workforce does not by itself
+activate Head-of-AI ceremony in a personal repo. Activation requires an AI
+surface in the product being built, a new model/vendor policy decision, a
+responsible-AI boundary, or an explicit human request.
+
 ## G1 co-sign
 
 When a G1 design touches a governed domain (AI, data architecture,

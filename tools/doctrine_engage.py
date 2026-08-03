@@ -23,7 +23,10 @@ REMINDER = (
     "  2. Classify the task (S / M / L / HOTFIX) and name the role hat.\n"
     "  3. Read the routed skills/roles from the .Doctrine.md Section 6 routing "
     "table for whatever the task touches -- do not work from memory of them.\n"
-    "  4. Execute the gate path for that class; stop only at a Section 5 escalation.\n"
+    "  4. If docs/brief.md says 'Delivery profile: personal', default to Solo "
+    "Builder -> DevOps verification (creative build -> deterministic verification); "
+    "activate other roles only from real risk. Otherwise execute the class gate "
+    "path. Stop at every Section 5 escalation.\n"
     "Right-size the ceremony: a Class S task earns the one-line block."
 )
 

@@ -5,6 +5,10 @@
 **Date:** 2026-07-13 · **Status:** accepted
 **Deciders:** Chief Architect (+ human: brief confirmed, "ready for next")
 
+**Amended 2026-07-29:** ADR-011 supersedes only this ADR's MAPLE opt-in
+semantics. MAPLE is now selected by default; `--maple` remains a compatibility
+flag. The turnkey-install decision remains active.
+
 ## Context
 
 The productization brief (kept private) makes v0.1 a *turnkey

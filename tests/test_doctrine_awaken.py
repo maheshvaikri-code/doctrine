@@ -69,6 +69,12 @@ class TestAwaken(unittest.TestCase):
 
 
 class TestEngage(unittest.TestCase):
+    def test_reminder_names_personal_builder_and_devops_path(self):
+        self.assertIn("Delivery profile: personal", eng.REMINDER)
+        self.assertIn("Solo Builder -> DevOps verification", eng.REMINDER)
+        self.assertIn("creative build -> deterministic verification",
+                      eng.REMINDER)
+
     def test_find_root_none_outside_doctrine_repo(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertIsNone(eng.find_root(Path(d)))

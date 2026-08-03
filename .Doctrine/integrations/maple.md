@@ -1,13 +1,13 @@
 ---
 integration: maple
 upstream: https://github.com/maheshvaikri-code/maple-oss
-license: AGPL-3.0 (see the license verdict below — opt-in, never linked)
+license: AGPL-3.0 (see the license verdict below — default selection, never linked)
 pinned_version: 1.1.2
 discipline: multi-agent-runtime
 verified: 2026-07-14
 ---
 
-# MAPLE — Integration (opt-in workforce runtime)
+# MAPLE — Integration (default workforce runtime)
 
 MAPLE (Multi Agent Protocol Language Engine, `pip install maple-oss`) is a
 multi-agent runtime and protocol: typed messages with `Result<T,E>` error
@@ -25,10 +25,11 @@ missing agent, `build_work_package`/`build_gate_result` producing and
 validating typed messages (bogus verdict rejected), the preset **blocking
 a verifier→builder route**, and `tokens` as a `ResourceRequest` field.
 
-Doctrine remains runtime-agnostic: this integration is OPT-IN. Without
-it, the workforce runs on the host agent's native subagents (or serial
-role-switching per `04-agent-adapters.md`). With it, roles become
-persistent, addressable agents.
+Doctrine remains runtime-agnostic: MAPLE is the declared default workforce
+runtime, not an automatically installed dependency. When `maple-oss` is
+available, roles become persistent, addressable agents. When it is unavailable,
+the workforce degrades to the host agent's native subagents (or serial
+role-switching per `04-agent-adapters.md`) without weakening gates.
 
 ## The fit — Doctrine concept → MAPLE primitive
 
@@ -131,15 +132,20 @@ receipt (beyond send-time reachability).
 
 ## License verdict (dependency-policy §4: AGPL = explicit human decision)
 
-MAPLE is AGPL-3.0 and first-party (same author as this doctrine).
+MAPLE is free/open-source software under AGPL-3.0 and first-party (same author
+as this doctrine). AGPL is not a usage fee or a prohibition on personal,
+enterprise, or commercial use; its reciprocal source obligations matter when
+covered software is modified and served over a network or conveyed.
 Disposition, recorded 2026-07-13 (unchanged at 1.1.2): **never vendored,
 never imported by doctrineos** — the wheel, MCP server, and tools stay
 stdlib-only; this integration is a document and a protocol contract. The
 doctrine profile ships inside `maple-oss`, not here, so no AGPL code
-enters this repo. Consumer repos that
-opt into the MAPLE runtime take the AGPL obligation knowingly (flag it
-in their brief: `Workforce runtime: maple`). For the owner's own repos
-the copyleft cost is nil.
+enters this repo. Every installed brief records `Workforce runtime: maple` as
+the selected runtime. That marker alone installs or links no AGPL code. A
+A consumer that modifies, serves, combines, or distributes `maple-oss` follows
+the applicable AGPL terms; ordinary use remains free. Doctrine's installer
+does not perform a hidden package/network mutation. The framework owner
+selected this default on 2026-07-29.
 
 ## Boundaries
 

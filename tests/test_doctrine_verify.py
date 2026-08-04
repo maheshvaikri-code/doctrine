@@ -7,6 +7,7 @@ host's test suite; it verifies only Doctrine's own surface (lint + state).
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -95,6 +96,66 @@ class TestGateScoping(unittest.TestCase):
                 rc, ran = self._run(Path(d))
         self.assertEqual(rc, 1)
         self.assertEqual(ran, ["lint", "tests"])
+
+
+class TestGoldGating(unittest.TestCase):
+    """Regression: `doctrine_verify` deciding whether to invoke the gold
+    gate at all, independent of what the gate itself then decides."""
+
+    def _git(self, cwd: Path, *args: str) -> None:
+        subprocess.run(["git", *args], cwd=cwd, check=True,
+                       capture_output=True)
+
+    def _make_repo(self, root: Path) -> None:
+        self._git(root, "init", "-q")
+        self._git(root, "config", "user.email", "t@example.invalid")
+        self._git(root, "config", "user.name", "t")
+        gold = root / "docs" / "releases" / "gold"
+        gold.mkdir(parents=True)
+        (gold / "v1.0.0.json").write_text("{}", encoding="utf-8")
+        self._git(root, "add", "-A")
+        self._git(root, "commit", "-qm", "seed")
+
+    def test_a_non_git_directory_does_not_force_the_gold_gate(self):
+        """A plain directory with no .git has no history to hide anything
+        in; running the gate there is noise, not safety."""
+        with tempfile.TemporaryDirectory() as d:
+            self.assertFalse(dv.git_knows_gold(Path(d)))
+
+    def test_history_survives_a_staged_but_uncommitted_removal(self):
+        """Regression: the previous check read the INDEX (`git ls-files`),
+        which a staged `git rm` empties before any commit exists. `git log`
+        reads history, which the staging area cannot erase."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._make_repo(root)
+            self._git(root, "rm", "-r", "-q", "docs/releases/gold")
+
+            self.assertTrue(dv.git_knows_gold(root))
+
+    def test_history_survives_a_committed_relocation(self):
+        """Regression: `git mv docs/releases lib && git commit` removes the
+        gold directory from HEAD's tree in the very commit that relocates
+        it; only history (not the current tree) still shows it existed."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._make_repo(root)
+            self._git(root, "mv", "docs/releases", "lib")
+            self._git(root, "commit", "-qm", "reorganize")
+
+            self.assertTrue(dv.git_knows_gold(root))
+
+    def test_a_repo_that_never_tracked_gold_reports_false(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._git(root, "init", "-q")
+            self._git(root, "config", "user.email", "t@example.invalid")
+            self._git(root, "config", "user.name", "t")
+            (root / "README.md").write_text("x", encoding="utf-8")
+            self._git(root, "add", "-A")
+            self._git(root, "commit", "-qm", "seed")
+
+            self.assertFalse(dv.git_knows_gold(root))
 
 
 if __name__ == "__main__":

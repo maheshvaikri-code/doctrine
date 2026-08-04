@@ -348,9 +348,10 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False,
     # promotion with no council and no sign-offs passed this deploy gate.
     committed = committed_bytes(repo, (GOLD_DIR / f"{tag}.json").as_posix())
     if committed is None:
-        findings.append("this record is not committed - a gold record git has "
-                        "never seen has no anchor and may be hand-authored")
-    elif committed != path.read_bytes():
+        findings.append("this record is not committed - it was never seen by "
+                        "git, so it did not come from `doctrine_gold record` "
+                        "committed the normal way; it may be hand-authored")
+    elif committed != normalize_eol(path.read_bytes()):
         findings.append("this record differs from its committed copy - the "
                         "record itself was edited after promotion")
     if record["tag"] != tag:
@@ -369,6 +370,7 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False,
     refs = [("council verdict", record["merge_verdict"])]
     refs += [(f"sign-off '{k}'", v) for k, v in record["signoffs"].items()]
     refs += [("artifact", a) for a in record["artifacts"]]
+    skipped_artifacts: list[str] = []
     for what, entry in refs:
         try:
             p = safe_repo_path(repo, entry["path"], what)
@@ -384,6 +386,7 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False,
                 # still hashed, and an artifact that exists must still match.
                 print(f"  note: artifact not in this checkout, not verified: "
                       f"{entry['path']}")
+                skipped_artifacts.append(entry["path"])
                 continue
             findings.append(f"{what} missing: {entry['path']}")
         elif sha256_file(p) != entry["sha256"]:
@@ -448,8 +451,17 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False,
     # value made a substituted signer look like the promoter of record.
     claimed = recorded if isinstance(recorded, dict) else None
     signer = (claimed or {}).get("signer") or (claimed or {}).get("key")
-    print(f"check OK: {tag} is GOLD - schema valid, artifacts/verdict/"
-          "sign-offs match their recorded hashes, chain intact"
+    total_artifacts = len(record["artifacts"])
+    # Say what was actually checked. "artifacts match" printed two lines
+    # after admitting one was skipped was a §7 #1 honesty defect in the
+    # tool's own success message.
+    artifact_note = (
+        f"{total_artifacts - len(skipped_artifacts)}/{total_artifacts} "
+        f"artifact(s) verified ({len(skipped_artifacts)} not present in "
+        "this checkout)" if skipped_artifacts
+        else f"{total_artifacts} artifact(s) verified")
+    print(f"check OK: {tag} is GOLD - schema valid, verdict/sign-offs match "
+          f"their recorded hashes, {artifact_note}, chain intact"
           + (f", {claimed.get('format')}-signed by {signer} (as recorded, "
              "and the tag still verifies as the same principal)"
              if claimed and claimed.get("signed")
@@ -458,35 +470,109 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False,
 
 
 MANIFEST_REL = GOLD_DIR / "MANIFEST.json"
+GOLD_TREE_PREFIX = GOLD_DIR.as_posix() + "/"
+
+
+class GitUnavailable(Exception):
+    """git could not be reached at all - a fact about the ENVIRONMENT, not
+    about the evidence. Round 5 found these collapsed to the same outcome as
+    "no anchor exists", which silently turned a broken environment into a
+    pass: `rm -rf docs/releases/gold` with git off PATH printed `gate OK`."""
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(["git", *args], cwd=repo, capture_output=True,
+                              check=False, timeout=15)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GitUnavailable(str(exc)) from exc
+
+
+def normalize_eol(data: bytes) -> bytes:
+    """CRLF-fold before comparing worktree bytes to git's blob.
+
+    `git show` returns the raw blob; `core.autocrlf=true` - the Git for
+    Windows installer default - converts the WORKTREE copy to CRLF on
+    checkout. Comparing the two raw made a fresh, untouched clone accuse
+    itself of forging the security sign-off. Records are canonical LF by
+    construction (`canonical_bytes`), so folding both sides to LF cannot
+    hide a real edit: a change to the content survives normalization.
+    """
+    return data.replace(b"\r\n", b"\n")
 
 
 def committed_bytes(repo: Path, rel: str) -> bytes | None:
-    """A file's content as git has it at HEAD, or None if git does not."""
-    try:
-        proc = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=repo,
-                              capture_output=True, check=False, timeout=15)
-    except (OSError, subprocess.SubprocessError):
+    """A file's content as git has it at HEAD, EOL-normalized, or None if
+    git does not have it."""
+    proc = _git(repo, "show", f"HEAD:{rel}")
+    return normalize_eol(proc.stdout) if proc.returncode == 0 else None
+
+
+def gold_history_exists(repo: Path) -> bool:
+    """Whether any commit, ever, has touched the gold directory.
+
+    Distinct from `tracked_gold_files`, which reads the CURRENT HEAD tree
+    only: `git mv docs/releases lib && git commit` removes every record from
+    HEAD's tree in the same commit that relocates them, so a HEAD-only check
+    reported "git has never tracked any" - false, and exactly the deletion
+    class this gate exists to catch. History remembers what HEAD no longer
+    shows.
+    """
+    proc = _git(repo, "log", "-1", "--format=%H", "--", GOLD_DIR.as_posix())
+    return proc.returncode == 0 and bool(proc.stdout.strip())
+
+
+def tracked_gold_files(repo: Path) -> set[str] | None:
+    """Every record git's HEAD holds under the gold directory, or None if
+    HEAD has never held one.
+
+    A committed MANIFEST.json was the ONLY deletion anchor; a repo promoted
+    before manifests existed has none, so `git mv`/`rm` + commit passed with
+    "nothing promoted yet" even though git's own history still had the
+    records. Asking git directly needs no manifest and cannot be defeated by
+    an untracked one, because it reads history rather than a file on disk.
+    """
+    proc = _git(repo, "ls-tree", "-r", "--name-only", "HEAD", "--",
+               GOLD_DIR.as_posix())
+    if proc.returncode != 0:
         return None
-    return proc.stdout if proc.returncode == 0 else None
+    names = {line.rsplit("/", 1)[-1]
+             for line in proc.stdout.decode("utf-8", "replace").splitlines()
+             if line.strip()}
+    names.discard("MANIFEST.json")   # the anchor, not a record itself
+    return names or None
 
 
 def cmd_gate(repo: Path, require_signature: bool = False) -> int:
     """Re-verify every gold record against anchors OUTSIDE the record.
 
-    The first version of this checked each referenced file against a hash
-    stored in the record being verified, so editing a record and recomputing
-    its own hashes passed - a security pass forged `human_approval` and
-    flipped a council verdict to a veto, and the gate printed OK. It also
-    returned 0 when the records were deleted outright.
+    The first version hashed each referenced file against a hash stored IN
+    the record being verified, so editing the record and recomputing its own
+    hashes passed. Anchoring on a committed manifest alone was still not
+    enough: a repo promoted before manifests existed has none, so `git mv`/
+    `git rm` + commit printed "nothing promoted yet" while git's own history
+    still had the records. Deletion detection now asks git's HEAD tree
+    directly (`tracked_gold_files`), needs no manifest, and cannot be
+    defeated by an untracked one.
 
-    Records are written after their tag, so no signature covers them. The
-    anchors available are therefore git's own copy (a committed record that
-    changed is visible as a diff) and a committed manifest (records that
-    vanished are visible as an absence). Neither stops an actor who rewrites
-    the record, the manifest and history together - that is what CI on the
-    pushed commit and branch protection are for. Tamper-EVIDENT, not
-    tamper-proof, and the docs say so.
+    Honest limit, stated where a reader will meet it (05-packaging.md): this
+    compares against HEAD, not against history. An actor with ordinary commit
+    access can forge a record and commit it normally - no force-push, no
+    amend - and this check alone will not catch it; that is what code review
+    of the diff, and a human reading `git log -p -- docs/releases/gold/`,
+    are for. Tamper-EVIDENT within one commit, not tamper-proof against a
+    reviewer who never looks.
     """
+    try:
+        git_head = tracked_gold_files(repo)
+        ever_tracked = gold_history_exists(repo)
+    except GitUnavailable as exc:
+        # Unreachable git must never read as "there is no anchor" - that
+        # silently turned "the environment is broken" into a pass.
+        print(f"GATE FAILED: git could not be run ({exc}) - the evidence "
+              "anchor is unreachable, so nothing can be trusted")
+        return 1
+
     gold = repo / GOLD_DIR
     manifest_path = repo / MANIFEST_REL
     manifest = None
@@ -494,9 +580,6 @@ def cmd_gate(repo: Path, require_signature: bool = False) -> int:
     if manifest_path.is_file():
         raw_manifest = manifest_path.read_bytes()
     else:
-        # Deleting the directory deletes the manifest with it, so a manifest
-        # read only from disk cannot notice its own absence. git can: it
-        # still has the committed copy after `rm -rf` or `git mv`.
         committed = committed_bytes(repo, MANIFEST_REL.as_posix())
         if committed is not None:
             print("GATE FAILED: the gold manifest is committed but missing "
@@ -509,33 +592,57 @@ def cmd_gate(repo: Path, require_signature: bool = False) -> int:
         except (OSError, ValueError, UnicodeDecodeError):
             print("GATE FAILED: the gold manifest is unreadable")
             return 1
+        if not isinstance(manifest, dict) or \
+                not isinstance(manifest.get("records", []), list):
+            print("GATE FAILED: the gold manifest is not shaped as expected")
+            return 1
         stored = committed_bytes(repo, MANIFEST_REL.as_posix())
-        if stored is not None and stored != raw_manifest:
+        if stored is not None and stored != normalize_eol(raw_manifest):
             print("GATE FAILED: the gold manifest differs from its committed "
                   "copy - the list of expected records was edited")
             return 1
 
     records = sorted(p for p in gold.glob("*.json")
                      if p.name != "MANIFEST.json") if gold.is_dir() else []
+    on_disk = {p.name for p in records}
     failed: list[str] = []
 
-    if manifest is not None:
-        expected = {str(name) for name in manifest.get("records", [])}
-        present = {p.name for p in records}
-        for missing in sorted(expected - present):
-            print(f"gate: {missing} is named by the manifest and is not on "
-                  "disk - evidence was deleted or moved")
+    # git's HEAD tree is the primary deletion anchor - authoritative and
+    # never absent just because the manifest predates this feature.
+    if git_head is not None:
+        for missing in sorted(git_head - on_disk):
+            print(f"gate: {missing} is committed at HEAD and is not on disk "
+                  "- evidence was deleted or moved")
             failed.append(missing)
-        for extra in sorted(present - expected):
+    elif ever_tracked:
+        # HEAD's tree has nothing under the gold directory, but SOME commit
+        # touched it. `git mv docs/releases lib && git commit` (or `git rm`)
+        # empties HEAD's tree in the very commit that relocates or deletes
+        # the evidence, so a HEAD-only check said "never tracked" - false.
+        # History remembers what HEAD no longer shows.
+        print("GATE FAILED: git's history has tracked gold records, but HEAD "
+              "currently has none - evidence was deleted or relocated "
+              "(see `git log --diff-filter=D --summary -- "
+              f"{GOLD_DIR.as_posix()}`)")
+        return 1
+    elif not on_disk and manifest is None:
+        print("gate OK: no gold records and git has never tracked any - "
+              "nothing promoted yet")
+        return 0
+
+    if manifest is not None:
+        expected = {str(name) for name in manifest["records"]}
+        for missing in sorted(expected - on_disk):
+            if missing not in failed:
+                print(f"gate: {missing} is named by the manifest and is not "
+                      "on disk - evidence was deleted or moved")
+                failed.append(missing)
+        for extra in sorted(on_disk - expected):
             print(f"gate: {extra} is on disk but not in the manifest - it did "
                   "not come from `doctrine_gold record`")
             failed.append(extra)
-    elif not records:
-        # No manifest and no records: a repo that has never promoted. Saying
-        # OK here is honest; saying it when a manifest exists would not be.
-        print("gate OK: no gold records and no manifest - nothing promoted yet")
-        return 0
 
+    verified = 0
     for record in records:
         tag = record.stem
         if not TAG_RE.fullmatch(tag):
@@ -545,11 +652,11 @@ def cmd_gate(repo: Path, require_signature: bool = False) -> int:
         rel = (GOLD_DIR / record.name).as_posix()
         stored = committed_bytes(repo, rel)
         if stored is None:
-            print(f"gate: {record.name} is not committed - a gold record that "
-                  "git has never seen has no anchor and cannot be trusted")
+            print(f"gate: {record.name} is not committed - a gold record git "
+                  "has never seen has no anchor and cannot be trusted")
             failed.append(record.name)
             continue
-        if stored != record.read_bytes():
+        if stored != normalize_eol(record.read_bytes()):
             print(f"gate: {record.name} differs from the committed copy - the "
                   "record itself was edited after promotion")
             failed.append(record.name)
@@ -557,12 +664,14 @@ def cmd_gate(repo: Path, require_signature: bool = False) -> int:
         if cmd_check(repo, tag, require_signature,
                      allow_absent_artifacts=True) != 0:
             failed.append(record.name)
+        else:
+            verified += 1
 
     if failed:
         print(f"GATE FAILED: {len(set(failed))} gold record(s) do not verify: "
               f"{', '.join(sorted(set(failed)))}")
         return 1
-    print(f"gate OK: {len(records)} gold record(s) verify against git"
+    print(f"gate OK: {verified} gold record(s) verify against git's HEAD"
           + (" and the manifest" if manifest is not None else ""))
     return 0
 
@@ -583,8 +692,9 @@ def main(argv: list[str] | None = None) -> int:
     p_chk.add_argument("--require-signature", action="store_true",
                        help=signature_help)
     p_gate = sub.add_parser(
-        "gate", help="re-verify EVERY gold record; run in CI and pre-commit "
-                     "so tampering is caught before it reaches history")
+        "gate", help="re-verify EVERY gold record against git's committed "
+                     "copy; run in CI on every push (not pre-commit - see "
+                     "05-packaging.md)")
     p_gate.add_argument("--require-signature", action="store_true",
                         help=signature_help)
     args = parser.parse_args(argv)

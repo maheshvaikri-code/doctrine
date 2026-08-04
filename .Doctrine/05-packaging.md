@@ -113,28 +113,44 @@ is the governed party doing it silently.
 
 **Nothing inside a repository the agent can write is tamper-proof against that
 agent.** An earlier version of this table claimed `gate` was "Sound. Tampering
-fails regardless of how it was written." That was false, and a security pass
-proved it in one payload: the gate re-hashed each referenced file against a
-hash *stored in the record being verified*, so editing the record and
-recomputing its own hashes passed — including a forged `human_approval` and a
-council verdict flipped to a veto. A record is written after its tag, so no
-signature ever covered it.
+fails regardless of how it was written." That was false: the gate re-hashed
+each referenced file against a hash *stored in the record being verified*, so
+editing the record and recomputing its own hashes passed — including a forged
+`human_approval` and a council verdict flipped to a veto. A record is written
+after its tag, so no signature ever covered it. A **second** round of
+independent review then showed the fix — anchoring on git's committed copy —
+was itself narrower than the words around it claimed. Both corrections are
+folded in below rather than layered as a third retelling.
 
-What `gate` can honestly do, and now does:
+**What `gate` actually verifies: has this evidence changed since the LAST
+commit that touched it?** Concretely:
 
-- **Detect any change to a committed record**, by comparing its bytes against
-  git's copy. Self-consistent forgery no longer passes, because the anchor is
-  outside the record.
-- **Detect deletion and truncation**, via a committed manifest naming the
-  expected records and the chain tip. An absent gold directory with a manifest
-  present is a failure, not a skip.
-- **Refuse a record that never came from `doctrine_gold record`** — a
-  hand-written JSON with a fresh tag used to pass the deploy gate.
+- **Any edit to a record already committed, left uncommitted, is caught** —
+  its bytes no longer match git's copy of it (EOL-normalized, so an honest
+  Windows clone under `core.autocrlf=true` is not flagged as tampering).
+- **Deletion or relocation is caught whether or not it was committed** — git's
+  *history* on the gold directory (`git log`), not only its current tree, is
+  the anchor; `git mv docs/releases lib && git commit` cannot make the gate
+  say "nothing was ever promoted" merely because HEAD's tree is now empty.
+- **A record git has never seen at all is refused** — hand-writing JSON next
+  to a fresh tag and committing it is caught, because there is no prior
+  version to compare against, and "no anchor" fails closed rather than
+  passing on trust.
+- **Git being unreachable fails closed**, not silently as "there is nothing to
+  check" — a broken or absent git binary denies the gate rather than passing it.
 
-What it cannot do: stop an actor with repository write from rewriting the
-record, the manifest and history together. **The real anchor is outside the
-repo** — CI running this gate on the pushed commit, branch protection, and a
-signed tag. Local checks make tampering loud; the remote makes it stick.
+**What it cannot do, stated precisely rather than gestured at:** if an actor
+with ordinary commit access forges a record's content and commits that forgery
+in the **same, single commit** — no amend, no force-push, no history rewrit —
+the gate has nothing to diff against and passes. This is the same limit as
+S1/S7 in the round-5 review: a HEAD-relative check cannot see a forgery whose
+only recorded state ever agreed with itself. **Nor is "CI running this gate on
+the pushed commit" a second anchor for that case** — CI checks out the same
+HEAD the forgery was committed to and reaches the identical answer. The
+control that catches an in-commit forgery is a **human reading the diff**:
+`git log -p -- docs/releases/gold/` on every release-bound merge, and branch
+protection that makes that diff unavoidable before the merge lands. Gate
+locally and in CI for the classes above; review the diff for this one.
 
 The Bash rule is deliberately described as a tripwire, because three
 independent security passes each found new spellings that reached a protected
@@ -150,19 +166,22 @@ So the durable guarantee is moved to where it cannot be spelled around:
 python tools/doctrine_gold.py gate       # every record re-hashed
 ```
 
-`doctrine_verify` runs it automatically when `docs/releases/gold/` exists, and
-the CI templates run it on every push. A tampered record fails there whether it
-was edited by a tool call, a shell redirect, `awk`, an editor, or a script
-nobody reviewed. Wire it as a pre-commit hook too and tampering cannot even
-reach history:
+`doctrine_verify` runs it automatically when `docs/releases/gold/` exists or
+git's history has ever held a record, and the CI templates run it on every
+push. A record edited *after* it was committed fails there, whoever or
+whatever edited it — a tool call, a shell redirect, `awk`, an editor, a script
+nobody reviewed. A record forged and committed in one step is a different
+class the gate cannot see (above) — that needs a human on the diff, not
+another automated check.
 
-```bash
-#!/bin/sh
-# .git/hooks/pre-commit   (the shebang is not optional - without it git
-# cannot spawn the hook and REFUSES EVERY COMMIT, which reads like the gate
-# working and is the gate broken)
-python tools/doctrine_gold.py gate || exit 1
-```
+A pre-commit hook is **not** recommended here. The gate compares the worktree
+against HEAD, and a record has no HEAD copy to compare against until *after*
+its own promoting commit exists — so a correctly-installed hook refuses the
+very commit that files the genesis record, and the shebang-less version
+documented in an earlier revision of this file refused *every* commit,
+silently, because git could not spawn it at all. If a local pre-merge check
+is wanted, run the gate against the merge commit in CI instead, where a full
+history is guaranteed to exist.
 
 Use the tripwire for what a tripwire is good at — catching the accident and
 the careless, early, with a readable reason. Do not present it as a

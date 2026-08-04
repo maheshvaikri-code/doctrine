@@ -1,4 +1,4 @@
-# Retro — Four rounds of independent verification
+# Retro — Five rounds of independent verification
 <!-- G7 artifact. Author: Project Reviewer. -->
 
 **Subject:** the v0.7.0 enterprise control plane, from an author's approval
@@ -15,7 +15,8 @@ doctrine had only asserted.
 | Round 1 — 3 fresh verifiers | REQUEST-CHANGES · **VETO** · FAIL | 3 blockers, 9 majors |
 | Round 2 — after "all fixed" | **VETO maintained** · FAIL | 2 blockers, 7 more |
 | Round 3 — after "all fixed" | **VETO maintained** | 9 classes, 17 payloads |
-| Round 4 | *pending at time of writing* | — |
+| Round 4 — after "all fixed" | **VETO maintained** | the new backstop itself: forged/deleted evidence passed |
+| Round 5 — bounded, security only, scoped to the anchor | **VETO maintained**, one residual disclosed | 5 MUST-FIX (applied), 1 DOCUMENT (structural, not a bug) |
 
 The author's pass approved a change in which an enforcement gate could be
 switched off by the party it governs in two tool calls, and in which the
@@ -121,10 +122,54 @@ The false-positive rate went from **11 of 13 ordinary commands denied** to
 **0 of 28**, which is the difference between a gate people keep and a gate
 people uninstall.
 
+## Round 4 — the backstop itself was the bug
+
+Round 3's reclassification moved the durable guarantee from the Bash tripwire
+to `doctrine_gold gate`. Round 4 attacked *that*, and found it weaker than
+what it replaced: the gate hashed each file against a hash **stored inside the
+record being verified**, so a self-consistent forgery — `human_approval`
+rewritten to "never approved by a human," its own hash recomputed — passed
+with `gate OK`, as did `rm -rf docs/releases/gold`. A tripwire at least fires
+on a careless `rm`; this passed a deliberate one.
+
+**Keep, generalized from round 3's lesson:** the failure wasn't in the fix,
+it was in *where the anchor lived*. A verifier that checks a claim against
+data supplied by the same artifact making the claim has verified nothing —
+this is circular verification, and it is worth naming as its own category
+alongside "recurrence means the mechanism is wrong."
+
+## Round 5 — stopping deliberately, not from exhaustion
+
+Four rounds each finding real, exploitable defects raises an obvious
+question: were rounds 2–4 diligence or thrash? `skills/loop-engineering.md`'s
+thrash detector — "the same error twice after 'fixing' it → the hypothesis is
+wrong; go up a level" — says rounds 1→2→3 were the SAME error class (a bypass
+in a text analysis of shell commands) and should have triggered a mechanism
+change after round 2, not round 3. That's a real process debt, paid late.
+
+Round 4 was different in kind (the anchor's own design, not a new shell
+spelling), so it was legitimate iteration. Round 5 was deliberately scoped
+narrow — one verifier, one component, framed explicitly as the last one — and
+asked to split findings into MUST-FIX (claim is false) versus DOCUMENT (claim
+is true but narrower than stated). That framing is what let the arc close: it
+forced a verdict on convergence rather than another open-ended hunt. The
+finding that survived — a record forged and committed in one step is
+undetectable by any HEAD-relative check — is not a bug a round 6 would find
+and a round 7 would need to re-fix. It is what "compare against HEAD" *means*,
+named and disclosed rather than iterated against.
+
+**Doctrine candidate:** a bounded final round with an explicit MUST-FIX/
+DOCUMENT split is a reusable pattern for ending a verification arc
+responsibly — worth a line in `skills/loop-engineering.md` next to the thrash
+detector, as the deliberate-stop counterpart to it.
+
 ## Metrics
 
-- 4 verification rounds, 8 verifier dispatches, ~1.1M subagent tokens.
-- 5 blockers, 21 majors, 4 architectural corrections.
-- 253 → 305 tests; the growth is almost entirely regression tests carrying
+- 5 verification rounds, 9 verifier dispatches, ~1.86M subagent tokens.
+- 6 blockers, 21+ majors, 5 architectural/documentation corrections.
+- 253 → 324 tests; the growth is almost entirely regression tests carrying
   verifiers' own exploit payloads.
 - 0 findings from CI. Every one came from a fresh context reading the code.
+- 1 disclosed, unfixed residual: single-commit forgery defeats any
+  HEAD-relative check. Mitigation is process (diff review + branch
+  protection), not more code.

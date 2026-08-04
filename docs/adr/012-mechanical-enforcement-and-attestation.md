@@ -43,7 +43,7 @@ custody, no CA, no network dependency, and no third-party client.
 ## Correction 2 (2026-08-04, after four rounds) — READ THIS FIRST
 
 The decision below says the doctrine is bound "at two mechanical boundaries."
-**Only one of them is a boundary.** Four independent security passes, each
+**Only one of them is a boundary.** Five independent security passes, each
 attacking the previous one's fixes, established that:
 
 - **Write/Edit interception is sound** for the paths it is handed: a file path
@@ -57,13 +57,21 @@ attacking the previous one's fixes, established that:
   as containment for a determined actor inside the repo.
 - **Attestation proves the tag was signed, never the record.** Records are
   written *after* their tag, so no signature covers a record's contents.
-- **`doctrine_gold gate` is tamper-EVIDENT, not tamper-proof.** Its first
-  version hashed each file against a hash stored in the record it was
-  verifying, so a self-consistent forgery passed. It now anchors on git's
-  committed copy and a committed manifest — which makes tampering loud, and
-  still cannot stop an actor who rewrites record, manifest and history
-  together. **The real anchor is outside the repo:** CI running the gate on
-  the pushed commit, branch protection, and a signed tag.
+- **`doctrine_gold gate` verifies against HEAD, not against history.** Its
+  first version hashed each file against a hash stored *in the record it was
+  verifying*, so a self-consistent forgery passed. A second version anchored
+  on git's committed copy plus a manifest, and a **fifth** independent pass
+  showed that was still narrower than the words around it: deletion detection
+  depended entirely on the manifest (a legacy repo has none), and — the limit
+  that remains — an actor with ordinary commit access can forge a record and
+  commit the forgery in one step, with no amend and no force-push, and the
+  gate has no prior state to diff it against. Deletion/relocation is now
+  checked against git's *history* on the directory, not only its current
+  tree, closing the manifest-only gap. The single-commit-forgery gap is not
+  closeable by any HEAD-relative check; it is not "fixed", it is disclosed,
+  and it is caught by a human reading the diff before a release-bound merge,
+  not by another automated gate. Full account, including what "CI on the
+  pushed commit" does and does not add: `.Doctrine/05-packaging.md`.
 
 Nothing below is deleted, because the errors are the record. Where the text
 below says "boundary", read the table in `.Doctrine/05-packaging.md`.

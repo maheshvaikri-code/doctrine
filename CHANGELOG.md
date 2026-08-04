@@ -6,6 +6,53 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Fixed — round 5 (final, bounded): the anchor was weaker than it read
+
+A single scoped security round audited only `doctrine_gold gate` and
+`doctrine_verify`'s gold-gate wiring — days-old code that had never been
+independently attacked. It maintained the veto: an ordinary forward commit (no
+force-push, no amend) that forges a record and commits the forgery in one step
+passed, because the gate compared the record against *itself*'s prior
+committed state, which for a same-commit forgery does not exist to differ
+from. Deletion detection also depended entirely on a committed manifest, so a
+`git mv`/`git rm` followed by a commit removed the evidence from git's current
+tree in the same step that should have been caught, and printed "nothing
+promoted yet."
+
+Fixed: deletion/relocation is now checked against git's **history** on the
+gold directory (`git log`), not only its current tree, so a committed move or
+removal is caught even with no manifest involved. `committed_bytes` and the
+manifest comparison are EOL-normalized, so an honest Windows clone under
+`core.autocrlf=true` (the Git for Windows installer default) is no longer
+accused of forging its own security sign-off — that false accusation would
+have gotten the gate disabled within a day of real use. Git being entirely
+unreachable now fails the gate closed instead of reading as "nothing to
+check." `doctrine_verify`'s decision to invoke the gate now reads git
+**history** (`git log`) instead of the **index** (`git ls-files`), so a
+`git rm` staged but not yet committed can no longer make the one-command
+suite skip the gate while the gate itself, run directly, still fails. The
+gate's own success message now states how many artifacts were actually
+verified rather than claiming a full match after silently skipping one absent
+from a fresh checkout.
+
+**Corrected, not fixed — this round's residual is architectural, not a bug:**
+a record forged and committed in the *same* commit is undetectable by any
+HEAD-relative check, because there is no prior state to diff against.
+`.Doctrine/05-packaging.md` states this precisely now and names the control
+that actually catches it — a human reading `git log -p --
+docs/releases/gold/` before a release-bound merge lands, backed by branch
+protection. "CI running this gate on the pushed commit" is retracted as a
+second anchor for that case: CI checks out the identical HEAD and reaches the
+identical (wrong) answer. The two-line pre-commit hook this file recommended
+earlier is retracted outright: the gate compares against HEAD, and a record
+has no HEAD copy to compare against until *after* its own promoting commit
+exists, so the hook refused the commit that files the very first record.
+
+Evidence: ruff clean, 324 tests OK (1 skipped), full suite green. Five
+independent rounds total; this is where the arc stops — the remaining gap is
+now a documented, structural property of comparing against HEAD, not a
+defect a sixth round would find and a seventh would need to fix again.
+
 ### Changed — the Bash guard is reclassified, and the real gate is elsewhere
 
 Three independent security passes each found new shell spellings that reached

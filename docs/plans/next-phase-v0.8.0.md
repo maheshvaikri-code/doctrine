@@ -67,6 +67,16 @@ off until a fresh context says so.
    one file in five.
 4. `skills/tooling.md` — a gate must fail closed on the action it judges and
    never on its own plumbing (the relative-path lockout).
+5. `skills/testing.md` or `skills/ai-slop.md` — **circular verification**: a
+   check that compares a claim against data supplied by the same artifact
+   making the claim has verified nothing. Round 4's gate hashed a record
+   against a hash stored inside that record; name the pattern so the next
+   instance is caught by review, not by a fifth round.
+6. `skills/loop-engineering.md` — a **bounded final round** (one verifier,
+   explicit MUST-FIX/DOCUMENT split, stop regardless of outcome) is the
+   deliberate-stop counterpart to the thrash detector — worth documenting as
+   a named pattern for ending a verification arc responsibly, not just
+   running out of budget.
 
 ### P1.1b Original scope (kept for reference)
 The gate the last release could not run. Dispatch fresh-context

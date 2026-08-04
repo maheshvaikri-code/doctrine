@@ -54,14 +54,30 @@ def is_source_repo(root: Path) -> bool:
 
 
 def git_knows_gold(root: Path) -> bool:
-    """Whether git has ever tracked a gold record here.
+    """Whether git's HISTORY has ever held a gold record here.
 
     Consulted so that deleting the whole directory cannot make the gate
     disappear: git remembers what the working tree no longer shows.
+
+    `git ls-files` reads the INDEX, not history - a `git rm` staged but not
+    yet committed empties the index entry, so the suite skipped the gate
+    while `doctrine_gold gate`, run directly, still failed on the same
+    repo. `git log` on the path answers "did any commit ever touch this",
+    which a staged-but-uncommitted removal, or a later commit that deleted
+    or relocated the evidence, cannot make disappear.
+
+    A non-git directory (no .git at all - most test fixtures, or a
+    deliberately un-git-tracked install) answers False here, same as "ran
+    fine and found nothing": there is no history to hide anything in. A
+    git binary that is genuinely broken or missing is a different, rarer
+    failure that `doctrine_gold gate` itself catches and fails closed on
+    (`GitUnavailable`) the moment it is asked to run - which is the
+    decision that actually matters, made by the code that owns it.
     """
     try:
         proc = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "docs/releases/gold"],
+            ["git", "log", "-1", "--format=%H", "--",
+             "docs/releases/gold"],
             cwd=root, capture_output=True, check=False, timeout=15)
     except (OSError, subprocess.SubprocessError):
         return False
@@ -115,10 +131,13 @@ def main(argv: list[str] | None = None) -> int:
     # wrote it. The PreToolUse guard is a best-effort tripwire on shell
     # commands; THIS is the gate that holds, because a tampered record fails
     # here regardless of which primitive modified it.
-    # Run whenever the directory OR its manifest exists. Gating on the
-    # directory alone meant `mv docs/releases lib` deleted every record and
-    # the gate simply vanished from the run - VERIFY OK, one fewer gate, no
-    # warning. An absence must be checked, not used as a reason to skip.
+    # Run whenever the directory exists, its manifest exists, or git's
+    # HISTORY has ever held a record. Gating on the directory alone meant
+    # `mv docs/releases lib` deleted every record and the gate vanished from
+    # the run - VERIFY OK, one fewer gate, no warning. Reading the INDEX
+    # instead of history (the previous `git_knows_gold`) meant a STAGED
+    # `git rm` (not yet committed), or a later commit that relocated the
+    # evidence, ALSO made the gate skip while it still failed run directly.
     gold_dir = root / "docs" / "releases" / "gold"
     if gold_dir.is_dir() or (gold_dir / "MANIFEST.json").exists() or \
             git_knows_gold(root):

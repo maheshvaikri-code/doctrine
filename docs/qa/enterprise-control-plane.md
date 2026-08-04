@@ -381,8 +381,73 @@ Gates: `ruff` clean, `doctrine_lint` clean, **314 tests OK (1 skipped)**,
   tamper-evident; the anchor that holds is CI on the pushed commit plus branch
   protection.
 
+## Round 5 (final, bounded, 2026-08-04) — security only, scoped to the anchor
+
+Deliberately narrow: after this round the work stops and residuals get
+documented rather than chased into a sixth round. **VETO maintained**, with
+findings split into MUST FIX (the documented claim is false) and DOCUMENT
+(true but narrower than a reader would assume) — the reviewer's own framing
+for a bounded final pass.
+
+**MUST FIX, applied:**
+
+- Deletion/relocation detection was conditional on a committed manifest.
+  `git rm -r`/`git mv` followed by a commit removed the evidence from git's
+  current tree in the same step that should have caught it, and the gate
+  printed "nothing promoted yet" — because "current tree" and "history" are
+  different questions and only the first was asked. Now checked against git's
+  *history* on the directory (`git log`), which a committed deletion cannot
+  erase.
+- `doctrine_verify`'s decision to invoke the gate read the git **index**
+  (`git ls-files`), not history, so a `git rm` staged but not yet committed
+  made the one-command suite skip the gate while the gate itself, run
+  directly, still failed on the same repo. Now reads `git log`.
+- An honest clone on `core.autocrlf=true` (the Git for Windows installer
+  default) was accused of forging its own security sign-off: `git show`
+  returns the raw LF blob, checkout converts the worktree copy to CRLF, and
+  the two were compared raw. Both sides are now EOL-normalized before
+  comparison.
+- Git being entirely unreachable (binary missing, timeout) was
+  indistinguishable from "there is nothing to check," so `rm -rf` with git
+  off `PATH` printed `gate OK`. Now fails closed.
+- The gate's success line claimed all artifacts matched immediately after
+  printing that one was skipped as absent-in-checkout. Now states
+  `N/M artifact(s) verified` honestly.
+- Every claim of the form "tampering fails regardless of how it was written"
+  / "CI running this gate on the pushed commit is the real anchor" /
+  "wire it as pre-commit and tampering cannot reach history" is corrected —
+  in `.Doctrine.md`, `05-packaging.md`, ADR-012, and the tool's own help text
+  — to say precisely what the gate does and does not catch.
+
+**DOCUMENT — real, disclosed, not fixed in code:** a record forged and
+committed in a **single** commit (no amend, no force-push) is undetectable by
+any HEAD-relative check, because no prior committed state exists for that
+record to differ from. This is not a bug enumeration can close; it is what
+"the gate compares against HEAD" *means*. The control that catches it is a
+human reading `git log -p -- docs/releases/gold/` before a release-bound
+merge, backed by branch protection — stated as such, not left implied.
+
+Replayed against the fixes:
+
+```
+git rm -r + commit (deletion anchor: git HEAD tree)   -> gate rc=1 caught
+git mv docs/releases lib + commit                     -> gate rc=1 caught
+staged git rm, not committed                           -> gate rc=1 caught
+honest clone, autocrlf=true, nothing touched           -> gate rc=0 passes
+git off PATH + evidence deleted                        -> gate rc=1 fails closed
+forged record committed normally (single commit)       -> gate rc=0  [disclosed residual]
+hand-written record + fresh tag, committed normally    -> check rc=0 [disclosed residual]
+```
+
+Gates: ruff clean, `doctrine_lint` clean, **324 tests OK (1 skipped)**,
+`VERIFY OK: 4 gate(s) green`.
+
 ## Still not signed off
 
-Four rounds have now each overturned an author's "all fixed", including the
-round that fixed the fixer. This artifact is not evidence of a passing gate
-until a fresh context says so.
+Five rounds, four of which each overturned an author's "all fixed." This
+round did not — it confirmed the fix for the class it was scoped to (deletion/
+relocation, EOL, unreachable git, artifact honesty) and left one structural
+limit disclosed rather than patched. That is the intended stopping point of a
+bounded final round, not a claim of completeness: this artifact remains
+author-applied, un-re-verified by a sixth independent pass. Treat it
+accordingly.

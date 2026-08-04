@@ -611,6 +611,92 @@ class TestGate(GoldRepo):
         self.assertEqual(dg.cmd_check(self.root, "v9.9.9"), 1)
         self.assertEqual(dg.cmd_gate(self.root), 1)
 
+    def test_a_committed_relocation_is_caught_even_with_no_manifest_entry(self):
+        """Regression (round 5, S3): `git mv docs/releases lib && commit`
+        empties HEAD's CURRENT tree in the same commit that relocates the
+        evidence, so a check of only the current tree said 'git has never
+        tracked any' - false. History remembers what HEAD no longer shows."""
+        self.record()
+
+        subprocess.run(["git", "mv", "docs/releases", "lib"], cwd=self.root,
+                       check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "reorganize"], cwd=self.root,
+                       check=True, capture_output=True)
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_a_committed_deletion_is_caught(self):
+        self.record()
+
+        subprocess.run(["git", "rm", "-r", "-q", "docs/releases/gold"],
+                       cwd=self.root, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "remove"], cwd=self.root,
+                       check=True, capture_output=True)
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_a_staged_but_uncommitted_deletion_still_fails(self):
+        """Regression: reading the git INDEX (`git ls-files`) rather than
+        HISTORY (`git log`) meant a staged-but-not-yet-committed `git rm`
+        made the deletion invisible to the anchor."""
+        self.record()
+
+        subprocess.run(["git", "rm", "-r", "-q", "docs/releases/gold"],
+                       cwd=self.root, check=True, capture_output=True)
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_a_fresh_clone_with_autocrlf_is_not_flagged(self):
+        """Regression (round 5, S5): git for Windows defaults to
+        core.autocrlf=true, which converts the WORKTREE copy to CRLF on
+        checkout while `git show` returns the raw LF blob. An untouched,
+        honest clone was accused of forging the security sign-off."""
+        self.record()
+        subprocess.run(["git", "config", "core.autocrlf", "true"],
+                       cwd=self.root, check=True, capture_output=True)
+        with tempfile.TemporaryDirectory() as clone_parent:
+            clone = Path(clone_parent) / "clone"
+            result = subprocess.run(
+                ["git", "clone", "-q", str(self.root), str(clone)],
+                capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            subprocess.run(["git", "config", "core.autocrlf", "true"],
+                           cwd=clone, check=True, capture_output=True)
+            subprocess.run(["git", "checkout", "-q", "--", "."], cwd=clone,
+                           check=True, capture_output=True)
+
+            self.assertEqual(dg.cmd_gate(clone), 0)
+
+    def test_git_being_unreachable_fails_closed_not_open(self):
+        """Regression (round 5, S8): an unreachable git must never read as
+        "there is no anchor" - `rm -rf` with git off PATH printed `gate OK`.
+        """
+        self.record()
+        shutil.rmtree(self.root / "docs" / "releases" / "gold")
+
+        result = subprocess.run(
+            [sys.executable, str(REPO / "tools" / "doctrine_gold.py"),
+             "--root", str(self.root), "gate"],
+            cwd=self.root, env={"PATH": "", "SYSTEMROOT":
+                                os.environ.get("SYSTEMROOT", "")},
+            capture_output=True, text=True)
+
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_the_summary_states_which_artifacts_were_actually_checked(self):
+        """Regression (round 5, S10): 'artifacts ... match their recorded
+        hashes' was printed two lines after admitting one was skipped -
+        a §7 #1 honesty defect in the tool's own success message."""
+        self.record()
+        (self.root / "dist" / "app.whl").unlink()
+
+        with mock.patch("builtins.print") as fake_print:
+            self.assertEqual(dg.cmd_gate(self.root), 0)
+        summary = "\n".join(str(call.args[0]) if call.args else ""
+                            for call in fake_print.call_args_list)
+        self.assertIn("0/1 artifact(s) verified", summary)
+        self.assertNotIn("artifacts/verdict/sign-offs match", summary)
+
     def test_an_absent_artifact_does_not_fail_a_fresh_checkout(self):
         """A CI clone has no dist/: build output is generated, not committed.
         Failing there made the gate permanently red on every clean clone.

@@ -1,7 +1,8 @@
 # ADR-012: Mechanical enforcement at the tool boundary, attestation via git
 <!-- G1 artifact. File as docs/adr/NNN-slug.md. One decision per ADR. -->
 
-**Date:** 2026-08-03 · **Status:** accepted
+**Date:** 2026-08-03 · **Status:** accepted, amended 2026-08-03 (see
+Correction below)
 **Deciders:** Chief Architect + human (scope approved: "fix everything")
 **Extends:** ADR-004 (activation layer), ADR-005 (MCP tool governance)
 
@@ -22,9 +23,11 @@ control plane cannot.
 We will bind the doctrine at two mechanical boundaries and nowhere else.
 
 **At the point of action**, `tools/doctrine_guard.py` runs as a `PreToolUse`
-hook and returns a deny decision for four classes: secret-shaped content
-entering the repository, writes to protected paths, destructive shell commands,
-and writes attempted by a verifier role. It is a *decision* hook, not an
+hook and returns a decision for four classes: **deny** for secret-shaped
+content entering the repository and for writes to protected paths (immutable
+evidence, the installed corpus in a consumer repo); **ask** for destructive or
+external shell commands (§5), for edits that weaken a test (§7 #4), and for
+writes to the repo's own enforcement surface. It is a *decision* hook, not an
 advisor: a denial stops the tool call. Outside a Doctrine repository it exits
 silently (fail-open, because the law is not in play); inside one, an input it
 cannot parse is denied (fail-closed, because a governed repo must not gain a
@@ -36,6 +39,36 @@ annotated tag already carries a cryptographic identity the developer controls;
 `doctrine_gold record` records that identity in the gold record, and
 `--require-signature` refuses promotion without it. Doctrine adds no key
 custody, no CA, no network dependency, and no third-party client.
+
+## Correction (2026-08-03, after independent verification)
+
+This ADR originally listed **"writes attempted by a verifier role"** as the
+fourth deny class, and claimed separation of duties had become mechanical.
+Three independent verifiers found that no such rule exists in the code, and
+never did. The decision text above has been corrected to describe what ships.
+The record of the error stays here, because an ADR that quietly rewrites
+itself teaches nothing.
+
+**Why the rule was dropped, and why that is the right call.** The `PreToolUse`
+payload carries no role. Any marker the agent writes to announce "I am the
+reviewer now", the agent can decline to write — enforcement on a self-attested
+signal is the security theater `skills/ai-slop.md` exists to catch.
+
+**What actually enforces it**, per the verifier-dispatch rule now in
+`02-role-protocol.md`: verifier subagents are dispatched with tool grants that
+exclude Edit/Write. **This is partial, and the gap must be stated**: those
+grants include `Bash`, which is a write channel — a security reviewer
+demonstrated it by creating files with `cat >` after the guard denied the
+equivalent redirect. So the isolation is real against a reviewer that edits
+by accident, and porous against one that decides to. Closing it needs either
+a role-aware payload from the runtime or a Bash-free verifier grant; that is
+tracked as P2.3 in `docs/plans/next-phase-v0.8.0.md`, not claimed here.
+
+Two further corrections from the same pass, both now fixed in code: the
+guard's own policy file and `pyproject.toml` were writable, so the governed
+agent could switch the whole control off in one call; and the command-path
+rule matched raw substrings, which both let non-redirect write primitives
+through and denied ordinary work. See `docs/reviews/enterprise-control-plane.md`.
 
 ## Alternatives considered
 | Option | Pros | Cons | Why not |

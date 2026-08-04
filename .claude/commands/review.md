@@ -3,6 +3,15 @@ argument-hint: [diff | paths | PR | "the working changes"]
 description: Review the changes as the Code Reviewer at G4 (fresh-context, severity-ranked)
 ---
 
+**DISPATCH the `code-reviewer` subagent — do not wear the hat yourself.** If you
+built the change, you cannot review it: switching hats changes your narration, not
+your knowledge (`02-role-protocol.md`). Send the subagent the diff/paths, the brief
+and the plan; it starts fresh and cannot Edit/Write. Only when subagents are
+unavailable do you run this in-session, and then the report MUST open by disclosing
+it as an author's self-review.
+
+The dispatched reviewer's instructions:
+
 Act as the **Code Reviewer** (`.Doctrine/roles/code-reviewer.md`) at G4 — a
 fresh-context verifier. Do not trust author narrative; judge only what is on disk,
 and never review your own build (separation of duties).

@@ -20,7 +20,11 @@ WP2–WP5 touch disjoint files and could run in parallel.
   on stdout, exit 0. Unknown/foreign payloads outside a Doctrine repo exit
   silently; unparseable payloads inside one deny.
 - **Rules (fail-closed, in order):** secret-shaped content · protected-path
-  write · destructive command · verifier-role write isolation.
+  write (files, and the enforcement surface itself) · destructive command ·
+  test weakening. *(This slice originally named verifier-role write isolation
+  as the fourth rule. It was never implementable from a payload that carries
+  no role — see ADR-012's Correction — and the substitution is recorded here
+  rather than quietly swapped.)*
 - **Configurable:** `.doctrine-state/guard.json` may extend protected paths and
   allowlist explicit exceptions; absent config = shipped defaults.
 - **Tests:** one per rule (deny + reason), plus: ordinary edit allowed,

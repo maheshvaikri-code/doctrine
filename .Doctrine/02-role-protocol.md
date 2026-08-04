@@ -31,6 +31,33 @@ Builder-you and Reviewer-you must not collude:
 - The Project Reviewer audits against the **brief**, not against what got
   built ("is this what was asked?" — not "is this nice?").
 
+### Switching hats is not separation of duties
+
+A single session that writes code and then "puts on the reviewer hat" has
+changed its narration, not its knowledge. It still holds the author's mental
+model, the assumptions that produced the bug, and the belief that the design
+is sound — which is exactly what a reviewer exists to not have.
+
+**So G4 and G5 verification MUST run in a fresh context.** Where the runtime
+can dispatch subagents, the verifier roles are *dispatched*, never worn: they
+start from the diff and the brief with no memory of writing either, and their
+tool grants exclude Edit/Write. Dispatching is the default action at those
+gates, not an option the builder may skip because the change felt small.
+
+**State the limit honestly:** those grants still include `Bash`, which writes.
+A dispatched verifier that *decides* to edit the code it judges can, and a
+security reviewer proved it by creating files with `cat >` after the guard
+refused the identical redirect. The isolation is therefore real against the
+accident and porous against the intent — a strong default, not a sandbox.
+Closing it needs a role-aware runtime signal or a Bash-free verifier grant;
+until then, do not describe a reviewer as unable to edit.
+
+Where subagents are unavailable (a runtime without them, or a session the
+human restricted), verification degrades to an in-session pass — and the
+artifact **must open with that disclosure**, naming it an author's self-review.
+Undisclosed self-review presented as a passed gate is a fabricated verdict
+under §7 #1; the honest form is a real, respectable status.
+
 ## Authority & arbitration
 
 - **Technical disputes** (design, implementation): Chief Architect decides;

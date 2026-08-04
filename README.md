@@ -16,8 +16,9 @@ turns a repository into a disciplined software company: explicit
 requirements, adversarial review gates, tested code, honest reports —
 enforced by tooling, not vibes.
 
-- **39 roles** with tool-enforced separation of duties (reviewers
-  physically cannot edit code)
+- **39 roles**, verifiers dispatched as fresh-context subagents whose tool
+  grants exclude Edit/Write (they still hold Bash, so the isolation is a
+  strong default, not a sandbox)
 - **58 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
   coverage from backend to mobile, ML, data, privacy, incident response
 - **Gates G0→G7** with right-sized ceremony (a typo fix never convenes
@@ -48,8 +49,8 @@ The classic OS primitives map onto real components:
 - **Kernel** — `.Doctrine.md` (always loaded) fused with the fail-closed gates
   (`doctrine_lint` / `doctrine_verify` / gold-build)
 - **Processes** — tasks through gates **G0→G7**, classified S/M/L/HOTFIX, run
-  *as* roles with tool-enforced isolation (a reviewer physically cannot edit what
-  it judges)
+  *as* roles; verifier grants exclude Edit/Write, though they retain Bash, so
+  the isolation is a strong default rather than a sandbox (ADR-012)
 - **Memory** — the hash-chained **state plane** (`.doctrine-state/`): checkpoint →
   hydrate; the repo remembers so the model doesn't have to
 - **Syscalls** — **§5** gates every irreversible or external action; the human is root

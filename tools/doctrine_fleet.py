@@ -21,7 +21,9 @@ crash on stray Unicode punctuation).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -31,20 +33,54 @@ from typing import Any, Final
 FLEET_CONFIG_REL: Final = ".doctrine-state/fleet.json"
 VERSION_RE: Final = re.compile(r"v(\d+\.\d+\.\d+)")
 GIT_TIMEOUT_SECONDS: Final = 10
+# Scanned repos are untrusted input: read a bounded amount of any file rather
+# than whatever a hostile (or merely broken) repo happens to put there.
+MAX_HEADER_BYTES: Final = 4096
+MAX_CARRIER_BYTES: Final = 4 * 1024 * 1024
 # The files whose drift breaks a consumer's own lint/packaging - the same
 # consistency carriers doctrine_install refuses to update piecemeal.
 CARRIERS: Final = (".Doctrine.md", ".Doctrine/README.md",
                    "tools/doctrine_install.py")
 
 
+def is_doctrine_repo(path: Path) -> bool:
+    """Whether a directory carries the law - never raising on the answer.
+
+    An unreadable sibling under ``--root`` used to take the whole fleet view
+    down with a PermissionError traceback, while every other failure in this
+    module degrades to "unknown".
+    """
+    try:
+        return (path / ".Doctrine.md").is_file()
+    except OSError:
+        return False
+
+
+def skip_reason(path: Path) -> str:
+    """Why a named path produced no row."""
+    try:
+        (path / ".Doctrine.md").is_file()
+    except OSError as exc:
+        return f"unreadable ({exc.__class__.__name__})"
+    try:
+        if not path.exists():
+            return "no such path"
+        if not path.is_dir():
+            return "not a directory"
+    except OSError as exc:
+        return f"unreadable ({exc.__class__.__name__})"
+    return "no .Doctrine.md"
+
+
 def read_version(root: Path) -> str | None:
     """The doctrine version from a repo's ``.Doctrine.md`` header line."""
     law = root / ".Doctrine.md"
-    if not law.is_file():
+    if not is_doctrine_repo(root):
         return None
     try:
-        first = law.read_text("utf-8", "replace").splitlines()[0]
-    except (OSError, IndexError):
+        with law.open("r", encoding="utf-8", errors="replace") as handle:
+            first = handle.readline(MAX_HEADER_BYTES)
+    except OSError:
         return None
     match = VERSION_RE.search(first)
     return match.group(1) if match else None
@@ -55,10 +91,26 @@ def version_tuple(version: str) -> tuple[int, ...]:
 
 
 def run_git(root: Path, *args: str) -> str | None:
-    """Read-only git query; None when git or the repo is unavailable."""
+    """Read-only git query; None when git or the repo is unavailable.
+
+    Every flag here earns its place from a real finding:
+
+    * ``--no-optional-locks`` - plain ``git status`` refreshes and rewrites
+      the index whenever the stat cache is stale (i.e. after any fresh
+      clone), so a "read-only" scan both mutated the repo and took
+      ``index.lock`` in someone else's working tree.
+    * ``core.fsmonitor=`` and ``core.hooksPath`` - both are read from the
+      SCANNED repo's config and name a command git will execute. Inspecting
+      an untrusted repo must not run its code; a security pass proved
+      ``core.fsmonitor`` firing during a fleet scan.
+    """
     try:
         proc = subprocess.run(
-            ["git", *args], cwd=root, capture_output=True, text=True,
+            ["git", "--no-optional-locks",
+             "-c", "core.fsmonitor=",
+             "-c", f"core.hooksPath={os.devnull}",
+             *args],
+            cwd=root, capture_output=True, text=True,
             check=False, timeout=GIT_TIMEOUT_SECONDS)
     except (OSError, subprocess.SubprocessError):
         return None
@@ -80,13 +132,16 @@ def describe_drift(root: Path, source: Path, version: str | None,
         return f"behind v{source_version}" if behind else "ahead"
     for rel in CARRIERS:
         installed, original = root / rel, source / rel
-        if not original.is_file():
-            continue
-        if not installed.is_file():
-            return "incomplete"
         try:
-            if installed.read_bytes() != original.read_bytes():
-                return "modified"
+            if not original.is_file():
+                continue
+            if not installed.is_file():
+                return "incomplete"
+            if installed.stat().st_size > MAX_CARRIER_BYTES:
+                return "unreadable"      # a scanned repo does not get to
+            with installed.open("rb") as new, original.open("rb") as old:
+                if new.read(MAX_CARRIER_BYTES) != old.read(MAX_CARRIER_BYTES):
+                    return "modified"    # decide how much memory we spend
         except OSError:
             return "unreadable"
     return "current"
@@ -95,11 +150,11 @@ def describe_drift(root: Path, source: Path, version: str | None,
 def describe_state(root: Path) -> str:
     """State-plane posture, read straight off disk (never mutated here)."""
     checkpoint = root / ".doctrine-state" / "checkpoint.json"
-    if not checkpoint.is_file():
-        return "none"
     try:
+        if not checkpoint.is_file():
+            return "none"
         data = json.loads(checkpoint.read_text("utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return "unreadable"
     if not isinstance(data, dict):
         return "unreadable"
@@ -132,27 +187,45 @@ def inspect(path: Path, source: Path, source_version: str | None) -> dict[str, A
         "worktree": ("unknown" if status is None
                      else ("dirty" if status else "clean")),
         "release": describe_release(root),
-        "goldRecords": (len(list(gold_dir.glob("*.json")))
-                        if gold_dir.is_dir() else 0),
+        "goldRecords": count_gold_records(gold_dir),
     }
 
 
+def count_gold_records(gold_dir: Path) -> int:
+    try:
+        return len(list(gold_dir.glob("*.json"))) if gold_dir.is_dir() else 0
+    except OSError:
+        return 0
+
+
 def discover(root: Path) -> list[Path]:
-    """Doctrine repos one level under ``root`` (plus ``root`` itself)."""
-    found = [root] if (root / ".Doctrine.md").is_file() else []
-    for child in sorted(p for p in root.iterdir() if p.is_dir()):
-        if (child / ".Doctrine.md").is_file():
-            found.append(child)
+    """Doctrine repos one level under ``root`` (plus ``root`` itself).
+
+    One unreadable sibling must not take down the whole fleet view - a scan
+    is a survey, and a directory it cannot open is a row it cannot fill, not
+    a reason to abandon the other repos.
+    """
+    found = [root] if is_doctrine_repo(root) else []
+    try:
+        children = sorted(root.iterdir())
+    except OSError:
+        return found
+    for child in children:
+        try:
+            if child.is_dir() and is_doctrine_repo(child):
+                found.append(child)
+        except OSError:
+            continue
     return found
 
 
 def from_config(start: Path) -> list[Path]:
     config = start / FLEET_CONFIG_REL
-    if not config.is_file():
-        return []
     try:
+        if not config.is_file():
+            return []
         data = json.loads(config.read_text("utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return []
     repos = data.get("repos") if isinstance(data, dict) else None
     if not isinstance(repos, list):
@@ -179,10 +252,25 @@ def render_table(rows: list[dict[str, Any]]) -> str:
 
 
 def cmd_status(paths: list[Path], source: Path, as_json: bool) -> int:
+    # Repo names come from the filesystem, so the output can carry any
+    # character the OS allows. A Windows cp1252 console raised
+    # UnicodeEncodeError on a CJK or emoji directory name and took the whole
+    # command down; ASCII-only source strings never protected this path.
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, ValueError, OSError):
+            stream.reconfigure(errors="backslashreplace")
+
     source_version = read_version(source)
-    rows = [inspect(p, source, source_version) for p in paths
-            if (p / ".Doctrine.md").is_file()]
-    skipped = len(paths) - len(rows)
+    rows, skipped_paths = [], []
+    for path in paths:
+        if is_doctrine_repo(path):
+            rows.append(inspect(path, source, source_version))
+        else:
+            # Distinguish "not a doctrine repo" from "could not look": an
+            # operator told a permission-denied directory has no .Doctrine.md
+            # draws exactly the wrong conclusion about their fleet.
+            skipped_paths.append((path, skip_reason(path)))
+    skipped = len(skipped_paths)
 
     if as_json:
         json.dump({"source": source.as_posix(),
@@ -197,8 +285,8 @@ def cmd_status(paths: list[Path], source: Path, as_json: bool) -> int:
     else:
         print(f"source: {source.as_posix()} (v{source_version or '?'})")
         print(render_table(rows))
-        if skipped:
-            print(f"({skipped} path(s) skipped: no .Doctrine.md)")
+        for path, reason in skipped_paths:
+            print(f"(skipped {path.name}: {reason})")
 
     drifted = [r for r in rows if r["drift"] != "current"]
     if drifted and not as_json:

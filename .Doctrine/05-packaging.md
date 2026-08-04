@@ -85,13 +85,32 @@ lives at `.doctrine-state/guard.json`:
 ```
 
 `allow` exempts a path from the path and secret rules — the escape hatch for
-legitimate secret-shaped fixtures. It is committed config, so widening it is
-a visible, reviewable act rather than a private decision. A malformed policy
-file is ignored, never obeyed: a broken config must not widen what is allowed.
+legitimate secret-shaped fixtures. A malformed policy file is ignored, never
+obeyed, and **blanket patterns (`*`, `**`, `.`, `/`) are dropped even from a
+well-formed file**: "allow everything" is not a policy, it is the off switch.
 
-Honest limits: pattern matching finds known credential formats, not every
-secret; the guard binds only runtimes that honour a pre-execution hook; and it
-gates the four checkable non-negotiables, not all ten.
+**The enforcement surface is itself guarded.** This policy file, the hook
+wiring (`.claude/settings.json`, `CLAUDE.md`, `AGENTS.md`), `pyproject.toml`
+(its package name decides whether the installed corpus is protected here),
+`.doctrine-state/fleet.json` and `.github/workflows/` all require an explicit
+human **ask** before an agent may change them. An earlier version protected
+none of these, and three independent verifiers each disabled the entire guard
+from inside the repo it governs with a single write. They **ask** rather than
+deny because widening policy is a legitimate human act; what must never happen
+is the governed party doing it silently.
+
+Honest limits, measured rather than assumed:
+
+- Pattern matching finds known credential formats, not every secret. A value
+  with no credential-shaped name, or one containing spaces, is not caught, and
+  a secret **assembled across two separate tool calls** is never seen whole.
+  Pair it with a real scanner at G5 (`skills/security.md`).
+- Command enforcement resolves the paths a command *names*. A path built at
+  runtime — `cd docs/releases && echo x > gold/f.json`, or one assembled from
+  a shell variable — is beyond a pre-execution text check.
+- It binds only runtimes that honour a pre-execution hook, and only the tools
+  its matcher lists. MCP filesystem/exec servers are ungoverned.
+- It gates four checkable non-negotiables, not all ten.
 
 ## Fleet view (many repos, one posture)
 

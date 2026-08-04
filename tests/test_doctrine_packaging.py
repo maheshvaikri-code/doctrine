@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -46,6 +48,67 @@ class TestInstaller(unittest.TestCase):
                 self.assertTrue(installed.is_file(), rel)
                 self.assertIn("doctrine_lint.py",
                               installed.read_text("utf-8"))
+
+    def test_the_guard_hook_resolves_from_the_project_not_the_cwd(self):
+        """Regression: the hook invoked `tools/doctrine_guard.py` relatively.
+
+        Run from a subdirectory, python cannot find it and exits 2 - the code
+        the hook contract reserves for BLOCK - so the enforcement gate became
+        a total lockout that prevented its own repair. The plugin's variant
+        failed the other way: its `os.path.exists` check missed, so the gate
+        silently turned OFF. Both are executed here from a subdirectory.
+        """
+        for config in (REPO / ".claude" / "settings.json",
+                       REPO / "plugin" / "hooks" / "hooks.json"):
+            hooks = json.loads(config.read_text("utf-8"))["hooks"]
+            self.assertTrue(hooks.get("PreToolUse"),
+                            f"{config.name}: no PreToolUse hook")
+            # EVERY hook, not just the guard: a SessionStart or
+            # UserPromptSubmit hook exiting 2 blocks the turn just as hard.
+            for event, groups in hooks.items():
+                for group in groups:
+                    for entry in group["hooks"]:
+                        argv = shlex.split(entry["command"], posix=False)
+                        argv = [a[1:-1]
+                                if len(a) > 1 and a[0] == a[-1] == '"' else a
+                                for a in argv]
+                        result = subprocess.run(
+                            argv, cwd=REPO / "tools",
+                            input='{"tool_name":"Write","cwd":"%s",'
+                                  '"tool_input":{"file_path":'
+                                  '"docs/releases/gold/v1.0.0.json",'
+                                  '"content":"{}"}}' % REPO.as_posix(),
+                            capture_output=True, text=True,
+                            env={**os.environ,
+                                 "CLAUDE_PROJECT_DIR": str(REPO)})
+
+                        with self.subTest(config=config.name, event=event,
+                                          command=entry["command"][:40]):
+                            self.assertEqual(
+                                result.returncode, 0,
+                                "hook failed from a subdirectory "
+                                f"({event}): {result.stderr[:200]}")
+
+    def test_the_guard_hook_still_decides_from_a_subdirectory(self):
+        for config in (REPO / ".claude" / "settings.json",
+                       REPO / "plugin" / "hooks" / "hooks.json"):
+            entry = json.loads(config.read_text("utf-8"))[
+                "hooks"]["PreToolUse"][0]["hooks"][0]
+            argv = shlex.split(entry["command"], posix=False)
+            argv = [a[1:-1] if len(a) > 1 and a[0] == a[-1] == '"' else a
+                    for a in argv]
+
+            result = subprocess.run(
+                argv, cwd=REPO / "tools",
+                input='{"tool_name":"Write","cwd":"%s","tool_input":'
+                      '{"file_path":"docs/releases/gold/v1.0.0.json",'
+                      '"content":"{}"}}' % REPO.as_posix(),
+                capture_output=True, text=True,
+                env={**os.environ, "CLAUDE_PROJECT_DIR": str(REPO)})
+
+            with self.subTest(config=config.name):
+                self.assertIn("permissionDecision", result.stdout,
+                              "the gate went silent instead of deciding")
 
     def test_an_unknown_ci_provider_is_refused_before_any_write(self):
         self.assertEqual(self.install(ci=True, ci_provider="jenkins"), 2)

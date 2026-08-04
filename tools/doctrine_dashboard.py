@@ -15,9 +15,11 @@ import json
 import logging
 import re
 import secrets
+import socket
 import subprocess
 import sys
 import threading
+import time
 import tomllib
 from collections import deque
 from collections.abc import Callable, Sequence
@@ -40,6 +42,13 @@ VERIFY_TIMEOUT_SECONDS: Final = 180
 # A socket read that never completes must not hold a request thread forever;
 # every read on a connection (request line, headers, body drain) is bounded.
 REQUEST_TIMEOUT_SECONDS: Final = 10
+# Lingering close for a body we REFUSE to read (the oversized branch). We
+# cannot drain it - that is the point of refusing - but closing with bytes
+# still arriving makes the OS answer RST, which destroys the 413 the client
+# has not read yet. So: discard whatever arrives within a short window, then
+# close. Bounded in both bytes and time, so it is not a DoS lever.
+LINGER_SECONDS: Final = 0.5
+LINGER_MAX_BYTES: Final = 1024 * 1024
 DEFAULT_ORIGINS: Final = frozenset(
     {"http://localhost:3003", "http://127.0.0.1:3003"}
 )
@@ -785,12 +794,58 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
             except OSError:      # client vanished mid-body; nothing to salvage
                 self.close_connection = True
 
+        def _linger_discard(self) -> None:
+            """Absorb a briefly-arriving body we will not process.
+
+            Used only where the endpoint refuses to READ the body (oversized
+            requests). Waiting a moment for the bytes already in flight is
+            what lets the client receive our refusal instead of an aborted
+            connection - a client that sends nothing costs one short window,
+            and one that floods costs at most LINGER_MAX_BYTES.
+            """
+            self._body_consumed = True
+            try:
+                declared = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return
+            remaining = min(max(declared, 0), LINGER_MAX_BYTES)
+            deadline = time.monotonic() + LINGER_SECONDS
+            original = self.connection.gettimeout()
+            try:
+                while remaining > 0:
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        break
+                    self.connection.settimeout(left)
+                    chunk = self.rfile.read1(min(remaining, 65536))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+            except (OSError, ValueError):
+                pass
+            finally:
+                with contextlib.suppress(OSError):
+                    self.connection.settimeout(original)
+
         def _origin(self) -> str | None:
             return self.headers.get("Origin")
 
         def _origin_allowed(self) -> bool:
             origin = self._origin()
             return origin is None or origin in application.allowed_origins
+
+        def _host_allowed(self) -> bool:
+            """Loopback binding alone does not stop DNS rebinding: a page on
+            attacker.example can re-resolve its own name to 127.0.0.1 and
+            then reach this server same-origin, where browsers omit `Origin`
+            on GET - so origin checking waves it through. The Host header is
+            what distinguishes 'someone typed localhost' from 'a rebound
+            name pointed here', so it is validated too."""
+            host = self.headers.get("Host")
+            if host is None:
+                return True                      # HTTP/1.0 client, not a browser
+            name = host.rsplit(":", 1)[0].strip("[]").lower()
+            return name in {"localhost", "127.0.0.1", "::1"}
 
         def _send_json(
             self,
@@ -810,10 +865,27 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
             if origin in application.allowed_origins:
                 self.send_header("Access-Control-Allow-Origin", origin)
                 self.send_header("Vary", "Origin")
+            if self.close_connection:
+                self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(body)
+            if self.close_connection:
+                # Flush and half-close so the client is guaranteed to receive
+                # this response before any abort caused by an undrained body.
+                with contextlib.suppress(OSError):
+                    self.wfile.flush()
+                    self.connection.shutdown(socket.SHUT_WR)
 
         def _reject_origin(self) -> bool:
+            if not self._host_allowed():
+                self._send_json(
+                    HTTPStatus.FORBIDDEN,
+                    _error(
+                        "host_not_allowed",
+                        "This bridge answers only to a loopback host name.",
+                    ),
+                )
+                return True
             if self._origin_allowed():
                 return False
             self._send_json(
@@ -912,7 +984,15 @@ def _handler_for(application: BridgeApplication) -> type[BaseHTTPRequestHandler]
                 # Deliberately do NOT drain: refusing to read an oversized body
                 # is the point of this branch, and blocking on bytes a client
                 # may never send would hold the thread to its read timeout.
-                self._body_consumed = True
+                #
+                # But not draining is exactly the condition that made the 415
+                # path lose its response, and a review proved this branch had
+                # inherited it (10/10 ConnectionAbortedError when the body
+                # arrived late). A bounded lingering discard absorbs what is
+                # already in flight, so the client reads the 413 instead of
+                # racing an abort, without ever processing the oversized body.
+                self._linger_discard()
+                self.close_connection = True
                 self._send_json(
                     HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                     _error(

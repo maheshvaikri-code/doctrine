@@ -1,6 +1,7 @@
 """Tests for the loopback Doctrine operations bridge consumed by WorkHawk."""
 from __future__ import annotations
 
+import contextlib
 import json
 import socket
 import subprocess
@@ -372,6 +373,77 @@ class TestHttpBoundary(unittest.TestCase):
             received.startswith(b"HTTP/1.0 415 "),
             f"expected a 415 status line, got {received[:60]!r}",
         )
+
+    def test_oversized_rejection_survives_a_late_arriving_body(self) -> None:
+        """Regression: the 413 branch opts out of the body drain by design,
+        and had therefore inherited the very race the drain was added to fix.
+        The original test sent NO body (data=None), so it could not observe
+        this; a review measured 10/10 ConnectionAbortedError here.
+        """
+        body = b"x" * (dashboard.MAX_REQUEST_BYTES + 1)
+        headers = (
+            b"POST /api/v1/verifications HTTP/1.0\r\n"
+            b"Host: localhost\r\n"
+            b"Origin: http://localhost:3003\r\n"
+            b"Content-Type: application/json\r\n"
+            b"Content-Length: " + str(len(body)).encode() + b"\r\n"
+            b"\r\n"
+        )
+        host, port = self.server.server_address
+        with socket.create_connection((host, port), timeout=5) as sock:
+            sock.sendall(headers)
+            time.sleep(0.3)     # the server answers 413 here, without reading
+            with contextlib.suppress(OSError):
+                sock.sendall(body)   # ...and this lands on a closing socket
+            received = b""
+            with contextlib.suppress(OSError):
+                while True:
+                    chunk = sock.recv(4096)
+                    if not chunk:
+                        break
+                    received += chunk
+
+        self.assertTrue(
+            received.startswith(b"HTTP/1.0 413 "),
+            f"expected a 413 status line, got {received[:60]!r}",
+        )
+
+    def test_rejects_a_rebound_host_name(self) -> None:
+        """Regression: loopback binding does not stop DNS rebinding. A page
+        that re-resolves its own name to 127.0.0.1 reaches this server
+        same-origin, and browsers omit Origin on same-origin GET - so the
+        origin check waved it through and the repository snapshot leaked.
+        """
+        request = (
+            b"GET /api/v1/snapshot HTTP/1.0\r\n"
+            b"Host: attacker.example.com\r\n"
+            b"\r\n"
+        )
+        host, port = self.server.server_address
+        with socket.create_connection((host, port), timeout=5) as sock:
+            sock.sendall(request)
+            received = b""
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                received += chunk
+
+        self.assertTrue(received.startswith(b"HTTP/1.0 403 "),
+                        f"expected 403, got {received[:60]!r}")
+        self.assertIn(b"host_not_allowed", received)
+        self.assertNotIn(b"trackedFiles", received)
+
+    def test_a_loopback_host_is_still_served(self) -> None:
+        for host_header in (b"localhost", b"127.0.0.1", b"localhost:8765"):
+            with self.subTest(host=host_header):
+                host, port = self.server.server_address
+                with socket.create_connection((host, port), timeout=5) as sock:
+                    sock.sendall(b"GET /api/v1/health HTTP/1.0\r\nHost: "
+                                 + host_header + b"\r\n\r\n")
+                    received = sock.recv(4096)
+                self.assertTrue(received.startswith(b"HTTP/1.0 200 "),
+                                f"got {received[:60]!r}")
 
     def test_rejects_oversized_mutation_before_reading_it(self) -> None:
         request = urllib.request.Request(

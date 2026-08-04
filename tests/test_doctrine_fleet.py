@@ -7,11 +7,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "tools"))
@@ -213,6 +216,60 @@ class TestCommand(FleetTestCase):
         self.assertEqual(payload["repos"][0]["drift"], "current")
 
 
+class TestResilience(FleetTestCase):
+    """A survey must survive the repos it surveys."""
+
+    def test_an_unreadable_directory_does_not_take_down_the_scan(self) -> None:
+        """Regression: one PermissionError under --root aborted the whole
+        fleet view with a traceback, while every other failure in this module
+        degrades to 'unknown'."""
+        good = self._repo("readable")
+        blocked = self.workspace / "blocked"
+        blocked.mkdir()
+
+        def is_file(self: Path) -> bool:
+            if "blocked" in self.as_posix():
+                raise PermissionError(13, "Access is denied")
+            return os.path.isfile(self)   # not Path.is_file: that is patched
+
+        with mock.patch.object(fleet.Path, "is_file", is_file):
+            found = fleet.discover(self.workspace)
+
+        self.assertIn(good.name, {p.name for p in found})
+        self.assertEqual(fleet.cmd_status([blocked], self.source, False), 0)
+
+    def test_a_skipped_path_reports_why(self) -> None:
+        """Regression: an unreadable directory was reported as 'no
+        .Doctrine.md'. An operator reading that draws exactly the wrong
+        conclusion about their fleet."""
+        missing = self.workspace / "gone"
+        plain = self.workspace / "plain"
+        plain.mkdir()
+        as_file = self.workspace / "afile"
+        as_file.write_text("x", encoding="utf-8")
+
+        self.assertEqual(fleet.skip_reason(plain), "no .Doctrine.md")
+        self.assertEqual(fleet.skip_reason(missing), "no such path")
+        self.assertEqual(fleet.skip_reason(as_file), "not a directory")
+
+        def is_file(self: Path) -> bool:
+            raise PermissionError(13, "Access is denied")
+
+        with mock.patch.object(fleet.Path, "is_file", is_file):
+            self.assertIn("unreadable", fleet.skip_reason(plain))
+
+    def test_a_non_ascii_repo_name_renders_instead_of_crashing(self) -> None:
+        """Regression: a CJK or emoji directory name raised
+        UnicodeEncodeError on a cp1252 console and killed the command."""
+        repo = self._repo("日本語repo")
+
+        row = fleet.inspect(repo, self.source, "0.7.0")
+        rendered = fleet.render_table([row])
+
+        self.assertIn("repo", rendered)
+        self.assertEqual(fleet.cmd_status([repo], self.source, False), 0)
+
+
 class TestReadOnly(FleetTestCase):
     def test_inspection_never_writes_to_a_governed_repo(self) -> None:
         repo = self._repo("untouched")
@@ -224,6 +281,42 @@ class TestReadOnly(FleetTestCase):
         fleet.cmd_status([repo], self.source, False)
 
         self.assertEqual(_tree_digest(repo), before)
+
+    def test_inspection_does_not_rewrite_a_stale_git_index(self) -> None:
+        """Regression: `git status` refreshes and rewrites the index whenever
+        the stat cache is stale - true of any fresh clone. The original
+        read-only test passed only because its fixture was committed
+        microseconds earlier, so the index was still warm."""
+        repo = self._repo("stale")
+        index = repo / ".git" / "index"
+        stale = time.time() - 86_400
+        for path in sorted(repo.rglob("*")):
+            if path.is_file() and ".git" not in path.parts:
+                os.utime(path, (stale, stale))
+        before = index.read_bytes()
+
+        fleet.cmd_status([repo], self.source, False)
+
+        self.assertEqual(index.read_bytes(), before,
+                         "inspection rewrote the git index")
+
+    def test_inspection_does_not_run_commands_from_the_scanned_repo(self) -> None:
+        """Regression: git honours the SCANNED repo's core.fsmonitor, so a
+        'strictly read-only' scan executed code chosen by the repo it was
+        inspecting."""
+        repo = self._repo("hostile")
+        marker = self.workspace / "fsmonitor-fired.txt"
+        script = self.workspace / "fsmonitor.py"
+        script.write_text(
+            f"from pathlib import Path\n"
+            f"Path(r'{marker}').write_text('fired')\n", encoding="utf-8")
+        _git(repo, "config", "core.fsmonitor",
+             f'"{sys.executable}" "{script}"')
+
+        fleet.cmd_status([repo], self.source, False)
+
+        self.assertFalse(marker.exists(),
+                         "the scanned repo's configured command was executed")
 
 
 if __name__ == "__main__":

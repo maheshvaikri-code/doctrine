@@ -65,7 +65,11 @@
       "properties": {
         "signed": { "type": "boolean" },
         "signer": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
-        "key": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+        "key": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+        "format": {
+          "anyOf": [{ "enum": ["ssh", "openpgp", "x509"] }, { "type": "null" }],
+          "description": "Which backend signed the tag, read from the signature's own armor header rather than local config. Optional: records written by the first attestation release (v0.7.0) omit it."
+        }
       }
     },
     "prev_gold_sha256": {

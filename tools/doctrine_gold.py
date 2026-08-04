@@ -63,13 +63,36 @@ GOODSIG_RE = re.compile(r"^\[GNUPG:\] GOODSIG (\S+) (.*)$", re.MULTILINE)
 VALIDSIG_RE = re.compile(r"^\[GNUPG:\] VALIDSIG (\S+)", re.MULTILINE)
 SSH_GOOD_RE = re.compile(
     r'^Good "git" signature for (.+?) with (\S+) key (\S+)', re.MULTILINE)
-UNSIGNED = {"signed": False, "signer": None, "key": None}
+UNSIGNED = {"signed": False, "signer": None, "key": None, "format": None}
+
+# Which signing backend produced the signature. Read from the armor header in
+# the tag object itself, not from local config: `gpg.format` says how THIS repo
+# would sign, which need not be how the tag in hand WAS signed. These are git's
+# own format markers (gpg-interface.c), one per supported backend.
+SIGNATURE_MARKERS: tuple[tuple[str, str], ...] = (
+    ("-----BEGIN SSH SIGNATURE-----", "ssh"),
+    ("-----BEGIN PGP SIGNATURE-----", "openpgp"),
+    ("-----BEGIN PGP MESSAGE-----", "openpgp"),
+    ("-----BEGIN SIGNED MESSAGE-----", "x509"),
+)
 
 
-def parse_signature_status(returncode: int, raw: str) -> dict:
+def detect_signature_format(tag_object: str) -> str | None:
+    """The backend that signed this tag object, or None if it is unsigned."""
+    for marker, name in SIGNATURE_MARKERS:
+        if marker in tag_object:
+            return name
+    return None
+
+
+def parse_signature_status(returncode: int, raw: str,
+                           fmt: str | None = None) -> dict:
     """git's verification output -> the attestation recorded in the record.
 
-    Pure, so the parse is testable without provisioning a signing key.
+    Pure, so every backend's shape is testable without provisioning its key.
+    OpenPGP and x509 both speak GNUPG status lines (gpg and gpgsm); ssh has
+    its own human-readable line. Anything unrecognised is UNSIGNED - the parse
+    fails closed, so a format drift can only ever under-report a signature.
     """
     if returncode != 0:
         return dict(UNSIGNED)
@@ -80,25 +103,39 @@ def parse_signature_status(returncode: int, raw: str) -> dict:
             "signed": True,
             "signer": good.group(2).strip() or None,
             "key": (valid.group(1) if valid else good.group(1)),
+            "format": fmt or "openpgp",
         }
     ssh = SSH_GOOD_RE.search(raw)
     if ssh:
         return {"signed": True, "signer": ssh.group(1).strip() or None,
-                "key": ssh.group(3)}
+                "key": ssh.group(3), "format": fmt or "ssh"}
     return dict(UNSIGNED)
 
 
 def verify_tag_signature(repo: Path, tag: str) -> dict:
-    """Ask git whether this tag carries a signature it can verify."""
+    """Ask git whether this tag carries a signature it can verify.
+
+    Backend-agnostic: ssh, openpgp (gpg) and x509 (gpgsm) all verify through
+    `git verify-tag`, which selects the backend from the signature itself.
+    Whichever one the human configured, Doctrine reads git's verdict - it
+    never holds a key, a trust store, or an opinion about which is best.
+    """
     require_tag_format(tag)          # never let a tag string reach argv raw
     try:
         proc = subprocess.run(
             ["git", "verify-tag", "--raw", tag], cwd=repo,
-            capture_output=True, text=True, check=False, timeout=15)
+            capture_output=True, text=True, check=False, timeout=30)
     except (OSError, subprocess.SubprocessError):
         return dict(UNSIGNED)
+    try:
+        obj = subprocess.run(
+            ["git", "cat-file", "tag", tag], cwd=repo,
+            capture_output=True, text=True, check=False, timeout=15)
+        fmt = detect_signature_format(obj.stdout if obj.returncode == 0 else "")
+    except (OSError, subprocess.SubprocessError):
+        fmt = None
     return parse_signature_status(proc.returncode,
-                                  f"{proc.stderr}\n{proc.stdout}")
+                                  f"{proc.stderr}\n{proc.stdout}", fmt)
 
 
 def load_gold_schema(repo: Path) -> dict:
@@ -268,7 +305,8 @@ def cmd_record(repo: Path, input_path: Path,
     print(f"GOLD: {tag} at {at_commit[:12]} "
           f"({sha256_bytes(data)[:12]}); {len(artifacts)} artifact(s)"
           + (f"; chained to {prev.name}" if prev else "; genesis record")
-          + (f"; signed by {signer}" if attestation["signed"]
+          + (f"; {attestation['format']}-signed by {signer}"
+             if attestation["signed"]
              else "; UNSIGNED tag (attested as unsigned)"))
     print(f"remember: git add {out.relative_to(repo).as_posix()} && "
           f"git commit -m \"release: gold {tag}\"")
@@ -318,17 +356,45 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False) -> int:
                             "content changed after promotion")
 
     # Attestation: what git says NOW versus what the record claimed then.
-    # A tag that lost its signature (deleted and re-cut) is a promotion whose
-    # authorship no longer holds, even when every hash still matches.
+    #
+    # Comparing only the `signed` boolean was a hole an independent security
+    # pass drove a truck through: delete the tag, re-cut it at the SAME commit
+    # with a different key, and the gate printed GOLD and exited 0 while the
+    # record still credited someone else. Any principal in the org's trust
+    # store could re-attribute a promotion. Identity is compared now, and the
+    # record's OWN claim is what gets printed.
     recorded = record.get("attestation")
     current = verify_tag_signature(repo, tag)
-    if recorded is not None and recorded.get("signed") and \
-            not current["signed"]:
-        findings.append("attestation: the record was promoted from a signed "
-                        "tag, but that tag no longer verifies")
-    if require_signature and not current["signed"]:
-        findings.append("--require-signature: this tag carries no signature "
-                        "git can verify - promotion authorship is unproven")
+    if recorded is not None and recorded.get("signed"):
+        if not current["signed"]:
+            findings.append("attestation: the record was promoted from a "
+                            "signed tag, but that tag no longer verifies")
+        else:
+            for field in ("key", "signer"):
+                was, now = recorded.get(field), current[field]
+                if was and now and was != now:
+                    findings.append(
+                        f"attestation: the record was promoted by {field} "
+                        f"{was!r}, but the tag now verifies as {now!r} - the "
+                        "tag was re-signed by a different principal")
+    if require_signature:
+        if not current["signed"]:
+            findings.append("--require-signature: this tag carries no "
+                            "signature git can verify - promotion authorship "
+                            "is unproven")
+        elif recorded is None or not recorded.get("signed"):
+            # A record with no attestation cannot be compared against the tag,
+            # so a forged record could simply omit the block to skip the check.
+            findings.append("--require-signature: this record carries no "
+                            "signed attestation to compare against the tag - "
+                            "re-promote under a tool that records one")
+        elif not (recorded.get("signer") or recorded.get("key")):
+            # ...and one that claims signed:true with a null identity slips
+            # the comparison above, which only fires when both sides are set.
+            # The gate exists to prove WHO; "nobody" is not an answer.
+            findings.append("--require-signature: this record claims a signed "
+                            "promotion but names neither signer nor key - "
+                            "there is no authorship to verify")
 
     try:
         chain = load_chain(repo)
@@ -342,10 +408,16 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False) -> int:
         for msg in findings:
             print(f"  - {msg}")
         return 1
-    signer = current["signer"] or current["key"]
+    # Print what the RECORD claims (the durable artifact an auditor reads),
+    # not what the tag happens to verify as right now - printing the live
+    # value made a substituted signer look like the promoter of record.
+    claimed = recorded if isinstance(recorded, dict) else None
+    signer = (claimed or {}).get("signer") or (claimed or {}).get("key")
     print(f"check OK: {tag} is GOLD - schema valid, artifacts/verdict/"
           "sign-offs match their recorded hashes, chain intact"
-          + (f", signed by {signer}" if current["signed"]
+          + (f", {claimed.get('format')}-signed by {signer} (as recorded, "
+             "and the tag still verifies as the same principal)"
+             if claimed and claimed.get("signed")
              else ", tag UNSIGNED (authorship unproven)"))
     return 0
 

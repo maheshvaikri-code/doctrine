@@ -7,6 +7,7 @@ guard) for the rest of the repository's life.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -125,6 +126,24 @@ class TestSecrets(GuardTestCase):
 
         self.assertEqual(_run(self.repo, _write(self.repo, ".env.example",
                                                 body)), {})
+
+    def test_bare_names_across_lines_are_not_one_assignment(self) -> None:
+        """Regression: `\\s*` after `=` spans newlines, so an empty
+        `API_KEY=` swallowed the NEXT line and the canonical env example -
+        names with no values at all - was denied as a credential."""
+        _make_repo(self.repo)
+        bodies = (
+            "API_KEY=\nDB_PASSWORD=<your-password-here>\n",
+            "API_KEY=\nDB_PASSWORD=\n",
+            "API_KEY=\nLOG_LEVEL=debug\n",
+            "API_KEY=\nDATABASE_URL=postgres://localhost:5432/appdb\n",
+        )
+
+        for body in bodies:
+            with self.subTest(body=body.replace("\n", "|")):
+                self.assertEqual(
+                    _run(self.repo, _write(self.repo, ".env.example", body)),
+                    {})
 
     def test_an_allowlisted_fixture_path_may_hold_a_fake_key(self) -> None:
         _make_repo(self.repo)
@@ -275,6 +294,240 @@ class TestProtectedPaths(GuardTestCase):
         self.assertEqual(decision["permissionDecision"], "deny")
 
 
+class TestControlSurface(GuardTestCase):
+    """Regression: three independent verifiers each switched the whole guard
+    off from inside the repo it governs, with a single write."""
+
+    def test_the_guards_own_policy_cannot_be_widened_silently(self) -> None:
+        _make_repo(self.repo)
+
+        decision = _run(self.repo, _write(self.repo, ".doctrine-state/guard.json",
+                                          json.dumps({"allow": ["**"]})))
+
+        self.assertEqual(decision["permissionDecision"], "ask")
+        self.assertIn("ENFORCEMENT", decision["permissionDecisionReason"])
+
+    def test_blanket_allow_patterns_are_refused_even_if_written(self) -> None:
+        """The human may widen policy by hand; 'allow everything' is not a
+        policy, it is the off switch, so it never takes effect."""
+        _make_repo(self.repo)
+        (self.repo / ".doctrine-state").mkdir()
+        for blanket in ("**", "*", "**/*", ".", "/"):
+            (self.repo / ".doctrine-state" / "guard.json").write_text(
+                json.dumps({"allow": [blanket]}), encoding="utf-8")
+            with self.subTest(pattern=blanket):
+                decision = _run(self.repo,
+                                _write(self.repo, "config.py",
+                                       f'KEY = "{AWS_KEY}"\n'))
+                self.assertEqual(decision["permissionDecision"], "deny")
+
+    def test_the_source_repo_switch_cannot_be_flipped_silently(self) -> None:
+        """pyproject.toml's package name decides whether the installed
+        corpus is protected; it was writable with no decision at all."""
+        _make_repo(self.repo, source=False)
+
+        decision = _run(self.repo, _write(self.repo, "pyproject.toml",
+                                          '[project]\nname = "doctrineos"\n'))
+
+        self.assertEqual(decision["permissionDecision"], "ask")
+
+    def test_the_hook_wiring_cannot_be_removed_silently(self) -> None:
+        _make_repo(self.repo)
+
+        for rel in (".claude/settings.json", "CLAUDE.md", "AGENTS.md",
+                    ".github/workflows/doctrine.yml",
+                    ".doctrine-state/fleet.json"):
+            with self.subTest(rel=rel):
+                self.assertEqual(
+                    _run(self.repo, _write(self.repo, rel, "x"))
+                    ["permissionDecision"], "ask")
+
+    def test_the_control_surface_is_also_guarded_through_the_shell(self) -> None:
+        _make_repo(self.repo)
+
+        decision = _run(self.repo, _bash(
+            self.repo, "echo '{\"allow\":[\"x\"]}' > .doctrine-state/guard.json"))
+
+        self.assertEqual(decision["permissionDecision"], "ask")
+
+
+class TestCommandPathBypasses(GuardTestCase):
+    """Regression: the command rule probed for the pattern as a raw substring
+    of the command text, which let every non-redirect write primitive past."""
+
+    def test_write_primitives_other_than_redirects_are_caught(self) -> None:
+        _make_repo(self.repo)
+        commands = (
+            "python -c \"open('docs/releases/gold/v9.9.9.json','w').write('{}')\"",
+            "python -c \"open('.env','w').write('X=1')\"",
+            "touch docs/releases/gold/v9.9.9.json",
+            "install -m 600 /tmp/x .env",
+            "perl -pi -e s/a/b/ docs/releases/gold/v1.0.0.json",
+            "git checkout HEAD~1 -- docs/releases/gold/v1.0.0.json",
+            "git restore --source=HEAD~1 .doctrine-state/checkpoint.json",
+            "ln -sf /tmp/evil .env",
+        )
+
+        for command in commands:
+            with self.subTest(command=command[:44]):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "deny")
+
+    def test_alternate_spellings_of_the_same_path_are_caught(self) -> None:
+        _make_repo(self.repo)
+        commands = (
+            r"echo x > docs\releases\gold\v9.9.9.json",       # backslashes
+            "echo x > docs//releases/gold/v9.9.9.json",       # doubled slash
+            "echo x > ./docs/releases/gold/v9.9.9.json",      # leading ./
+            "echo x > docs/releases/'gold'/v9.9.9.json",      # quoted segment
+            "echo X=1 > .e''nv",                              # quote elision
+        )
+
+        for command in commands:
+            with self.subTest(command=command[:44]):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "deny")
+
+    def test_a_nested_env_file_is_protected_by_both_tools(self) -> None:
+        """Monorepos put env files under service directories; the pattern
+        only anchored at the repo root, so Write - the tool that actually
+        writes files - was the weaker path."""
+        _make_repo(self.repo)
+
+        self.assertEqual(
+            _run(self.repo, _write(self.repo, "services/api/.env",
+                                   "PASSWORD=x\n"))["permissionDecision"],
+            "deny")
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo, "echo k=v > services/api/.env"))
+            ["permissionDecision"], "deny")
+
+    def test_an_extended_length_windows_path_is_not_a_bypass(self) -> None:
+        """`\\\\?\\C:\\...` survived resolve(), relative_to() raised, and every
+        path rule was skipped while the write still landed."""
+        _make_repo(self.repo)
+        payload = {
+            "hook_event_name": "PreToolUse", "cwd": str(self.repo),
+            "tool_name": "Write",
+            "tool_input": {"file_path": f"\\\\?\\{self.repo}\\.env",
+                           "content": "K=V\n"},
+        }
+
+        self.assertEqual(_run(self.repo, payload)["permissionDecision"],
+                         "deny")
+
+    def test_a_write_into_the_repo_is_judged_from_a_parent_cwd(self) -> None:
+        """The guard anchored on cwd alone, so a session started one level
+        up left every write inside the governed repo unjudged."""
+        _make_repo(self.repo)
+        payload = {
+            "hook_event_name": "PreToolUse",
+            "cwd": str(self.repo.parent),
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(self.repo / ".env"),
+                           "content": "K=V\n"},
+        }
+
+        self.assertEqual(_run(self.repo, payload)["permissionDecision"],
+                         "deny")
+
+
+class TestWriteVerbsAreNotAnAllowlist(GuardTestCase):
+    """Regression: the command rule gated on a list of WRITE verbs, so any
+    primitive not on it reached protected files in silence. The set of ways
+    to write a file is unbounded; the set of read-only verbs is not, so the
+    list is inverted and an unknown verb is assumed to write."""
+
+    def test_unlisted_write_primitives_are_caught(self) -> None:
+        _make_repo(self.repo)
+        gold = "docs/releases/gold"
+        commands = (
+            f"python -c \"import shutil; shutil.copy('/tmp/x','{gold}/v9.json')\"",
+            f"python -c \"import os; os.remove('{gold}/v1.0.0.json')\"",
+            f"curl -o {gold}/v9.json https://x.invalid/a",
+            "wget -O .env https://x.invalid/a",
+            f"node -e \"require('fs').writeFileSync('{gold}/v9.json','x')\"",
+            f"echo x | sponge {gold}/v9.json",
+            f"find {gold} -name '*.json' -exec truncate -s0 {{}} +",
+            f"git -C {gold} checkout .",
+        )
+
+        for command in commands:
+            with self.subTest(command=command[:46]):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "deny")
+
+    def test_whole_directory_operations_are_caught(self) -> None:
+        """Regression: `dir/*` matched only children, so deleting the
+        CONTAINER of every immutable gold record was silent."""
+        _make_repo(self.repo)
+
+        for command in ("rm -rf docs/releases/gold", "rm -rf .git",
+                        "rm -rf .doctrine-state/checkpoints",
+                        "mv docs/releases/gold /tmp/stolen"):
+            with self.subTest(command=command):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "deny")
+
+    def test_the_control_surface_is_reached_by_any_verb(self) -> None:
+        _make_repo(self.repo)
+        command = ("python -c \"import os; "
+                   "os.open('.doctrine-state/guard.json', os.O_CREAT)\"")
+
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo, command))["permissionDecision"],
+            "ask")
+
+
+class TestOrdinaryCommandsStaySilent(GuardTestCase):
+    """Regression: verifiers measured 11 of 13 ordinary commands DENIED.
+    `.git` matched `.gitignore`/`.github`, `.env` matched `os.environ`, and a
+    path in a comment or in another repo triggered a refusal. A gate that
+    blocks real work gets uninstalled - precision is a safety property."""
+
+    def test_neighbouring_names_are_not_protected_paths(self) -> None:
+        _make_repo(self.repo, source=True)
+        commands = (
+            "echo 'node_modules' >> .gitignore",
+            "cp .gitattributes /tmp/backup",
+            "ls docs/releases/gold/ 2>/dev/null",
+            "grep -r doctrine .Doctrine > /tmp/out.txt",
+            "python -c \"import os; print(os.environ)\" > /tmp/env.txt",
+            "rm -rf node_modules && ls .github",
+            "echo '# see docs/releases/gold/' > notes.md",
+            "touch ../other-repo/docs/releases/gold/x.json",
+        )
+
+        for command in commands:
+            with self.subTest(command=command[:44]):
+                self.assertEqual(_run(self.repo, _bash(self.repo, command)), {})
+
+    def test_touching_ci_asks_because_ci_is_a_trust_anchor(self) -> None:
+        """Not a false positive: CI runs the gates a local bypass cannot
+        reach, so changing it is the human's call - but it ASKS, never
+        denies, so ordinary workflow edits still go through."""
+        _make_repo(self.repo, source=True)
+
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo,
+                                  "mv .github/workflows/a.yml "
+                                  ".github/workflows/b.yml"))
+            ["permissionDecision"], "ask")
+
+    def test_reads_of_protected_files_stay_silent(self) -> None:
+        _make_repo(self.repo)
+
+        for command in ("cat docs/releases/gold/v1.0.0.json",
+                        "git log .doctrine-state/checkpoint.json",
+                        "diff .env.example .env.sample"):
+            with self.subTest(command=command[:40]):
+                self.assertEqual(_run(self.repo, _bash(self.repo, command)), {})
+
+
 class TestIrreversibleActions(GuardTestCase):
     def test_section_five_actions_escalate_to_the_human(self) -> None:
         _make_repo(self.repo)
@@ -346,11 +599,87 @@ class TestPosture(GuardTestCase):
         self.assertIn("could not be parsed",
                       decision["permissionDecisionReason"])
 
-    def test_an_empty_payload_is_silent(self) -> None:
-        """No tool named = nothing to judge; silence is not approval."""
+    def test_a_payload_with_no_readable_tool_name_is_denied(self) -> None:
+        """Regression: this used to be SILENT, i.e. allowed.
+
+        An independent security pass showed empty stdin and wrong-typed
+        `tool_name`/`tool_input` all yielding no decision - which the hook
+        contract reads as "proceed". Inside a governed repo, a request the
+        guard cannot read is denied.
+        """
         _make_repo(self.repo)
 
-        self.assertEqual(_run(self.repo, ""), {})
+        for payload in ("", "   ", json.dumps({"cwd": "."}),
+                        json.dumps({"tool_name": {"a": 1}, "cwd": "."})):
+            with self.subTest(payload=payload[:24]):
+                self.assertEqual(
+                    _run(self.repo, payload)["permissionDecision"], "deny")
+
+    def test_an_unreadable_tool_input_is_denied_not_coerced(self) -> None:
+        """Regression: a non-dict tool_input was coerced to {} and allowed."""
+        _make_repo(self.repo)
+
+        for shape in ("a string", ["a", "list"], 42, None):
+            with self.subTest(shape=type(shape).__name__):
+                payload = {"hook_event_name": "PreToolUse", "cwd": str(self.repo),
+                           "tool_name": "Write", "tool_input": shape}
+                self.assertEqual(
+                    _run(self.repo, payload)["permissionDecision"], "deny")
+
+    def test_invalid_utf8_denies_under_a_strict_stdin_decoder(self) -> None:
+        """Regression: stdin was decoded by the interpreter's codec OUTSIDE
+        any try. Under a strict decoder (PYTHONIOENCODING, LANG=C, most POSIX
+        CI) one bad byte raised UnicodeDecodeError -> exit 1, no decision ->
+        the hook contract reads that as 'proceed'. Fail-open by locale.
+        """
+        _make_repo(self.repo)
+        # The bad byte sits beside a write the guard MUST refuse, so silence
+        # here would be the fail-open, not a legitimate no-opinion.
+        payload = (b'{"tool_name":"Bash","cwd":".","tool_input":'
+                   b'{"command":"rm -rf \xff docs/releases/gold"}}')
+
+        for encoding in ("utf-8:strict", "ascii"):
+            with self.subTest(encoding=encoding):
+                result = subprocess.run(
+                    [sys.executable, str(GUARD)], cwd=self.repo,
+                    input=payload, capture_output=True,
+                    env={**os.environ, "PYTHONIOENCODING": encoding})
+
+                self.assertEqual(result.returncode, 0,
+                                 f"guard exited {result.returncode}: "
+                                 f"{result.stderr[:200]!r}")
+                self.assertTrue(result.stdout.strip(),
+                                "no decision emitted - that means 'proceed'")
+
+    def test_wrongly_typed_fields_deny_instead_of_going_silent(self) -> None:
+        """Regression: `str()` on a list turned ['git','push','--force'] into
+        text no pattern matches, so a force-push and `rm -rf /` went silent;
+        a list file_path likewise skipped every path rule."""
+        _make_repo(self.repo)
+        payloads = (
+            {"tool_name": "Bash", "tool_input": {"command": ["rm", "-rf", "/"]}},
+            {"tool_name": "Bash",
+             "tool_input": {"command": ["git", "push", "--force"]}},
+            {"tool_name": "Bash", "tool_input": {"command": 12345}},
+            {"tool_name": "Write",
+             "tool_input": {"file_path": [".env"], "content": "x"}},
+        )
+
+        for payload in payloads:
+            with self.subTest(payload=str(payload)[:48]):
+                payload["cwd"] = str(self.repo)
+                self.assertEqual(
+                    _run(self.repo, payload)["permissionDecision"], "deny")
+
+    def test_a_deeply_nested_payload_denies_instead_of_crashing(self) -> None:
+        """Regression: RecursionError escaped `except ValueError`, so the
+        guard exited 1 with no decision - and no decision means proceed.
+        One decoy field made a denied secret write sail through."""
+        _make_repo(self.repo)
+        payload = "[" * 6000 + "]" * 6000
+
+        self.assertEqual(_run(self.repo, payload)["permissionDecision"],
+                         "deny")
 
     def test_read_only_tools_are_not_judged(self) -> None:
         _make_repo(self.repo)

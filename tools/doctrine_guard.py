@@ -7,9 +7,20 @@ executes and returns a decision, so a secret, an immutable artifact, an
 irreversible action, or a silenced test is stopped at the point of action
 rather than caught in review.
 
-Wiring (Claude Code ``PreToolUse``)::
+Wiring (Claude Code ``PreToolUse``) - resolve the script from the PROJECT
+directory, never relative to the shell's cwd::
 
-    {"type": "command", "command": "python tools/doctrine_guard.py"}
+    {"type": "command", "command": "python -c \\"import os,subprocess,sys;
+     p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools',
+     'doctrine_guard.py'); sys.exit(subprocess.call([sys.executable,p])
+     if os.path.exists(p) else 0)\\""}
+
+The relative spelling looks equivalent and is not: run from a subdirectory,
+python cannot find the script and exits 2 - the code the hook contract
+reserves for BLOCK - so an enforcement gate turns into a total lockout that
+prevents its own repair. (It did exactly that to the session that wrote this
+line.) A gate must fail closed on the ACTION it judges, never on its own
+plumbing.
 
 Contract: the hook payload arrives as JSON on stdin, the decision leaves as
 JSON on stdout, exit 0 always (a crashing gate must not brick the agent).
@@ -39,6 +50,7 @@ from __future__ import annotations
 import fnmatch
 import json
 import re
+import shlex
 import sys
 import tomllib
 from pathlib import Path
@@ -46,7 +58,11 @@ from typing import Any, Final
 
 CONFIG_REL: Final = ".doctrine-state/guard.json"
 WRITE_TOOLS: Final = frozenset({"Write", "Edit", "MultiEdit", "NotebookEdit"})
-COMMAND_TOOLS: Final = frozenset({"Bash", "BashOutput"})
+COMMAND_TOOLS: Final = frozenset({"Bash"})
+# json.loads recurses per nesting level, and RecursionError is not a
+# ValueError - a deeply nested decoy field once crashed this gate into
+# exit 1 with no decision, which the hook contract reads as "proceed".
+MAX_PAYLOAD_BYTES: Final = 8 * 1024 * 1024
 
 # --- rule 1: secrets (non-negotiable #2) ---------------------------------
 # High-precision provider formats only. A generic "looks like entropy" rule
@@ -78,6 +94,19 @@ SECRET_ASSIGNMENT: Final = re.compile(
     r"(?:api[_-]?key|secret|passwd|password|token|private[_-]?key)"
     r"\s*[=:]\s*(['\"])([^'\"\n]{12,})\1"
 )
+# ...and the same assignment written WITHOUT quotes, which is how .env files
+# and `export`/`ENV` lines are actually spelled. A whitespace-free run is
+# required, so prose ("password: the value must not be committed") is prose.
+SECRET_ASSIGNMENT_BARE: Final = re.compile(
+    r"(?i)(?:^|[ \t;&|])(?:export[ \t]+|ENV[ \t]+|set[ \t]+)?[A-Za-z0-9_]*"
+    r"(?:api[_-]?key|secret|passwd|password|token|private[_-]?key)"
+    r"[ \t]*=[ \t]*([^\s'\"#]{12,})(?:$|[ \t;&|])",
+    re.MULTILINE,
+)
+# Horizontal whitespace only, deliberately: `\s` spans newlines, so an empty
+# `API_KEY=` followed by ANY next line read as one assignment and the
+# canonical two-line .env.example - names with no values at all - was denied
+# as a credential.
 PLACEHOLDER: Final = re.compile(
     r"(?i)^(?:x{3,}|\.{3,}|<.*>|\$\{?[a-z_]+\}?|your[_-]|changeme|例|"
     r"placeholder|redacted|example|dummy|fake|test[_-]?(?:key|token)|"
@@ -96,7 +125,41 @@ PROTECTED_ALWAYS: Final[tuple[tuple[str, str], ...]] = (
                                       "(use doctrine_state.py)"),
     (".env", "secrets never live in the repo"),
     (".env.*", "secrets never live in the repo"),
+    ("**/.env", "secrets never live in the repo"),
+    ("**/.env.*", "secrets never live in the repo"),
 )
+
+# --- the control surface -------------------------------------------------
+# Files that decide whether this gate runs at all, or which rules it applies.
+# A control the governed party can switch off is not a control: three
+# independent verifiers each disabled the whole guard from inside the repo
+# with a single write (guard.json `allow: ["**"]`, and pyproject.toml's
+# package name, which flips consumer-corpus protection off).
+#
+# These ASK rather than DENY on purpose. The human must consent to a change
+# in their own enforcement - but an outright refusal would block the very
+# workflow the docs prescribe (adding an allowlist entry, bumping a version),
+# and a gate that blocks legitimate work gets uninstalled, which is the
+# failure mode ADR-012 names as its own invalidation trigger.
+CONTROL_SURFACE: Final[tuple[tuple[str, str], ...]] = (
+    (CONFIG_REL, "this guard's own policy - widening it silently would let "
+                 "the governed agent switch its own enforcement off"),
+    (".doctrine-state/fleet.json", "the fleet target list; doctrine_fleet "
+                                   "runs git in every repo it names"),
+    ("pyproject.toml", "its package name decides whether the installed "
+                       "corpus is protected here"),
+    (".claude/settings.json", "it wires this guard in; editing it can "
+                              "unwire it"),
+    (".claude/hooks/*", "the hook wiring that runs this guard"),
+    ("CLAUDE.md", "the always-loaded law import"),
+    ("AGENTS.md", "the universal agent boot file"),
+    (".github/workflows/*", "CI is a trust anchor - it runs the gates that "
+                            "a local bypass cannot reach"),
+)
+# A policy that allows everything is not a policy. These are refused as
+# `allow`/`protected_paths` entries however the file is written.
+BLANKET_PATTERNS: Final[frozenset[str]] = frozenset(
+    {"*", "**", "**/*", ".", "./*", "/", "/*", ""})
 # ...except the shape-documenting variants the repo-devops skill REQUIRES.
 # They hold names, never values, so the secret rules still apply to them.
 PROTECTED_EXEMPT: Final[tuple[str, ...]] = (
@@ -113,38 +176,106 @@ PROTECTED_CONSUMER: Final[tuple[tuple[str, str], ...]] = (
 )
 
 # A shell redirect reaches the same files a Write tool does, so the path rule
-# has to see commands too or it is trivially bypassed (`echo {} >
-# docs/releases/gold/v1.0.0.json`). Only MUTATING commands are judged: reading
-# a protected file is always fine.
-MUTATION_TOKEN: Final = re.compile(
-    r">>?|\brm\b|\bmv\b|\bcp\b|\btee\b|\btruncate\b|\bsed\s+-i|\bdd\b")
+# has to see commands too or it is trivially bypassed. Only MUTATING commands
+# are judged: reading a protected file is always fine.
+#
+# The first version of this probed for the pattern as a raw SUBSTRING of the
+# command, which failed in both directions at once: `python -c "open(...)"`,
+# `touch`, `git checkout --`, backslash paths and shell quoting all slipped
+# through, while `.git` matched `.gitignore`/`.github`, `.env` matched
+# `os.environ`, and a path in a comment or in ANOTHER repo triggered a denial.
+# Verifiers measured 11 of 13 ordinary commands denied. Now the command is
+# tokenized, path-like candidates are resolved against the repo root, and the
+# result is matched with the SAME matcher the Write rule uses.
+#
+# Which way this list points is the whole design. It began as an allowlist of
+# WRITE verbs, and a security re-verification walked straight past it:
+# `shutil.copy`, `os.open`, `os.remove`, `curl -o`, `wget -O`, `tar -xf`,
+# `unzip`, `node -e`, `sponge` and `find -exec truncate` all reached protected
+# files in silence, because none of them were on the list. An allowlist of
+# writers is unbounded and fails open; an allowlist of READERS is small,
+# enumerable, and fails closed. So: a verb this file does not recognise as
+# read-only is treated as capable of writing.
+READ_ONLY_VERBS: Final[frozenset[str]] = frozenset({
+    "cat", "bat", "less", "more", "head", "tail", "nl", "od", "xxd", "strings",
+    "ls", "dir", "tree", "stat", "file", "du", "df", "wc", "basename",
+    "dirname", "realpath", "readlink", "pwd", "which", "type", "whereis",
+    "grep", "egrep", "fgrep", "rg", "ag", "ack", "awk", "cut", "sort", "uniq",
+    "comm", "join", "diff", "cmp", "colordiff", "jq", "yq", "column",
+    "md5sum", "sha1sum", "sha256sum", "cksum", "date", "printenv", "env",
+    "echo", "printf", "true", "false", "sleep", "time", "hostname", "whoami",
+})
+# `git` decides by subcommand, not by name.
+GIT_READ_SUBCOMMANDS: Final[frozenset[str]] = frozenset({
+    "log", "show", "diff", "status", "blame", "cat-file", "rev-parse",
+    "rev-list", "describe", "ls-files", "ls-tree", "ls-remote", "for-each-ref",
+    "shortlog", "grep", "verify-tag", "verify-commit", "count-objects",
+    "check-ignore", "symbolic-ref", "whatchanged", "reflog", "annotate",
+})
+# ...and a few readers turn into writers with a flag.
+CONDITIONAL_WRITERS: Final[dict[str, tuple[str, ...]]] = {
+    "sed": ("-i",), "perl": ("-i",), "ruby": ("-i",),
+    "find": ("-exec", "-execdir", "-delete", "-ok", "-fprint", "-fprintf"),
+    "sort": ("-o",), "awk": ("-i",),
+}
+REDIRECT_TARGET: Final = re.compile(r"(?:\d?>>?|\d?>&?)\s*([^\s;&|<>]+)")
+SEGMENT_SPLIT: Final = re.compile(r"[;&|]+|\breval\b|\$\(|`")
+ENV_ASSIGNMENT: Final = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# Path-like runs inside a token, so an embedded literal (as in a `python -c`
+# one-liner) is still seen. Deliberately excludes the shell metacharacters
+# that would glue unrelated words into a fake path.
+PATHISH: Final = re.compile(r"[A-Za-z0-9_.\-/\\]{2,}")
 
 # --- rule 3: irreversible / external actions (section 5) -----------------
 IRREVERSIBLE: Final[tuple[tuple[str, str], ...]] = (
     (r"\bgit\s+push\b[^|;&]*\s(?:--force|-f)\b", "force-push"),
+    (r"\bgit\s+push\b[^|;&]*\s\+[^\s]*:", "force-push via a + refspec"),
     (r"\bgit\s+push\b[^|;&]*--mirror\b", "mirror-push"),
+    (r"\bgit\s+push\b[^|;&]*--delete\b", "deleting a remote ref"),
     (r"\bgit\s+(?:filter-branch|filter-repo)\b", "history rewrite"),
     (r"\bgit\s+reset\s+--hard\b", "discarding local work irreversibly"),
     (r"\bgit\s+clean\s+-[a-z]*[fx]", "deleting untracked files"),
     (r"\bgit\s+commit\b[^|;&]*--no-verify\b", "bypassing the commit hooks"),
     (r"\bgit\s+tag\b[^|;&]*\s-d\b", "deleting a release tag"),
-    (r"\brm\s+-[a-z]*[rf][a-z]*\s+[/~]", "recursive delete outside the repo"),
+    (r"\bgit\s+update-ref\s+-d\b", "deleting a ref directly"),
+    (r"\brm\s+-[a-z]*[rf][a-z]*\s+(?:[/~]|\.\.|\.\s*$|\*)",
+     "a recursive delete that reaches outside this directory"),
+    (r"\bRemove-Item\b[^|;&]*-Recurse\b", "a recursive PowerShell delete"),
     (r"\b(?:npm|pnpm|yarn)\s+publish\b", "publishing a package"),
-    (r"\b(?:twine\s+upload|cargo\s+publish)\b", "publishing a package"),
+    (r"\b(?:twine\s+upload|cargo\s+publish|uv\s+publish|poetry\s+publish)\b",
+     "publishing a package"),
     (r"\bgh\s+release\s+create\b", "publishing a release"),
     (r"\bdrop\s+(?:table|database)\b", "dropping a database object"),
     (r"\b(?:kubectl\s+delete|terraform\s+(?:apply|destroy))\b",
      "mutating live infrastructure"),
-    (r"\bcurl\b[^|;&]*\|\s*(?:sudo\s+)?(?:ba)?sh\b", "piping the net to a shell"),
+    (r"\b(?:curl|wget)\b[^|;&]*\|\s*(?:sudo\s+)?(?:ba|z|d)?sh\b",
+     "piping the net to a shell"),
+    # download-then-run, which the pipe pattern alone misses
+    (r"\b(?:curl|wget)\b[^;&|]*-[oO]\s*\S+[;&|][^;&|]*\b(?:ba|z|d)?sh\s",
+     "running a freshly downloaded script"),
 )
 
 # --- rule 4: test weakening (non-negotiable #4) --------------------------
 TEST_WEAKENING: Final[tuple[tuple[str, str], ...]] = (
-    (r"@(?:unittest|pytest\.mark)\.(?:skip|skipif|xfail)", "a skip/xfail marker"),
+    (r"@(?:unittest|pytest\.mark|mark)\.(?:skip|skipif|xfail)",
+     "a skip/xfail marker"),
     (r"\bunittest\.skip\(", "a skip marker"),
+    (r"\bpytestmark\s*=", "a module-wide pytest marker"),
+    (r"\b(?:self\.)?skipTest\s*\(", "a runtime skip"),
+    (r"\braise\s+SkipTest\b", "a raised SkipTest"),
     (r"\b(?:it|test|describe)\.skip\(", "a skipped spec"),
     (r"#\[ignore\]", "an ignored Rust test"),
     (r"\bt\.Skip\(", "a skipped Go test"),
+)
+# The same weakening, reached through the shell instead of an editor: #4 says
+# never DELETE, skip, or weaken - deletion was unguarded entirely.
+TEST_COMMAND_WEAKENING: Final[tuple[tuple[str, str], ...]] = (
+    (r"\b(?:rm|del)\b[^|;&]*\b(?:tests?|spec)/", "deleting a test file"),
+    (r"\b(?:rm|del)\b[^|;&]*\btest_[^\s]*\.(?:py|js|ts|go|rs)\b",
+     "deleting a test file"),
+    (r"\bsed\s+-[a-z]*i[^|;&]*(?:skip|xfail)[^|;&]*\b(?:tests?|spec)/",
+     "inserting a skip marker into a test file"),
+    (r"\bgit\s+rm\b[^|;&]*\b(?:tests?|spec)/", "removing a test from the repo"),
 )
 TEST_PATH: Final = re.compile(r"(?:^|/)(?:tests?|spec|__tests__)/|(?:^|/)"
                               r"(?:test_[^/]+|[^/]+_test)\.[a-z]+$")
@@ -196,29 +327,50 @@ def is_source_repo(root: Path) -> bool:
 
 def load_config(root: Path) -> dict[str, list[str]]:
     """Local policy, if any. A malformed config is ignored rather than
-    obeyed: a broken file must not silently widen what is allowed."""
+    obeyed: a broken file must not silently widen what is allowed. Blanket
+    patterns are dropped even from a well-formed file - `allow: ["**"]` is
+    not a policy, it is the off switch."""
     path = root / CONFIG_REL
     if not path.is_file():
         return {}
     try:
         data = json.loads(path.read_text("utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return {}
     if not isinstance(data, dict):
         return {}
     return {
-        key: [v for v in data[key] if isinstance(v, str)]
+        key: [v for v in data[key]
+              if isinstance(v, str) and v.strip() not in BLANKET_PATTERNS]
         for key in ("protected_paths", "allow")
         if isinstance(data.get(key), list)
     }
 
 
+def normalize_target(target: str) -> str:
+    """One spelling for one path, before any comparison.
+
+    Windows extended-length (``\\\\?\\C:\\...``) and UNC prefixes survive
+    ``resolve()`` and made ``relative_to`` raise, which skipped every path
+    rule while the write still landed on the real file.
+    """
+    # Every quote character goes, not just the outer pair: a shell sees
+    # `docs/'gold'/x` and `.e''nv` as the plain paths, and so must we.
+    text = target.strip().replace("'", "").replace('"', "")
+    for prefix in ("\\\\?\\UNC\\", "\\\\?\\", "//?/UNC/", "//?/"):
+        if text.upper().startswith(prefix.upper()):
+            text = text[len(prefix):]
+            break
+    return text.replace("\\", "/")
+
+
 def relative_to_root(target: str, root: Path) -> str | None:
     """Repo-relative POSIX path, or None when the target is outside the repo."""
-    if not target:
+    text = normalize_target(target)
+    if not text:
         return None
     try:
-        resolved = Path(target).expanduser()
+        resolved = Path(text).expanduser()
         if not resolved.is_absolute():
             resolved = root / resolved
         return resolved.resolve().relative_to(root.resolve()).as_posix()
@@ -227,18 +379,71 @@ def relative_to_root(target: str, root: Path) -> str | None:
 
 
 def matches(rel_path: str, pattern: str) -> bool:
-    """Glob match that treats ``dir/*`` as covering the whole subtree."""
-    if fnmatch.fnmatch(rel_path, pattern):
+    """Glob match that treats ``dir/*`` as covering the whole subtree.
+
+    Case-insensitive throughout: on macOS (case-insensitive by default)
+    ``.ENV`` and ``.env`` are the same inode, and a case-sensitive matcher
+    would guard one spelling of a file while the other walks past.
+    """
+    rel, pat = rel_path.lower(), pattern.lower()
+    if fnmatch.fnmatch(rel, pat):
         return True
-    if pattern.endswith("/*"):
-        return rel_path.startswith(pattern[:-1])
-    return False
+    if pat.endswith("/*"):
+        # `dir/*` covers the subtree AND the directory itself. Matching only
+        # children let `rm -rf docs/releases/gold` delete every immutable
+        # record while the guard stayed silent: each individual file was
+        # protected, the container was not.
+        if rel.startswith(pat[:-1]) or rel == pat[:-2]:
+            return True
+    return bool(pat.startswith("**/")
+                and fnmatch.fnmatch(rel.rsplit("/", 1)[-1], pat[3:]))
+
+
+def command_targets(command: str, root: Path) -> list[str]:
+    """Repo-relative paths a command names, however it spells them.
+
+    Tokenizing first (rather than substring-probing the raw text) is what
+    makes `.gitignore` stop matching `.git/*` and `docs/releases/'gold'/x`
+    stop hiding from it. Paths outside the repo resolve to None and are
+    dropped - another repo's files are not this repo's business.
+    """
+    tokens: list[str] = []
+    # Two passes on purpose. posix=True resolves quoting (so `.e''nv` becomes
+    # `.env`) but consumes backslashes as escapes, erasing Windows paths;
+    # posix=False preserves them. comments=True drops a trailing `# ...`, which
+    # otherwise smuggled an allowlisted or exempt word into the match.
+    for posix in (True, False):
+        try:
+            tokens += shlex.split(command, comments=True, posix=posix)
+        except ValueError:                   # unbalanced quotes: fall back
+            tokens += command.split()
+    seen: list[str] = []
+    for token in tokens:
+        for candidate in PATHISH.findall(token):
+            rel = relative_to_root(candidate, root)
+            if rel and rel not in seen:
+                seen.append(rel)
+    return seen
+
+
+def typed_field(tool_input: dict[str, Any], name: str) -> str | None:
+    """A field that MUST be a string, or None when it is the wrong shape.
+
+    `str()`-ing whatever arrived turned `["git","push","--force"]` into
+    `"['git', 'push', '--force']"`, where none of the command patterns match
+    any more - a force-push and `rm -rf /` both went silent. A field of an
+    unexpected type is unknown input, and unknown input is denied.
+    """
+    value = tool_input.get(name)
+    if value is None:
+        return ""
+    return value if isinstance(value, str) else None
 
 
 def written_text(tool_name: str, tool_input: dict[str, Any]) -> str:
     """Everything this call would introduce, as one searchable string."""
     if tool_name in COMMAND_TOOLS:
-        return str(tool_input.get("command", ""))
+        return typed_field(tool_input, "command") or ""
     parts = [
         tool_input.get("content"),
         tool_input.get("new_string"),
@@ -265,34 +470,40 @@ def check_secrets(text: str) -> Decision:
                 f"environment or a secret store. If it is a fixture, add its "
                 f"path to 'allow' in {CONFIG_REL}.",
             )
-    for match in SECRET_ASSIGNMENT.finditer(text):
-        value = match.group(2)
-        if PLACEHOLDER.match(value.strip()):
-            continue
-        # Credentials do not contain whitespace; prose does. Without this,
-        # documentation ABOUT secret handling is denied as a secret - which
-        # is how this guard blocked the review that documents it.
-        if any(character.isspace() for character in value):
-            continue
-        return Decision(
-            "deny",
-            "Doctrine non-negotiable #2 (never commit secrets): a credential-"
-            "shaped name is assigned a literal value. Read it from the "
-            f"environment, or allowlist the path in {CONFIG_REL}.",
-        )
+    for expression, group in ((SECRET_ASSIGNMENT, 2),
+                              (SECRET_ASSIGNMENT_BARE, 1)):
+        for match in expression.finditer(text):
+            value = match.group(group)
+            if PLACEHOLDER.match(value.strip()):
+                continue
+            # Credentials do not contain whitespace; prose does. Without this,
+            # documentation ABOUT secret handling is denied as a secret -
+            # which is how this guard blocked the review that documents it.
+            if any(character.isspace() for character in value):
+                continue
+            return Decision(
+                "deny",
+                "Doctrine non-negotiable #2 (never commit secrets): a "
+                "credential-shaped name is assigned a literal value. Read it "
+                f"from the environment, or allowlist the path in {CONFIG_REL}.",
+            )
     return Decision()
+
+
+def protected_rules(root: Path,
+                    config: dict[str, list[str]]) -> list[tuple[str, str]]:
+    rules = list(PROTECTED_ALWAYS)
+    if not is_source_repo(root):
+        rules += list(PROTECTED_CONSUMER)
+    return rules + [(p, "protected by local guard policy")
+                    for p in config.get("protected_paths", [])]
 
 
 def check_protected(rel_path: str, root: Path,
                     config: dict[str, list[str]]) -> Decision:
     if any(matches(rel_path, pattern) for pattern in PROTECTED_EXEMPT):
         return Decision()
-    rules = list(PROTECTED_ALWAYS)
-    if not is_source_repo(root):
-        rules += list(PROTECTED_CONSUMER)
-    rules += [(p, "protected by local guard policy")
-              for p in config.get("protected_paths", [])]
-    for pattern, why in rules:
+    for pattern, why in protected_rules(root, config):
         if matches(rel_path, pattern):
             return Decision(
                 "deny",
@@ -300,34 +511,129 @@ def check_protected(rel_path: str, root: Path,
                 "written. Use the owning tool, or record the exception in "
                 f"{CONFIG_REL} under 'allow'.",
             )
+    for pattern, why in CONTROL_SURFACE:
+        if matches(rel_path, pattern):
+            return Decision(
+                "ask",
+                f"Doctrine: '{rel_path}' is part of this repo's ENFORCEMENT "
+                f"surface - {why}. Approve only if you intended to change "
+                "how your own gates behave.",
+            )
     return Decision()
+
+
+def segment_verb(segment: str) -> tuple[str, list[str]]:
+    """The command word of one shell segment, plus its arguments.
+
+    Leading environment assignments (``FOO=bar cmd``) and a path prefix
+    (``/usr/bin/rm``) are stripped, so the verb is what actually runs.
+    """
+    tokens = segment.split()
+    while tokens and ENV_ASSIGNMENT.match(tokens[0]):
+        tokens = tokens[1:]
+    if not tokens:
+        return "", []
+    verb = tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+    if verb.endswith(".exe"):
+        verb = verb[:-4]
+    return verb, tokens[1:]
+
+
+def _carries_flag(argument: str, flag: str) -> bool:
+    """Whether an argument carries a flag, including inside a cluster.
+
+    `perl -pi -e` and `sed -Ei` both edit in place, and a plain prefix test
+    misses them because the `i` is not first: the in-place edit walked past
+    the guard as a read.
+    """
+    if argument == flag or argument.startswith(f"{flag}="):
+        return True
+    if len(flag) == 2 and flag.startswith("-") and \
+            argument.startswith("-") and not argument.startswith("--"):
+        return flag[1] in argument[1:]
+    return argument.startswith(flag)
+
+
+def command_is_read_only(command: str) -> bool:
+    """True only when EVERY segment is a verb known to read and not write.
+
+    Fails closed by construction: an unrecognised verb is assumed to write,
+    because the set of things that can write a file is unbounded and the set
+    of things that only read is not.
+    """
+    for segment in SEGMENT_SPLIT.split(command):
+        verb, arguments = segment_verb(segment)
+        if not verb:
+            continue
+        if verb == "git":
+            subcommands = [a for a in arguments if not a.startswith("-")]
+            # skip the argument consumed by -C/-c before the subcommand
+            if "-C" in arguments or "-c" in arguments:
+                subcommands = subcommands[1:]
+            if not subcommands or subcommands[0] not in GIT_READ_SUBCOMMANDS:
+                return False
+            continue
+        flags = CONDITIONAL_WRITERS.get(verb)
+        if flags is not None:
+            if any(_carries_flag(a, f) for a in arguments for f in flags):
+                return False
+            continue
+        if verb not in READ_ONLY_VERBS:
+            return False
+    return True
+
+
+def redirect_paths(command: str, root: Path) -> set[str]:
+    """Repo-relative paths this command redirects OUTPUT into."""
+    found = set()
+    for target in REDIRECT_TARGET.findall(command):
+        rel = relative_to_root(target, root)
+        if rel:
+            found.add(rel)
+    return found
 
 
 def check_protected_in_command(command: str, root: Path,
                                config: dict[str, list[str]]) -> Decision:
-    """The path rule, applied to shell commands that would MUTATE a file."""
-    if not MUTATION_TOKEN.search(command):
-        return Decision()
-    rules = list(PROTECTED_ALWAYS)
-    if not is_source_repo(root):
-        rules += list(PROTECTED_CONSUMER)
-    rules += [(p, "protected by local guard policy")
-              for p in config.get("protected_paths", [])]
+    """The path rule, applied to shell commands that would MUTATE a file.
+
+    Each path the command names is judged on its own, by the same matcher
+    the Write rule uses. The previous substring probe judged the whole
+    command text, so an allowlisted word or an exempt filename ANYWHERE in
+    it - a trailing comment sufficed - disabled every rule for that call.
+    """
+    rules = protected_rules(root, config)
     allowed = config.get("allow", [])
-    for pattern, why in rules:
-        prefix = pattern.rstrip("*").rstrip("/")
-        if not prefix or prefix not in command:
+    read_only = command_is_read_only(command)
+    redirected = redirect_paths(command, root)
+    for rel_path in command_targets(command, root):
+        # A read-only verb may name a protected path freely - `cat` a gold
+        # record, `git log` the checkpoint - unless the path is where its
+        # output is being redirected, which is a write however benign the
+        # verb looks (`echo x > gold/v1.json`).
+        if read_only and rel_path not in redirected:
             continue
-        if any(a.rstrip("*").rstrip("/") in command for a in allowed):
+        if any(matches(rel_path, pattern) for pattern in PROTECTED_EXEMPT):
             continue
-        if any(e in command for e in PROTECTED_EXEMPT):
+        if any(matches(rel_path, pattern) for pattern in allowed):
             continue
-        return Decision(
-            "deny",
-            f"Doctrine: this command would modify '{prefix}' - {why}. A "
-            "shell redirect is still a write. Use the owning tool, or "
-            f"record the exception in {CONFIG_REL} under 'allow'.",
-        )
+        for pattern, why in rules:
+            if matches(rel_path, pattern):
+                return Decision(
+                    "deny",
+                    f"Doctrine: this command would modify '{rel_path}' - "
+                    f"{why}. A shell redirect is still a write. Use the "
+                    f"owning tool, or record the exception in {CONFIG_REL} "
+                    "under 'allow'.",
+                )
+        for pattern, why in CONTROL_SURFACE:
+            if matches(rel_path, pattern):
+                return Decision(
+                    "ask",
+                    f"Doctrine: this command would modify '{rel_path}', part "
+                    f"of this repo's ENFORCEMENT surface - {why}. Approve "
+                    "only if you meant to change how your own gates behave.",
+                )
     return Decision()
 
 
@@ -339,6 +645,19 @@ def check_irreversible(command: str) -> Decision:
                 f"Doctrine section 5: this is {label} - an irreversible or "
                 "external action the human decides, not the agent. Approve "
                 "here if that is what you want.",
+            )
+    return Decision()
+
+
+def check_test_weakening_command(command: str) -> Decision:
+    for pattern, label in TEST_COMMAND_WEAKENING:
+        if re.search(pattern, command, re.IGNORECASE):
+            return Decision(
+                "ask",
+                f"Doctrine non-negotiable #4 (never delete, skip, or weaken a "
+                f"failing test to go green): this command is {label}. Fix the "
+                "code, or get the human's approval - removing an obsolete "
+                "test is legitimate, silencing a failure is not.",
             )
     return Decision()
 
@@ -359,12 +678,30 @@ def check_test_weakening(rel_path: str, text: str) -> Decision:
 
 
 def evaluate(payload: dict[str, Any], root: Path) -> Decision:
-    tool_name = str(payload.get("tool_name", ""))
+    raw_name = payload.get("tool_name")
     tool_input = payload.get("tool_input")
-    if not isinstance(tool_input, dict):
-        tool_input = {}
+    if not isinstance(raw_name, str):
+        return Decision("deny", "Doctrine guard: this request has no readable "
+                                "tool name, so it cannot be checked against "
+                                "the non-negotiables. Denied by default.")
+    tool_name = raw_name
     if tool_name not in WRITE_TOOLS and tool_name not in COMMAND_TOOLS:
         return Decision()
+    if not isinstance(tool_input, dict):
+        # A governed tool with an unreadable body is exactly what a bypass
+        # looks like; coercing it to {} used to sail past every rule.
+        return Decision("deny", f"Doctrine guard: the input to {tool_name} "
+                                "could not be read, so it cannot be checked. "
+                                "Denied by default.")
+
+    for field in (("command",) if tool_name in COMMAND_TOOLS
+                  else ("file_path", "notebook_path")):
+        if typed_field(tool_input, field) is None:
+            return Decision(
+                "deny",
+                f"Doctrine guard: '{field}' is not a string in this "
+                f"{tool_name} request, so it cannot be checked against the "
+                "non-negotiables. Denied by default.")
 
     config = load_config(root)
     rel_path = relative_to_root(target_path(tool_input), root)
@@ -387,6 +724,9 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
         verdict = check_irreversible(text)
         if verdict.decision:
             return verdict
+        verdict = check_test_weakening_command(text)
+        if verdict.decision:
+            return verdict
     if rel_path and tool_name in WRITE_TOOLS:
         verdict = check_test_weakening(rel_path, text)
         if verdict.decision:
@@ -394,19 +734,60 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
     return Decision()
 
 
-def main(argv: list[str] | None = None) -> int:
-    raw = sys.stdin.read() if not sys.stdin.isatty() else ""
-    try:
-        payload = json.loads(raw) if raw.strip() else {}
-    except ValueError:
-        payload = None
+def governed_root(payload: object) -> Path | None:
+    """The doctrine repo this request touches, if any.
 
-    cwd = Path.cwd()
-    if isinstance(payload, dict) and isinstance(payload.get("cwd"), str):
-        candidate = Path(payload["cwd"])
-        if candidate.is_dir():
-            cwd = candidate
-    root = find_root(cwd)
+    Anchoring on the session's cwd alone let a write INTO a governed repo go
+    unjudged whenever the session started one directory up (a monorepo or a
+    multi-repo workspace), so the target path is consulted too - and the
+    stricter of the two wins.
+    """
+    candidates: list[Path] = []
+    if isinstance(payload, dict):
+        tool_input = payload.get("tool_input")
+        if isinstance(tool_input, dict):
+            target = target_path(tool_input)
+            if target:
+                text = normalize_target(target)
+                try:
+                    where = Path(text)
+                    candidates.append(where if where.is_absolute()
+                                      else Path.cwd() / where)
+                except (OSError, ValueError):
+                    pass
+        if isinstance(payload.get("cwd"), str):
+            candidates.append(Path(payload["cwd"]))
+    candidates.append(Path.cwd())
+    for candidate in candidates:
+        try:
+            start = candidate if candidate.is_dir() else candidate.parent
+            root = find_root(start)
+        except OSError:
+            continue
+        if root is not None:
+            return root
+    return None
+
+
+def main(argv: list[str] | None = None) -> int:
+    # Read BYTES and decode ourselves. sys.stdin.read() decodes with the
+    # interpreter's stdin codec, and under a strict one (PYTHONIOENCODING,
+    # LANG=C, most POSIX CI) one invalid byte raised UnicodeDecodeError from
+    # OUTSIDE any try - exit 1, no decision, which the hook contract reads as
+    # "proceed". The gate's own plumbing must never decide the outcome.
+    try:
+        stream = getattr(sys.stdin, "buffer", None)
+        if sys.stdin.isatty():
+            raw = ""
+        elif stream is not None:
+            raw = stream.read(MAX_PAYLOAD_BYTES).decode("utf-8", "replace")
+        else:
+            raw = sys.stdin.read(MAX_PAYLOAD_BYTES)
+        payload = json.loads(raw) if raw.strip() else {}
+    except Exception:  # noqa: BLE001 - RecursionError is not a ValueError, and
+        payload = None  # an un-parsed payload must never mean "no opinion"
+
+    root = governed_root(payload)
     if root is None:
         return 0  # not a doctrine repo -> the law is not in play
 

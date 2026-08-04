@@ -43,11 +43,22 @@ rewriting the state chain's crypto; auto-remediation of fleet drift (the fleet
 tool reports, the human decides); scanning a host repo's own code.
 
 ## Acceptance criteria
-- The guard denies, with a reason, on: a secret-shaped write, a write to a
-  protected path, a destructive shell command, and a verifier-role write —
-  and stays silent on ordinary edits. Malformed or unknown input never
-  crashes the agent (fail-open only where the doctrine is not in play,
-  fail-closed inside a governed repo).
+
+> **Amended 2026-08-03**, after independent verification. The first criterion
+> below originally required the guard to deny "a verifier-role write". That
+> rule was never implemented and could not be, because the hook payload
+> carries no role and a self-attested one proves nothing (ADR-012,
+> Correction). The criterion is corrected here rather than quietly dropped —
+> narrowed scope is reported scope. Verifier isolation now lives in the
+> dispatch rule in `02-role-protocol.md`, with its Bash-shaped gap stated.
+
+- The guard **denies**, with a reason, a secret-shaped write and a write to a
+  protected path; it **asks** on a §5 destructive/external command, on an edit
+  that weakens a test, and on a write to the repo's own enforcement surface —
+  and stays silent on ordinary edits and on reads. Malformed or unknown input
+  never crashes the agent, and never yields silence inside a governed repo
+  (fail-open only where the doctrine is not in play; fail-closed within it,
+  including payloads that fail to parse at all).
 - `doctrine_gold record` refuses an unsigned tag under `--require-signature`,
   records signer identity when the tag is signed, and behaves exactly as
   before without the flag (no existing record shape breaks).

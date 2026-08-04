@@ -6,6 +6,99 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Fixed — independent verification of v0.7.0 overturned its own sign-off
+
+Three fresh-context verifiers were dispatched on `v0.6.46..HEAD`. The author's
+self-review had **approved** the release; the independent pass returned
+REQUEST-CHANGES, a security **VETO** on five findings each proven with an
+executed payload, and a QA **FAIL**. Every finding below was reachable in one
+or two tool calls. All are fixed, each with a regression test that reproduces
+the verifier's own payload.
+
+- **The guard could be switched off by the party it governs.** Neither
+  `.doctrine-state/guard.json` nor `pyproject.toml` was protected, and `allow`
+  accepted `"**"`. Two tool calls disabled all four rules; one more flipped
+  consumer-corpus protection off. The enforcement surface (policy, hook
+  wiring, `CLAUDE.md`, `AGENTS.md`, `.github/workflows/`, the fleet target
+  list) now requires an explicit human **ask**, and blanket patterns are
+  dropped even from a well-formed policy file.
+- **The command path rule matched raw substrings**, which failed in both
+  directions at once: `python -c "open(p,'w')"`, `touch`, `install`,
+  `git checkout --`, `perl -pi`, backslash paths, quote elision and trailing
+  comments all walked past it, while `.git` matched `.gitignore`/`.github`
+  and `.env` matched `os.environ` — verifiers measured **11 of 13 ordinary
+  commands denied**. Commands are now tokenized, path candidates resolved
+  against the repo root, and matched by the same matcher the Write rule uses.
+- **The guard failed open on a `RecursionError`.** A payload nested 3000 deep
+  escaped `except ValueError`; the gate exited 1 with no decision, which the
+  hook contract reads as *proceed*. One decoy field carried a denied secret
+  write straight through. Parse failures of every kind now deny, payload size
+  is bounded, and wrong-typed `tool_name`/`tool_input` deny instead of being
+  coerced to an empty dict.
+- **The hook resolved its own script relatively**, so from a subdirectory
+  python exited 2 — the code reserved for *block* — and the gate became a
+  total lockout that prevented its own repair. It did exactly that to the
+  session that built it. Both wirings now resolve from `CLAUDE_PROJECT_DIR`,
+  with a relative fallback, and a test executes each hook command from a
+  subdirectory.
+- **`gold check --require-signature` passed a substituted signer.** Deleting
+  the tag and re-cutting it at the same commit with a different key returned
+  exit 0 and printed GOLD, while the record still credited the first signer;
+  only the `signed` boolean was compared. Identity is now compared, a record
+  with no attestation cannot satisfy `--require-signature`, and the console
+  prints the record's own claim rather than whatever the tag verifies as now.
+- **`doctrine_fleet` was neither read-only nor safe.** `git status` rewrote
+  the index whenever the stat cache was stale (any fresh clone), and git
+  honoured `core.fsmonitor` **from the repo being inspected** — a "read-only"
+  scan executing code chosen by untrusted repos. Now `--no-optional-locks`
+  with `core.fsmonitor`/`core.hooksPath` neutralized. It also no longer
+  crashes on an unreadable directory or a non-cp1252 repo name.
+- **The bridge leaked its repository snapshot to a rebound `Host`** (browsers
+  omit `Origin` on same-origin GET, so the origin check waved it through);
+  `Host` is now validated against loopback names. The oversized-request branch
+  lost its 413 the same way the 415 path used to — a bounded lingering discard
+  fixes it up to 1 MiB, beyond which the abort is deliberate and documented.
+- **Rule coverage gaps closed**: force-push via `+refspec`, `update-ref -d`,
+  `uv/poetry publish`, `Remove-Item -Recurse`, `rm -rf ..`, download-then-run;
+  and for §7 #4, `pytestmark`, `skipTest`, `raise SkipTest`, plus deleting or
+  `sed -i`-ing a test file through the shell.
+- Guard path handling: Windows extended-length (`\\?\`) prefixes no longer
+  skip every rule, matching is case-insensitive (macOS treats `.ENV` and
+  `.env` as one file), nested `services/*/.env` is protected by both tools,
+  and a write *into* a governed repo is judged even when the session started
+  in a parent directory.
+
+### Changed
+
+- `attestation` now records which backend signed (`ssh` / `openpgp` /
+  `x509`), read from the signature's own armor header rather than local
+  config. **Compatibility:** the field is optional, so records written by
+  0.7.0 stay valid — but a repo whose corpus is still at 0.7.0 will reject a
+  record produced by a newer tool, because the 0.7.0 schema sets
+  `additionalProperties: false`. Update the corpus before promoting across a
+  version-skewed fleet; `doctrine_fleet status` is how you find the skew.
+- Verifier roles are **dispatched, not worn**: `.Doctrine.md` §2,
+  `02-role-protocol.md`, `/review`, `/qa` and the per-turn engage reminder now
+  require fresh-context subagents at G4/G5, and an in-session fallback must
+  open its artifact with that disclosure.
+- ADR-012, the brief, `README.md` and `05-packaging.md` corrected: they
+  described a verifier-write-isolation rule that was never implemented and
+  could not be from a payload that carries no role. What actually isolates a
+  verifier is its subagent tool grant — which still includes `Bash`, so the
+  gap is now stated rather than claimed shut.
+
+### Security
+
+- `npm audit` in `workhawk/`: 6 advisories (3 moderate, 3 high) via
+  `undici`/`brace-expansion`/`fast-uri`, all reaching only through
+  `miniflare`/`wrangler`/`@cloudflare/vite-plugin`. **Disposition:**
+  `npm audit --omit=dev` reports **0 vulnerabilities**, so runtime exposure is
+  nil and this is build-host supply chain. The repo's own
+  `npm run audit --audit-level=moderate` gate is therefore **red today**; it
+  is a real red, not a stale one, and must be cleared (or the gate's level
+  consciously re-scoped) before a WorkHawk release. Not fixed here — a
+  dependency bump is a separate change with its own verification.
+
 ## [0.7.0] - 2026-08-03
 
 > Release **prepared**, not cut: the version carriers are bumped and the gates

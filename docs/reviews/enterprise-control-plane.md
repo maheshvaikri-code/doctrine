@@ -63,8 +63,55 @@ Severity: BLOCKER (must fix) · MAJOR (fix before release) · MINOR · NIT.
 - [x] Scope: no drive-by refactors. The working tree also carries earlier
       uncommitted work from other sessions, which this change did **not** touch.
 
-## Verdict
+## Verdict (superseded — see below)
 
 **Approved with disclosure.** No BLOCKER survives; every MAJOR is fixed with a
 test. The independence caveat is itself the most significant finding: this
 passed a thorough author's review, not an adversarial one.
+
+---
+
+# Independent G4 — 2026-08-03 (this supersedes the verdict above)
+
+Three fresh-context verifiers were dispatched on `v0.6.46..HEAD` plus the
+working tree, none of which wrote the code. They **overturned the approval**:
+`code-reviewer` returned REQUEST-CHANGES (2 BLOCKER, 6 MAJOR), the
+`security-reviewer` returned **VETO** on five findings each proven with an
+executed payload, and `qa-engineer` returned **FAIL G5**.
+
+The caveat above was not a formality. Every finding below was reachable in one
+or two tool calls, and the author's pass found none of them.
+
+## What they found that this document got wrong
+
+| Claim made above | What the verifiers proved |
+|---|---|
+| #3 "shell redirects bypassed the path rule → fixed" | **Overstated.** Only the literal-substring-plus-redirect spelling was covered. `python -c "open(p,'w')"`, `touch`, `install`, `git checkout --`, `perl -pi`, backslash paths, quote elision and `cd`-then-write all walked through. |
+| #7 "the oversized branch deliberately opts out of the drain" | Described the trade but not its consequence: that branch **lost its response** 10/10 when the body arrived late — the exact `WinError 10053` this release claims to have root-caused. The test cited could not observe it, because it sent no body. |
+| "`allow` is committed config, so widening it is a visible, reviewable act" | **False.** `.doctrine-state/guard.json` was unprotected and the widening took effect immediately, in-session. Two tool calls disabled all four rules. |
+| Nothing was said about `pyproject.toml` | A second self-service switch: its package name decided whether the installed corpus was protected, and it was writable. |
+| "`doctrine_fleet` is strictly read-only (a test hashes the tree)" | **False.** `git status` rewrites the index whenever the stat cache is stale — true of any fresh clone. The test passed only because its fixture was committed microseconds earlier. It also executed `core.fsmonitor` **from the repo being inspected**. |
+| Finding 3 disclosed verifier-write-isolation as "accepted limitation #8" | Understated: ADR-012, the brief and the plan all *specified* the rule as shipped. That is silently narrowed scope, not a documented limitation. |
+| "no acceptance criterion in the brief is unmet" (QA artifact) | Three were unmet. |
+
+Additional findings this pass never considered: the guard **failed open** on a
+`RecursionError` from a deeply nested payload (exit 1, no decision, tool
+proceeds); `\\?\` extended-length paths skipped every path rule; a secret split
+across two allowed calls was never seen; the bridge leaked its repository
+snapshot to a rebound `Host`; and **`gold check --require-signature` returned 0
+and printed GOLD after the tag was re-cut at the same commit by a different
+principal** — the attestation feature failing at the one question it exists to
+answer.
+
+## Disposition
+
+All three blockers and every major are fixed, each with a regression test that
+reproduces the verifier's own payload; see `docs/qa/enterprise-control-plane.md`
+for the re-verification. The false claims in this document are corrected in
+place above rather than deleted — a review artifact that edits away its
+mistakes is worth less than one that records them.
+
+**The lesson is structural, not incidental.** A self-review by the author
+produced an approval; three independent passes produced a veto. That gap is
+why `02-role-protocol.md` now requires verifier roles to be *dispatched*, not
+worn, and why the in-session fallback must open with a disclosure.

@@ -3,6 +3,15 @@ argument-hint: [build | acceptance criteria | "the working changes"]
 description: Verify the change as the QA Engineer at G5 (adversarial; execute, don't inspect)
 ---
 
+**DISPATCH the `qa-engineer` subagent — do not wear the hat yourself.** The builder
+already believes the change works; that belief is what QA exists to break
+(`02-role-protocol.md`). Send it the acceptance criteria and how to run the thing;
+it starts fresh and cannot Edit/Write. Only when subagents are unavailable do you
+run this in-session, and then the report MUST open by disclosing it as an author's
+self-verification.
+
+The dispatched QA engineer's instructions:
+
 Act as the **QA Engineer** (`.Doctrine/roles/qa-engineer.md`) at G5 — find the failure
 before the user does; trust nothing not executed in front of you.
 

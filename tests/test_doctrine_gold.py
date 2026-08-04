@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
@@ -273,8 +275,9 @@ class TestAttestation(GoldRepo):
             (self.root / "docs" / "releases" / "gold" / "v1.0.0.json")
             .read_text("utf-8"))
 
-        self.assertEqual(record["attestation"],
-                         {"signed": False, "signer": None, "key": None})
+        self.assertEqual(
+            record["attestation"],
+            {"signed": False, "signer": None, "key": None, "format": None})
 
     def test_require_signature_refuses_an_unsigned_tag(self):
         proposal = self.root / "gold-proposal.json"
@@ -315,6 +318,179 @@ class TestAttestation(GoldRepo):
         self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 1)
 
 
+def _has(program: str) -> bool:
+    return shutil.which(program) is not None
+
+
+class TestRealSignedTags(GoldRepo):
+    """End-to-end with REAL keys, one per backend git supports.
+
+    Parse fixtures prove we read git's output correctly; only these prove the
+    whole path - key, signature, git's verdict, our attestation - actually
+    works. Each skips when its backend is absent rather than pretending.
+    """
+
+    def _promote(self, tag: str) -> dict:
+        proposal = self.root / "gold-proposal.json"
+        proposal.write_text(json.dumps(self.proposal(tag=tag)),
+                            encoding="utf-8")
+        self.assertEqual(
+            dg.cmd_record(self.root, proposal, require_signature=True), 0,
+            "--require-signature must accept a genuinely signed tag")
+        return json.loads(
+            (self.root / "docs" / "releases" / "gold" / f"{tag}.json")
+            .read_text("utf-8"))
+
+    @unittest.skipUnless(_has("ssh-keygen"), "ssh-keygen not available")
+    def test_ssh_signed_tag_verifies_and_is_attested(self):
+        key = self.root / "signing_key"
+        subprocess.run(["ssh-keygen", "-t", "ed25519", "-N", "", "-C",
+                        "doctrine-test@example.invalid", "-f", str(key)],
+                       check=True, capture_output=True)
+        public = (self.root / "signing_key.pub").read_text("utf-8").strip()
+        allowed = self.root / "allowed_signers"
+        allowed.write_text(f"doctrine-test@example.invalid {public}\n",
+                           encoding="utf-8")
+        for name, value in (("gpg.format", "ssh"),
+                            ("user.signingkey", str(key)),
+                            ("gpg.ssh.allowedSignersFile", str(allowed)),
+                            ("user.email", "doctrine-test@example.invalid")):
+            subprocess.run(["git", "config", name, value], cwd=self.root,
+                           check=True, capture_output=True)
+        subprocess.run(["git", "tag", "-s", "v2.0.0", "-m", "signed"],
+                       cwd=self.root, check=True, capture_output=True)
+
+        attestation = dg.verify_tag_signature(self.root, "v2.0.0")
+
+        self.assertTrue(attestation["signed"], attestation)
+        self.assertEqual(attestation["format"], "ssh")
+        self.assertEqual(attestation["signer"], "doctrine-test@example.invalid")
+        self.assertTrue(attestation["key"].startswith("SHA256:"),
+                        attestation["key"])
+        self.assertEqual(self._promote("v2.0.0")["attestation"], attestation)
+
+    def _ssh_signer(self, name: str) -> str:
+        """Configure a fresh ssh signing identity; return its email."""
+        email = f"{name}@example.invalid"
+        key = self.root / f"key_{name}"
+        subprocess.run(["ssh-keygen", "-t", "ed25519", "-N", "", "-C", email,
+                        "-f", str(key)], check=True, capture_output=True)
+        public = (self.root / f"key_{name}.pub").read_text("utf-8").strip()
+        allowed = self.root / "allowed_signers"
+        with allowed.open("a", encoding="utf-8") as handle:
+            handle.write(f"{email} {public}\n")
+        for setting, value in (("gpg.format", "ssh"),
+                               ("user.signingkey", str(key)),
+                               ("gpg.ssh.allowedSignersFile", str(allowed)),
+                               ("user.email", email)):
+            subprocess.run(["git", "config", setting, value], cwd=self.root,
+                           check=True, capture_output=True)
+        return email
+
+    @unittest.skipUnless(_has("ssh-keygen"), "ssh-keygen not available")
+    def test_resigning_the_tag_as_someone_else_fails_the_deploy_gate(self):
+        """Regression: an independent security pass deleted the tag, re-cut
+        it at the SAME commit with a second key, and `check
+        --require-signature` printed GOLD and exited 0 while the record still
+        credited the first signer. Any principal in the trust store could
+        re-attribute a promotion."""
+        alice = self._ssh_signer("alice")
+        subprocess.run(["git", "tag", "-s", "v4.0.0", "-m", "signed"],
+                       cwd=self.root, check=True, capture_output=True)
+        record = self._promote("v4.0.0")
+        self.assertEqual(record["attestation"]["signer"], alice)
+        self.assertEqual(
+            dg.cmd_check(self.root, "v4.0.0", require_signature=True), 0)
+
+        subprocess.run(["git", "tag", "-d", "v4.0.0"], cwd=self.root,
+                       check=True, capture_output=True)
+        mallory = self._ssh_signer("mallory")
+        subprocess.run(["git", "tag", "-s", "v4.0.0", "-m", "signed"],
+                       cwd=self.root, check=True, capture_output=True)
+
+        self.assertNotEqual(alice, mallory)
+        self.assertTrue(
+            dg.verify_tag_signature(self.root, "v4.0.0")["signed"],
+            "the re-cut tag must be genuinely signed, or this proves nothing")
+        self.assertEqual(dg.cmd_check(self.root, "v4.0.0"), 1)
+        self.assertEqual(
+            dg.cmd_check(self.root, "v4.0.0", require_signature=True), 1)
+
+    @unittest.skipUnless(_has("ssh-keygen"), "ssh-keygen not available")
+    def test_a_signed_record_naming_nobody_fails_require_signature(self):
+        """Regression: a record claiming signed:true with signer=key=null
+        skipped the identity comparison (which needs both sides set) and
+        passed the gate whose whole purpose is to prove WHO promoted."""
+        self._ssh_signer("alice")
+        subprocess.run(["git", "tag", "-s", "v6.0.0", "-m", "signed"],
+                       cwd=self.root, check=True, capture_output=True)
+        self._promote("v6.0.0")
+        out = self.root / "docs" / "releases" / "gold" / "v6.0.0.json"
+        record = json.loads(out.read_text("utf-8"))
+        record["attestation"] = {"signed": True, "signer": None, "key": None,
+                                 "format": "ssh"}
+        out.write_bytes(ds.canonical_bytes(record))
+
+        self.assertEqual(
+            dg.cmd_check(self.root, "v6.0.0", require_signature=True), 1)
+
+    @unittest.skipUnless(_has("ssh-keygen"), "ssh-keygen not available")
+    def test_a_record_without_attestation_cannot_claim_a_signed_promotion(self):
+        """Regression: a forged record could omit `attestation` entirely and
+        skip the comparison, so `--require-signature` passed on a record that
+        proved nothing."""
+        self._ssh_signer("alice")
+        subprocess.run(["git", "tag", "-s", "v5.0.0", "-m", "signed"],
+                       cwd=self.root, check=True, capture_output=True)
+        self._promote("v5.0.0")
+        out = self.root / "docs" / "releases" / "gold" / "v5.0.0.json"
+        record = json.loads(out.read_text("utf-8"))
+        del record["attestation"]
+        out.write_bytes(ds.canonical_bytes(record))
+
+        self.assertEqual(dg.cmd_check(self.root, "v5.0.0"), 0)
+        self.assertEqual(
+            dg.cmd_check(self.root, "v5.0.0", require_signature=True), 1)
+
+    @unittest.skipUnless(_has("gpg"), "gpg not available")
+    def test_openpgp_signed_tag_verifies_and_is_attested(self):
+        home = self.root / "gnupg"
+        home.mkdir(mode=0o700)
+        environment = {**os.environ, "GNUPGHOME": str(home)}
+        generated = subprocess.run(
+            ["gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase",
+             "", "--quick-generate-key", "Doctrine Test "
+             "<doctrine-test@example.invalid>", "ed25519", "sign", "never"],
+            env=environment, capture_output=True, text=True, timeout=120)
+        if generated.returncode != 0:
+            self.skipTest(f"gpg could not generate a key here: "
+                          f"{generated.stderr.strip()[:200]}")
+        listed = subprocess.run(
+            ["gpg", "--list-secret-keys", "--with-colons"], env=environment,
+            capture_output=True, text=True, check=True)
+        fingerprint = next(line.split(":")[9] for line in
+                           listed.stdout.splitlines() if line.startswith("fpr"))
+        for name, value in (("gpg.format", "openpgp"),
+                            ("user.signingkey", fingerprint),
+                            ("user.email", "doctrine-test@example.invalid")):
+            subprocess.run(["git", "config", name, value], cwd=self.root,
+                           check=True, capture_output=True)
+        tagged = subprocess.run(
+            ["git", "tag", "-s", "v3.0.0", "-m", "signed"], cwd=self.root,
+            env=environment, capture_output=True, text=True)
+        if tagged.returncode != 0:
+            self.skipTest(f"gpg could not sign here: "
+                          f"{tagged.stderr.strip()[:200]}")
+
+        with mock.patch.dict(os.environ, {"GNUPGHOME": str(home)}):
+            attestation = dg.verify_tag_signature(self.root, "v3.0.0")
+            self.assertTrue(attestation["signed"], attestation)
+            self.assertEqual(attestation["format"], "openpgp")
+            self.assertIn("Doctrine Test", attestation["signer"] or "")
+            self.assertEqual(self._promote("v3.0.0")["attestation"],
+                             attestation)
+
+
 class TestSignatureParsing(unittest.TestCase):
     """The parse is pure so it is testable without provisioning a key.
 
@@ -332,9 +508,10 @@ class TestSignatureParsing(unittest.TestCase):
         )
 
         self.assertEqual(
-            dg.parse_signature_status(0, raw),
+            dg.parse_signature_status(0, raw, "openpgp"),
             {"signed": True, "signer": "Ada Lovelace <ada@example.org>",
-             "key": "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234"},
+             "key": "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234",
+             "format": "openpgp"},
         )
 
     def test_ssh_good_signature_is_recognised(self):
@@ -342,10 +519,44 @@ class TestSignatureParsing(unittest.TestCase):
                "SHA256:abcdef0123456789\n")
 
         self.assertEqual(
-            dg.parse_signature_status(0, raw),
+            dg.parse_signature_status(0, raw, "ssh"),
             {"signed": True, "signer": "ada@example.org",
-             "key": "SHA256:abcdef0123456789"},
+             "key": "SHA256:abcdef0123456789", "format": "ssh"},
         )
+
+    def test_x509_good_signature_is_recognised(self):
+        """gpgsm speaks the same status protocol as gpg; only the armor
+        header distinguishes the backend, which is why format detection
+        reads the tag object rather than the verifier's chatter."""
+        raw = (
+            "[GNUPG:] NEWSIG\n"
+            "[GNUPG:] GOODSIG 0F1E2D3C4B5A6978 "
+            "/CN=Ada Lovelace/O=Example Ltd/C=GB\n"
+            "[GNUPG:] TRUST_FULLY 0 shell\n"
+        )
+
+        self.assertEqual(
+            dg.parse_signature_status(0, raw, "x509"),
+            {"signed": True, "signer": "/CN=Ada Lovelace/O=Example Ltd/C=GB",
+             "key": "0F1E2D3C4B5A6978", "format": "x509"},
+        )
+
+    def test_the_backend_is_read_from_the_tag_objects_armor(self):
+        for marker, expected in (
+                ("-----BEGIN SSH SIGNATURE-----", "ssh"),
+                ("-----BEGIN PGP SIGNATURE-----", "openpgp"),
+                ("-----BEGIN PGP MESSAGE-----", "openpgp"),
+                ("-----BEGIN SIGNED MESSAGE-----", "x509")):
+            with self.subTest(marker=marker):
+                self.assertEqual(
+                    dg.detect_signature_format(
+                        f"object abc\ntype commit\ntag v1.0.0\n\nmsg\n"
+                        f"{marker}\nblob\n"),
+                    expected)
+
+    def test_an_unsigned_tag_object_has_no_format(self):
+        self.assertIsNone(dg.detect_signature_format(
+            "object abc\ntype commit\ntag v1.0.0\n\njust a message\n"))
 
     def test_a_failed_verification_is_never_reported_as_signed(self):
         for code, raw in ((1, "error: no signature found\n"),
@@ -354,7 +565,16 @@ class TestSignatureParsing(unittest.TestCase):
             with self.subTest(code=code):
                 self.assertEqual(
                     dg.parse_signature_status(code, raw),
-                    {"signed": False, "signer": None, "key": None})
+                    {"signed": False, "signer": None, "key": None,
+                     "format": None})
+
+    def test_a_signature_git_rejects_is_unsigned_whatever_the_armor_says(self):
+        """A tag CARRYING a signature block that fails verification must not
+        be reported as signed - the armor names the backend, git decides."""
+        self.assertEqual(
+            dg.parse_signature_status(1, "[GNUPG:] EXPKEYSIG abc Ada\n",
+                                      "openpgp"),
+            {"signed": False, "signer": None, "key": None, "format": None})
 
 
 if __name__ == "__main__":

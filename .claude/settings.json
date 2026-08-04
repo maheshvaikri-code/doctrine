@@ -5,11 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python tools/doctrine_state.py hydrate --if-present"
+            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_state.py'); sys.exit(subprocess.call([sys.executable,p,'hydrate','--if-present']) if os.path.exists(p) else 0)\""
           },
           {
             "type": "command",
-            "command": "python tools/doctrine_metrics.py capture-hint"
+            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_metrics.py'); sys.exit(subprocess.call([sys.executable,p,'capture-hint']) if os.path.exists(p) else 0)\""
           }
         ]
       }
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python tools/doctrine_engage.py"
+            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_engage.py'); sys.exit(subprocess.call([sys.executable,p]) if os.path.exists(p) else 0)\""
           }
         ]
       }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python tools/doctrine_guard.py"
+            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_guard.py'); sys.exit(subprocess.call([sys.executable,p]) if os.path.exists(p) else 0)\""
           }
         ]
       }

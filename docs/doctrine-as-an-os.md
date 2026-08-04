@@ -28,7 +28,7 @@ the LLM + harness; Doctrine is the OS scheduled onto it.
 | **Kernel** (always resident, privileged, unbypassable) | `.Doctrine.md` — the root law, **always loaded** — plus the Non-Negotiables (§7) and Prime Directive | Hybrid: the *law* is cooperative (the agent chooses to obey), but the **stdlib gates** (`doctrine_lint`, `doctrine_verify`, gold-build checks) are **hard-enforced, fail-closed** — the "protected mode" |
 | **Processes** | tasks/engagements flowing through gates **G0→G7**; **classes S/M/L/HOTFIX** = scheduling priority | Real lifecycle + state machine; a failed gate faults back to the gate that owns the defect |
 | **Context switch** | swapping role "hats" (`[ROLE: …]`), one at a time | Real — and in multi-agent mode each role is a *separate process* |
-| **Process isolation / privilege rings** | separation of duties — a reviewer runs **read-only** and *physically cannot* edit what it judges | Hard-enforced with subagents (read-only toolset); cooperative (fresh-context) single-agent |
+| **Process isolation / privilege rings** | separation of duties — a verifier's tool grant excludes Edit/Write | **Partial.** Subagent grants stop a reviewer editing by accident, not by intent: they retain `Bash`, which writes (ADR-012). Single-agent is cooperative only, and must disclose |
 | **Memory** | the **state plane** (`.doctrine-state/`): checkpoint → hydrate. *The repo remembers so the model doesn't have to* | Very real — this *is* the memory subsystem |
 | **Durable storage vs RAM** | committed **hash-chained checkpoints** (durable, tamper-evident) vs the machine-local runtime ledger (volatile) | Real two-tier split |
 | **Demand paging** | progressive disclosure — a skill is read only when the task touches it; `.Doctrine/` is never bulk-loaded | Real — keeps the working set lean |
@@ -71,9 +71,11 @@ Processes run *as* a **role**. A single agent **context-switches** between role
 hats (`[ROLE: Code Reviewer]` → `[ROLE: Engineer]`), one at a time; a fleet runs
 each role as a **separate process**. Either way, **isolation** is the point:
 separation of duties means the reviewer of a change is never its author. With
-subagents this is *hard-enforced* — the reviewer's toolset is read-only, so it
-**physically cannot** edit the code it judges (a privilege ring). Single-agent, it
-is enforced by a fresh-context pass plus tool restriction. A failed gate is a
+subagents the grant excludes Edit/Write — a real privilege ring, but a leaky
+one: verifiers keep `Bash`, and a security reviewer demonstrated writing files
+with it after the guard refused the same write through a redirect. So it stops
+the accident, not the intent (ADR-012's Correction). Single-agent, it is
+cooperative only — a fresh-context pass whose artifact must say so. A failed gate is a
 **fault** that routes the task back to the gate that owns the defect — a closed
 loop, not a crash.
 

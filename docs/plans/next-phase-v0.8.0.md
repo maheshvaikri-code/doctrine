@@ -22,7 +22,30 @@ across every repo.
 
 ## P1 — Make v0.7.0 trustworthy (do first)
 
-### P1.1 Independent verification of the v0.7.0 diff · Class M
+### P1.1 Independent verification of the v0.7.0 diff · Class M — **DONE 2026-08-03**
+
+Ran. It overturned the release: REQUEST-CHANGES, a security **VETO** on five
+proven findings, and a QA **FAIL**. Three blockers and nine majors, all fixed
+with regression tests reproducing the verifiers' own payloads; see the
+CHANGELOG `[Unreleased]` section and the appended verdicts in
+`docs/reviews/` and `docs/qa/`.
+
+Two lessons worth carrying forward, both structural:
+
+1. **The author's self-review approved what three independent passes vetoed.**
+   Every finding was reachable in one or two tool calls. This is now encoded:
+   verifier roles are dispatched, not worn (`02-role-protocol.md`).
+2. **A gate that fails on its own plumbing is a lockout, not a guard.** The
+   hook resolved its script relatively; from a subdirectory python exited 2 —
+   the hook contract's *block* code — and the guard froze the session that
+   built it, including its own repair. Fail closed on the action you judge,
+   never on your own wiring.
+
+**Still open from that pass, deliberately:** the fixes themselves have not
+been independently verified. Re-dispatch before release — the reason to is the
+first lesson above.
+
+### P1.1b Original scope (kept for reference)
 The gate the last release could not run. Dispatch fresh-context
 `code-reviewer`, `security-reviewer`, and `qa-engineer` subagents against
 `v0.6.46..v0.7.0`, each blind to the author's narrative.

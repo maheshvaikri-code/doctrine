@@ -1,0 +1,80 @@
+{
+  "at_commit": "964d6a997c31afb02b44aae8bc19ce1be19ae9e1",
+  "created_at": "2026-08-04T13:11:26Z",
+  "dead_ends": [
+    {
+      "approach": "Gate shell commands with an allowlist of WRITE verbs (MUTATION_TOKEN).",
+      "why_failed": "Unbounded set: shutil.copy, os.open, curl -o, node -e and find -exec all passed. Inverted to a READ-ONLY verb allowlist."
+    },
+    {
+      "approach": "Fix the specific bypass payloads each verifier reports.",
+      "why_failed": "Each round found a new spelling of the same class. Recurrence means the mechanism is wrong, not the coverage."
+    },
+    {
+      "approach": "Protect gold records with a `docs/releases/gold/*` glob.",
+      "why_failed": "`dir/*` matched only children, so `rm -rf <gold dir>` deleted every record while each file was 'protected'."
+    },
+    {
+      "approach": "Put env/time on the read-only verb list.",
+      "why_failed": "They EXECUTE their arguments: `env rm -rf <dir>` inherited env's read-only verdict. Step through wrappers."
+    },
+    {
+      "approach": "Wire the PreToolUse hook as `python tools/doctrine_guard.py`.",
+      "why_failed": "From a subdirectory python exits 2 - the hook contract's BLOCK code - so the gate froze its own repair."
+    },
+    {
+      "approach": "Assert `returncode == 0` to prove a hook is wired correctly.",
+      "why_failed": "That is the one condition a silently-off hook also satisfies. Assert the hook produced output instead."
+    },
+    {
+      "approach": "Refuse blanket guard policies with a list of literal patterns.",
+      "why_failed": "`?*`, `*.*` and `[a-z.]*` are equally total off-switches. Test patterns against canary paths."
+    },
+    {
+      "approach": "Read the hook payload with sys.stdin.read().",
+      "why_failed": "It decodes with the interpreter's codec OUTSIDE any try; one bad byte under a strict locale exited 1 with no decision."
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "An author's self-review approved a control with a two-tool-call bypass; three independent passes vetoed it. Verifier roles must be dispatched, never worn.",
+      "confidence": "verified",
+      "evidence": "docs/retro/2026-08-04-four-rounds-of-verification.md",
+      "kind": "constraint"
+    },
+    {
+      "claim": "Static analysis of a Turing-complete shell cannot be complete, so the Bash path rule is a tripwire; the durable guarantee is doctrine_gold gate, which re-hashes evidence.",
+      "confidence": "verified",
+      "evidence": ".Doctrine/05-packaging.md (two-layer table)",
+      "kind": "decision_ref"
+    },
+    {
+      "claim": "A gate must fail closed on the action it judges and never on its own plumbing - a relative hook path froze the session that built it.",
+      "confidence": "verified",
+      "evidence": "tools/doctrine_guard.py module docstring",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "False denials fell from 11 of 13 ordinary commands to 0 of 28 after tokenizing commands and resolving paths against the repo root.",
+      "confidence": "verified",
+      "evidence": "docs/qa/enterprise-control-plane.md round 2 section",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "Read round 4's security and QA reports; fix or record a lift.",
+    "Configure SSH signing and re-cut v0.7.0 signed at a verified commit - the existing tag marks the vetoed release and is not pushed.",
+    "P1.2: roll the 14 drifted fleet repos forward, one first with a diff."
+  ],
+  "open_threads": [
+    "Round 4 verification of commit 2885d29 is running; nothing is signed off until it reports.",
+    "OpenPGP attestation is untested here - gpg-agent will not start on this host; it self-enables on Linux CI.",
+    "workhawk npm audit is red (6 dev-only advisories) and needs a dependency bump with its own verification."
+  ],
+  "seq": 29,
+  "session_id": "s-2026-08-04-enterprise-control-plane",
+  "task_refs": [
+    "docs/briefs/enterprise-control-plane.md"
+  ]
+}

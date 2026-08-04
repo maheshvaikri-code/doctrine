@@ -1,5 +1,5 @@
 {
-  "at_commit": "ece964fc37e8460c04f6fede46c96cd1566c39f2",
+  "at_commit": "964d6a997c31afb02b44aae8bc19ce1be19ae9e1",
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
@@ -10,25 +10,24 @@
       "G3",
       "G4",
       "G5",
-      "G6",
       "G7"
     ],
-    "phase": "g7",
+    "phase": "g5-round4-pending",
     "ponytail_mode": "full",
     "role": "project-reviewer"
   },
-  "created_at": "2026-07-26T07:01:26Z",
-  "prev_sha256": "a96b491b53d1316427416dc459f7321c9fc9001a923ab5792ac7079dc4f38976",
-  "seq": 28,
-  "session_id": "s-2026-07-26-workhawk-execution",
+  "created_at": "2026-08-04T13:11:26Z",
+  "prev_sha256": "37a86c814fb9561f8add939941a557d95b263091d4ace3fc4054b1a67b3ea86a",
+  "seq": 29,
+  "session_id": "s-2026-08-04-enterprise-control-plane",
   "state_index": {
-    "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
+    "decisions_sha256": "c9a1142b19253b55d3262d0ca64e13aa11b4bced0a0e637561cf90fcc4f5cb46",
     "graph": {
       "built_at_commit": null
     },
     "intents": {},
-    "latest_distillate_sha256": "56dfbf2e9284b93d38625aa27847f50d9eac6c2424c44fce642ea93db92f4e1d",
+    "latest_distillate_sha256": "04460311fd77b5d25823f005ffe856b193643dfc57ae56cd4a205ed71fa5df86",
     "unresolved_effects": 0
   },
-  "worktree": "dirty"
+  "worktree": "clean"
 }

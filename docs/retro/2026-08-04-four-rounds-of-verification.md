@@ -51,8 +51,10 @@ you promise.**
 The resolution was not a better parser. It was to split the claim in two —
 Write/Edit is sound because a path is data, Bash is a *tripwire* because a
 command is a language — and to move the durable guarantee to
-`doctrine_gold gate`, which re-hashes evidence and therefore does not care how
-it was modified.
+`doctrine_gold gate`. Round 4 then showed that gate's first version hashed
+files against hashes stored in the record it was verifying, so a
+self-consistent forgery passed; it now anchors on git and a committed
+manifest, and is tamper-evident rather than tamper-proof.
 
 **Doctrine candidate:** `skills/debugging.md` says "fix the whole bug class."
 It should add the harder half: *if the class recurs after you fixed it, the

@@ -62,7 +62,9 @@ seeded byte to remain identical.
 
 ## The enforcement gate (`PreToolUse`)
 
-`tools/doctrine_guard.py` is what turns the law from advice into a decision.
+`tools/doctrine_guard.py` turns the law into a decision at the point of
+action - soundly for Write/Edit, as a tripwire for shell commands (see the
+strength table below; the durable guarantee is `doctrine_gold gate`).
 It reads the runtime's pre-execution payload on stdin and answers on stdout;
 the shipped `.claude/settings.json` and `plugin/hooks/hooks.json` wire it for
 `Write|Edit|MultiEdit|NotebookEdit|Bash`. Any runtime with an equivalent
@@ -86,8 +88,10 @@ lives at `.doctrine-state/guard.json`:
 
 `allow` exempts a path from the path and secret rules — the escape hatch for
 legitimate secret-shaped fixtures. A malformed policy file is ignored, never
-obeyed, and **blanket patterns (`*`, `**`, `.`, `/`) are dropped even from a
-well-formed file**: "allow everything" is not a policy, it is the off switch.
+obeyed, and **an entry that would un-protect the world is dropped even from a
+well-formed file** - tested against canary paths rather than a list of
+spellings, because `?*`, `*.*` and `docs/*` are off switches too. "Allow
+everything" is not a policy.
 
 **The enforcement surface is itself guarded.** This policy file, the hook
 wiring (`.claude/settings.json`, `CLAUDE.md`, `AGENTS.md`), `pyproject.toml`
@@ -103,9 +107,34 @@ is the governed party doing it silently.
 
 | Layer | What it is | Strength |
 |---|---|---|
-| The guard on **Write/Edit** | structured input: one field names one file | **Sound.** The path is data, not a language to interpret |
-| The guard on **Bash** | a text analysis of a shell command | **A tripwire, not a boundary.** Best effort, and known incomplete |
-| `doctrine_gold gate` in CI and pre-commit | re-hashes every gold record | **Sound.** Tampering fails regardless of how it was written |
+| The guard on **Write/Edit** | structured input: one field names one file | Sound *for the paths it is given*: the path is data, not a language to interpret |
+| The guard on **Bash** | a text analysis of a shell command | **A tripwire, not a boundary.** Best effort, known incomplete |
+| `doctrine_gold gate` | re-checks records against git and a manifest | **Tamper-evident, not tamper-proof** — see below |
+
+**Nothing inside a repository the agent can write is tamper-proof against that
+agent.** An earlier version of this table claimed `gate` was "Sound. Tampering
+fails regardless of how it was written." That was false, and a security pass
+proved it in one payload: the gate re-hashed each referenced file against a
+hash *stored in the record being verified*, so editing the record and
+recomputing its own hashes passed — including a forged `human_approval` and a
+council verdict flipped to a veto. A record is written after its tag, so no
+signature ever covered it.
+
+What `gate` can honestly do, and now does:
+
+- **Detect any change to a committed record**, by comparing its bytes against
+  git's copy. Self-consistent forgery no longer passes, because the anchor is
+  outside the record.
+- **Detect deletion and truncation**, via a committed manifest naming the
+  expected records and the chain tip. An absent gold directory with a manifest
+  present is a failure, not a skip.
+- **Refuse a record that never came from `doctrine_gold record`** — a
+  hand-written JSON with a fresh tag used to pass the deploy gate.
+
+What it cannot do: stop an actor with repository write from rewriting the
+record, the manifest and history together. **The real anchor is outside the
+repo** — CI running this gate on the pushed commit, branch protection, and a
+signed tag. Local checks make tampering loud; the remote makes it stick.
 
 The Bash rule is deliberately described as a tripwire, because three
 independent security passes each found new spellings that reached a protected
@@ -128,7 +157,10 @@ nobody reviewed. Wire it as a pre-commit hook too and tampering cannot even
 reach history:
 
 ```bash
-# .git/hooks/pre-commit
+#!/bin/sh
+# .git/hooks/pre-commit   (the shebang is not optional - without it git
+# cannot spawn the hook and REFUSES EVERY COMMIT, which reads like the gate
+# working and is the gate broken)
 python tools/doctrine_gold.py gate || exit 1
 ```
 

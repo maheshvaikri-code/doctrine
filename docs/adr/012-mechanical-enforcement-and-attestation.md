@@ -40,6 +40,34 @@ annotated tag already carries a cryptographic identity the developer controls;
 `--require-signature` refuses promotion without it. Doctrine adds no key
 custody, no CA, no network dependency, and no third-party client.
 
+## Correction 2 (2026-08-04, after four rounds) — READ THIS FIRST
+
+The decision below says the doctrine is bound "at two mechanical boundaries."
+**Only one of them is a boundary.** Four independent security passes, each
+attacking the previous one's fixes, established that:
+
+- **Write/Edit interception is sound** for the paths it is handed: a file path
+  is data.
+- **Bash interception is a tripwire, not a boundary.** Shell is
+  Turing-complete; no static text analysis of it is complete. Rounds 1–4 each
+  found new spellings (redirects; `touch`/`install`/`git checkout`; `env`
+  wrappers, newline segmentation, `awk` program text; then `cd` chains,
+  container renames and glob deletes). Every round was fixed and the next
+  round found more. Treat it as catching the accident and the careless, never
+  as containment for a determined actor inside the repo.
+- **Attestation proves the tag was signed, never the record.** Records are
+  written *after* their tag, so no signature covers a record's contents.
+- **`doctrine_gold gate` is tamper-EVIDENT, not tamper-proof.** Its first
+  version hashed each file against a hash stored in the record it was
+  verifying, so a self-consistent forgery passed. It now anchors on git's
+  committed copy and a committed manifest — which makes tampering loud, and
+  still cannot stop an actor who rewrites record, manifest and history
+  together. **The real anchor is outside the repo:** CI running the gate on
+  the pushed commit, branch protection, and a signed tag.
+
+Nothing below is deleted, because the errors are the record. Where the text
+below says "boundary", read the table in `.Doctrine/05-packaging.md`.
+
 ## Correction (2026-08-03, after independent verification)
 
 This ADR originally listed **"writes attempted by a verifier role"** as the

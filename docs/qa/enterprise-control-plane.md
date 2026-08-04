@@ -302,8 +302,87 @@ Ran 293 tests   OK (skipped=1)
 VERIFY OK: 4 gate(s) green
 ```
 
+---
+
+# Rounds 3 and 4 — independent re-verification (2026-08-03/04)
+
+**Round 3: VETO maintained.** 9 classes, 17 payloads, all reaching protected
+paths in silence — `env rm -rf <gold dir>` (a wrapper verb on the read-only
+list that executes its arguments), a leading `ls\n` making an entire
+multi-line script "read-only", `bash -c` with nested quotes, `awk` program
+text, `sort --output=`, process substitution. A verifier also deleted
+`doctrine_guard.py` itself with no decision emitted.
+
+That third repetition forced the architectural change: the Bash rule is a
+tripwire, not a boundary, and the durable guarantee moved to
+`doctrine_gold gate`.
+
+**Round 4: VETO maintained — on the new gate.** Security and QA independently
+proved the replacement was *weaker than what it replaced*:
+
+| Forgery | Old gate |
+|---|---|
+| `human_approval` → "never approved by a human", record's own hashes recomputed | `gate OK`, rc 0 |
+| Council verdict flipped to VETO, record repointed at it | `gate OK`, rc 0 |
+| Artifact swapped for `MALICIOUS BINARY`, record repointed | `gate OK`, rc 0 |
+| `rm -rf docs/releases/gold` (all evidence destroyed) | `gate OK`, rc 0 |
+| Hand-written record + fresh tag, never through `record` | `check OK`, rc 0 |
+
+The cause was one line of design: the gate hashed each file against a hash
+**stored inside the record it was verifying**, so a self-consistent forgery
+agreed with itself. Records are written after their tag, so no signature ever
+covered them. And `mv docs/releases lib` made the gate vanish from
+`doctrine_verify` entirely — `VERIFY OK: 5 gates` became `VERIFY OK: 4 gates`
+with no warning.
+
+Round 4 also found: the documented pre-commit hook had **no shebang**, so it
+never ran and blocked every commit; the gate re-hashed build artifacts against
+the worktree, so it went permanently red on any fresh CI checkout; `2>&1` was
+read as a write redirect; heredoc prose was judged as command text; and
+**running** a doctrine tool was judged as **writing** it — `python
+tools/doctrine_verify.py`, the command this project's README, QUICKSTART,
+installer and all three CI templates print, prompted the human.
+
+## Re-verification after the fixes
+
+Anchors are now outside the record — git's committed copy, plus a committed
+manifest so deletion is visible. Replaying every round-4 payload:
+
+```
+F1 record forged, its own hashes recomputed          -> gate rc=1 fails (caught)
+F2 verdict flipped, record repointed at it           -> gate rc=1 fails (caught)
+F3 artifact swapped, record repointed at it          -> gate rc=1 fails (caught)
+F4 entire gold directory deleted                     -> gate rc=1 fails (caught)
+F4 directory renamed away (git mv docs/releases lib) -> gate rc=1 fails (caught)
+F5 hand-written record, never through record         -> check rc=1 fails (caught)
+control: an honest promotion                         -> gate rc=0 (passes)
+```
+
+False positives, re-measured:
+
+```
+python tools/doctrine_verify.py     -> SILENT      ls -la <gold dir> 2>&1 -> SILENT
+python tools/doctrine_lint.py       -> SILENT      heredoc prose          -> SILENT
+python tools/doctrine_gold.py gate  -> SILENT      git -C . config --get  -> SILENT
+git -C . config core.hooksPath …    -> ASK         # still caught
+```
+
+Gates: `ruff` clean, `doctrine_lint` clean, **314 tests OK (1 skipped)**,
+`VERIFY OK: 4 gate(s) green`.
+
+## Stated residuals, not fixed
+
+- `python -c "print('<a protected path>')"` still denies. Inline program text
+  cannot be distinguished from a write without executing it; over-fitting this
+  would open a hole. Documented, not silently accepted.
+- `cd docs/releases && echo x > gold/f.json`, container renames and glob
+  deletes remain outside the tripwire, as `05-packaging.md` now discloses.
+- **Nothing inside a repo the agent can write is tamper-proof.** The gate is
+  tamper-evident; the anchor that holds is CI on the pushed commit plus branch
+  protection.
+
 ## Still not signed off
 
-Round 2's fixes have **not** been independently re-checked. Two rounds have now
-each overturned an author's "all fixed" — so the standing rule is: this
-artifact is not evidence of a passing gate until a fresh context says so.
+Four rounds have now each overturned an author's "all fixed", including the
+round that fixed the fixer. This artifact is not evidence of a passing gate
+until a fresh context says so.

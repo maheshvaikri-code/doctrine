@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""doctrine_guard - the PreToolUse gate that makes the law binding.
+"""doctrine_guard - the PreToolUse gate.
+
+Sound on Write/Edit, where a path is data. A TRIPWIRE on Bash, where a
+command is a Turing-complete language and no static analysis of it is
+complete (four independent security passes each found new spellings).
+Evidence integrity rests on `doctrine_gold gate`, not on this file.
 
 The doctrine's Non-Negotiables have always been prose the agent chooses to
 obey. This is the L3 gate ADR-004 left on the roadmap: it runs BEFORE a tool
@@ -172,10 +177,16 @@ CONTROL_SURFACE: Final[tuple[tuple[str, str], ...]] = (
 # Commands that reconfigure git itself. `.git/config` is protected as a PATH,
 # but `git config` writes it without ever naming it, which left core.hooksPath,
 # the ssh allowed-signers file and aliases settable in silence.
+# `git [-C dir] [-c k=v] config …`: the subcommand need not follow `git`
+# directly, and a trailing `# --get` comment used to satisfy the read-only
+# lookahead while shlex stripped that same comment before the path rule saw
+# it. Read-only forms are recognised by the FLAG, not by proximity.
 CONTROL_COMMANDS: Final[tuple[tuple[str, str], ...]] = (
-    (r"\bgit\s+config\b(?![^|;&]*\s--(?:get|list|get-all|get-regexp))",
+    (r"\bgit\b(?:\s+-[cC]\s*\S+)*\s+config\b"
+     r"(?![^#|;&]*\s--(?:get|list|get-all|get-regexp|get-urlmatch)\b)",
      "git config writes the repository's own trust and hook settings"),
-    (r"\bgit\s+config\b[^|;&]*\balias\.", "a git alias can run any command"),
+    (r"\bgit\b[^|;&]*\bconfig\b[^|;&]*\balias\.",
+     "a git alias can run any command"),
 )
 # A policy that allows everything is not a policy. Enumerating the spellings
 # failed - `?*` and `*.*` are equally total off-switches - so entries are
@@ -406,7 +417,10 @@ def is_blanket(pattern: str) -> bool:
     text = pattern.strip()
     if not text:
         return True
-    return sum(matches(canary, text) for canary in BLANKET_CANARIES) >= 2
+    # ONE canary is enough. Requiring two accepted `docs/*`, which exempts
+    # every gold record from both the path and the secret rules while looking
+    # like an ordinary narrow entry.
+    return any(matches(canary, text) for canary in BLANKET_CANARIES)
 
 
 def normalize_target(target: str) -> str:
@@ -461,6 +475,28 @@ def matches(rel_path: str, pattern: str) -> bool:
                 and fnmatch.fnmatch(rel.rsplit("/", 1)[-1], pat[3:]))
 
 
+FD_DUP: Final = re.compile(r"\d?>&\d?")
+HEREDOC: Final = re.compile(
+    r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n(.*?)\n\1", re.DOTALL)
+#                             ^^^^^^ the rest of the line: a heredoc marker
+# is routinely followed by more command (`<<'PY' 2>&1 | tail -20`), and
+# requiring a newline immediately after the delimiter meant those bodies were
+# never stripped - which is how this guard denied its own author's diagnostic
+# script for prose inside the heredoc.
+
+
+def strip_shell_noise(command: str) -> str:
+    """Remove constructs that are not paths and not commands.
+
+    `2>&1` is a descriptor dup, but `&` is a segment separator, so it split
+    into a segment whose "verb" was `1` - unrecognised, therefore assumed to
+    write - and an innocent `ls` got denied. A heredoc BODY is data being
+    written, not command text, so path-like prose inside it (documentation
+    about `.git/hooks/`, say) is not a target either.
+    """
+    return HEREDOC.sub("", FD_DUP.sub(" ", command))
+
+
 def command_targets(command: str, root: Path) -> list[str]:
     """Repo-relative paths a command names, however it spells them.
 
@@ -469,6 +505,22 @@ def command_targets(command: str, root: Path) -> list[str]:
     stop hiding from it. Paths outside the repo resolve to None and are
     dropped - another repo's files are not this repo's business.
     """
+    # An interpreter's SCRIPT argument is being executed, not written.
+    # Judging it as a target made `python tools/doctrine_verify.py` - the
+    # command this project's own README, QUICKSTART, installer and three CI
+    # templates print - prompt the human, because tools/* is control surface.
+    # Running a gate is not editing it.
+    executed: set[str] = set()
+    for segment in SEGMENT_SPLIT.split(command):
+        verb, arguments = segment_verb(segment)
+        if verb in PROGRAM_TEXT_WRITERS and not any(
+                a.startswith("-") and len(a) <= 3 for a in arguments):
+            operands = [a for a in arguments if not a.startswith("-")]
+            if operands:
+                rel = relative_to_root(operands[0], root)
+                if rel:
+                    executed.add(rel)
+
     tokens: list[str] = []
     # Two passes on purpose. posix=True resolves quoting (so `.e''nv` becomes
     # `.env`) but consumes backslashes as escapes, erasing Windows paths;
@@ -488,7 +540,7 @@ def command_targets(command: str, root: Path) -> list[str]:
         variants = {token, token.replace("'", "").replace('"', "")}
         for candidate in {c for v in variants for c in PATHISH.findall(v)}:
             rel = relative_to_root(candidate, root)
-            if rel and rel not in seen:
+            if rel and rel not in seen and rel not in executed:
                 seen.append(rel)
     return seen
 
@@ -713,6 +765,9 @@ def check_protected_in_command(command: str, root: Path,
     """
     rules = protected_rules(root, config)
     allowed = config.get("allow", [])
+    # Only the PATH analysis works on cleaned text; the secret rules still
+    # scan the raw command, so a credential inside a heredoc is still caught.
+    command = strip_shell_noise(command)
     read_only = command_is_read_only(command)
     redirected = redirect_paths(command, root)
     for rel_path in command_targets(command, root):

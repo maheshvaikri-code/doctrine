@@ -54,11 +54,12 @@ The classic OS primitives map onto real components:
 - **Memory** — the hash-chained **state plane** (`.doctrine-state/`): checkpoint →
   hydrate; the repo remembers so the model doesn't have to
 - **Syscalls** — **§5** gates every irreversible or external action; the human is root
-- **Protection ring** — the `PreToolUse` guard (`doctrine_guard`) *denies* before
-  the tool runs: secrets, immutable evidence, and §5/test-weakening escalations.
-  The rules stop being advice the model may skip
-- **Provenance** — gold records carry the tag's cryptographic **attestation**
-  (`--require-signature`): the chain proves *what* shipped, the signature *who*
+- **Protection ring** — the `PreToolUse` guard (`doctrine_guard`) decides before
+  the tool runs: secrets and immutable evidence deny, §5 and test-weakening ask.
+  Sound on Write/Edit; a *tripwire* on shell commands (ADR-012)
+- **Provenance** — gold records carry the tag's **attestation**
+  (`--require-signature`), and `doctrine_gold gate` re-checks them against git:
+  tamper-evident in CI, never tamper-proof inside a repo you can write
 - **`ps` for a fleet** — `doctrine_fleet status` shows every governed repo's
   version, drift, state and release distance in one read-only table
 

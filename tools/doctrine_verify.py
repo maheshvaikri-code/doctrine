@@ -53,6 +53,21 @@ def is_source_repo(root: Path) -> bool:
         return False
 
 
+def git_knows_gold(root: Path) -> bool:
+    """Whether git has ever tracked a gold record here.
+
+    Consulted so that deleting the whole directory cannot make the gate
+    disappear: git remembers what the working tree no longer shows.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "docs/releases/gold"],
+            cwd=root, capture_output=True, check=False, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return proc.returncode == 0 and bool(proc.stdout.strip())
+
+
 def ruff_available(root: Path) -> bool:
     """Return whether the source repo's required Ruff gate can execute."""
     try:
@@ -65,7 +80,14 @@ def ruff_available(root: Path) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
-    root = Path(argv[0]).resolve() if argv else Path.cwd()
+    # `--help` used to be taken as a directory name and crash with
+    # NotADirectoryError. A gate runner that cannot explain itself is a
+    # gate runner people work around.
+    arguments = list(argv or [])
+    if arguments and arguments[0] in {"-h", "--help"}:
+        print(__doc__)
+        return 0
+    root = Path(arguments[0]).resolve() if arguments else Path.cwd()
     py = sys.executable
     results: list[tuple[str, bool]] = []
 
@@ -93,9 +115,20 @@ def main(argv: list[str] | None = None) -> int:
     # wrote it. The PreToolUse guard is a best-effort tripwire on shell
     # commands; THIS is the gate that holds, because a tampered record fails
     # here regardless of which primitive modified it.
-    if (root / "docs" / "releases" / "gold").is_dir():
+    # Run whenever the directory OR its manifest exists. Gating on the
+    # directory alone meant `mv docs/releases lib` deleted every record and
+    # the gate simply vanished from the run - VERIFY OK, one fewer gate, no
+    # warning. An absence must be checked, not used as a reason to skip.
+    gold_dir = root / "docs" / "releases" / "gold"
+    if gold_dir.is_dir() or (gold_dir / "MANIFEST.json").exists() or \
+            git_knows_gold(root):
         results.append(("gold", run_gate(
             "gold", [py, "tools/doctrine_gold.py", "gate"], root)))
+    else:
+        # Announced, like every other skip. A gate that vanishes without
+        # a word is indistinguishable from a gate that passed.
+        print("=== gold: no gold records and git has never tracked any "
+              "- skipped (nothing promoted yet)\n")
 
     if (root / ".doctrine-state" / "checkpoint.json").exists():
         results.append(("state", run_gate(

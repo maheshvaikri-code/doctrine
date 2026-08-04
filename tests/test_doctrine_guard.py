@@ -638,6 +638,44 @@ class TestOrdinaryCommandsStaySilent(GuardTestCase):
                                   ".github/workflows/b.yml"))
             ["permissionDecision"], "ask")
 
+    def test_running_a_doctrine_tool_is_not_writing_it(self) -> None:
+        """Regression: `python tools/doctrine_verify.py` - the command this
+        project's README, QUICKSTART, installer and all three CI templates
+        print - prompted the human, because tools/* is control surface and
+        `python` is a program-text writer. Running a gate is not editing it.
+        """
+        _make_repo(self.repo, source=True)
+
+        for command in ("python tools/doctrine_verify.py",
+                        "python tools/doctrine_lint.py",
+                        "python tools/doctrine_gold.py gate",
+                        "python tools/doctrine_state.py verify"):
+            with self.subTest(command=command):
+                self.assertEqual(_run(self.repo, _bash(self.repo, command)),
+                                 {})
+
+    def test_a_descriptor_dup_is_not_a_write_redirect(self) -> None:
+        """Regression: `&` split `2>&1` into a segment whose verb was `1`,
+        unrecognised and therefore assumed to write, so an innocent `ls` of a
+        protected directory was denied."""
+        _make_repo(self.repo)
+
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo,
+                                  "ls -la docs/releases/gold 2>&1")), {})
+
+    def test_heredoc_prose_is_data_not_command_text(self) -> None:
+        """Regression: path-like prose inside a heredoc BODY was judged as a
+        command target, so writing documentation that mentions a protected
+        path was denied - including this guard's own diagnostics."""
+        _make_repo(self.repo)
+        command = ("cat > /tmp/notes.txt <<'EOF' 2>&1\n"
+                   "remember that docs/releases/gold is immutable\n"
+                   "and .git/hooks/pre-commit needs a shebang\n"
+                   "EOF")
+
+        self.assertEqual(_run(self.repo, _bash(self.repo, command)), {})
+
     def test_reads_of_protected_files_stay_silent(self) -> None:
         _make_repo(self.repo)
 

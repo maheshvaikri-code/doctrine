@@ -25,7 +25,8 @@ intermittently (~1 run in 6 under load).
 ## Scope
 1. `tools/doctrine_guard.py` — a `PreToolUse` decision hook: fail-closed
    secret blocking, protected-path refusal, destructive-command refusal, and
-   verifier write-isolation. Denies at the point of action, before the edit.
+   test weakening. Decides at the point of action, before the edit - soundly
+   for Write/Edit, as a tripwire for shell commands (ADR-012 Correction 2).
 2. `doctrine_gold` attestation — verify the release tag's cryptographic
    signature through git (GPG/SSH keys the developer already holds), record the
    signer identity in the gold record, and offer `--require-signature` so a

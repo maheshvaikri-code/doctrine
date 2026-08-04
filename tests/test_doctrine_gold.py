@@ -71,11 +71,26 @@ class GoldRepo(unittest.TestCase):
         base.update(overrides)
         return base
 
-    def record(self, proposal=None):
+    def commit_records(self):
+        """Commit the gold records + manifest, as `record` instructs.
+
+        git is the gate's anchor: a record git has never seen has nothing to
+        be compared against, so an uncommitted record is refused. Fixtures
+        must therefore do what a real promotion does.
+        """
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True,
+                       capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "release: gold"],
+                       cwd=self.root, check=True, capture_output=True)
+
+    def record(self, proposal=None, commit=True):
         p = self.root / "gold-proposal.json"
         p.write_text(json.dumps(proposal or self.proposal()),
                      encoding="utf-8")
-        return dg.cmd_record(self.root, p)
+        result = dg.cmd_record(self.root, p)
+        if result == 0 and commit:
+            self.commit_records()
+        return result
 
 
 class TestRecordAndCheck(GoldRepo):
@@ -304,6 +319,10 @@ class TestAttestation(GoldRepo):
         record = json.loads(out.read_text("utf-8"))
         del record["attestation"]
         out.write_bytes(ds.canonical_bytes(record))
+        # Committed, because that is what an older tool's record IS. The
+        # gate anchors on git, so an UNcommitted edit is tampering; this
+        # test is about schema back-compat, not about editing on disk.
+        self.commit_records()
 
         self.assertEqual(dg.cmd_check(self.root, "v1.0.0"), 0)
 
@@ -337,6 +356,7 @@ class TestRealSignedTags(GoldRepo):
         self.assertEqual(
             dg.cmd_record(self.root, proposal, require_signature=True), 0,
             "--require-signature must accept a genuinely signed tag")
+        self.commit_records()
         return json.loads(
             (self.root / "docs" / "releases" / "gold" / f"{tag}.json")
             .read_text("utf-8"))
@@ -447,6 +467,7 @@ class TestRealSignedTags(GoldRepo):
         record = json.loads(out.read_text("utf-8"))
         del record["attestation"]
         out.write_bytes(ds.canonical_bytes(record))
+        self.commit_records()
 
         self.assertEqual(dg.cmd_check(self.root, "v5.0.0"), 0)
         self.assertEqual(
@@ -515,6 +536,92 @@ class TestGate(GoldRepo):
         # Not through any tool the guard can see: straight to the filesystem.
         artifact.write_bytes(b"artifact-bytes-TAMPERED")
 
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def _forge(self, mutate) -> None:
+        """Rewrite the record the way an attacker would: change what it says
+        and recompute its own hashes so it agrees with itself."""
+        out = self.root / "docs" / "releases" / "gold" / "v1.0.0.json"
+        record = json.loads(out.read_text("utf-8"))
+        mutate(record)
+        out.write_bytes(ds.canonical_bytes(record))
+
+    def test_a_self_consistent_forgery_fails(self):
+        """Regression: the gate hashed each file against a hash stored INSIDE
+        the record being verified, so editing the record and recomputing its
+        own hashes passed - `human_approval` forged to 'never approved by a
+        human' printed `gate OK`. git is the anchor now."""
+        self.record()
+
+        self._forge(lambda r: r.__setitem__("human_approval", {
+            "approved_by": "NOBODY", "date": "2020-01-01",
+            "statement": "never approved by a human"}))
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_flipping_the_verdict_and_repointing_the_hash_fails(self):
+        self.record()
+        verdict = self.root / "docs" / "merges" / "task.md"
+        verdict.write_text("VETO - security refused this release\n",
+                           encoding="utf-8")
+
+        self._forge(lambda r: r["merge_verdict"].__setitem__(
+            "sha256", ds.sha256_file(verdict)))
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_swapping_the_artifact_and_repointing_the_hash_fails(self):
+        self.record()
+        artifact = self.root / "dist" / "app.whl"
+        artifact.write_bytes(b"MALICIOUS BINARY")
+
+        self._forge(lambda r: r["artifacts"][0].__setitem__(
+            "sha256", ds.sha256_file(artifact)))
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_deleting_all_the_evidence_fails(self):
+        """Regression: `rm -rf docs/releases/gold` printed `gate OK: no gold
+        records to verify` - deletion and never-promoted were indistinguishable.
+        git still has the manifest after the directory is gone."""
+        self.record()
+
+        shutil.rmtree(self.root / "docs" / "releases" / "gold")
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_an_uncommitted_record_is_refused_by_the_deploy_gate(self):
+        """Regression: cmd_record's immutability guard lives inside
+        cmd_record, so a hand-written record with a fresh tag skipped it and
+        `check --tag` - the documented deploy gate - certified it GOLD."""
+        self.record()
+        subprocess.run(["git", "tag", "-a", "v9.9.9", "-m", "forged"],
+                       cwd=self.root, check=True, capture_output=True)
+        source = self.root / "docs" / "releases" / "gold" / "v1.0.0.json"
+        forged = json.loads(source.read_text("utf-8"))
+        forged["tag"] = "v9.9.9"
+        forged["at_commit"] = subprocess.run(
+            ["git", "rev-list", "-n", "1", "v9.9.9"], cwd=self.root,
+            capture_output=True, text=True, check=True).stdout.strip()
+        forged["prev_gold_sha256"] = ds.sha256_file(source)
+        forged["human_approval"]["approved_by"] = "Mallory"
+        (self.root / "docs" / "releases" / "gold" / "v9.9.9.json").write_bytes(
+            ds.canonical_bytes(forged))
+
+        self.assertEqual(dg.cmd_check(self.root, "v9.9.9"), 1)
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_an_absent_artifact_does_not_fail_a_fresh_checkout(self):
+        """A CI clone has no dist/: build output is generated, not committed.
+        Failing there made the gate permanently red on every clean clone.
+        Committed evidence is still hashed, and a PRESENT artifact must match.
+        """
+        self.record()
+        (self.root / "dist" / "app.whl").unlink()
+
+        self.assertEqual(dg.cmd_gate(self.root), 0)
+
+        (self.root / "dist" / "app.whl").write_bytes(b"different bytes")
         self.assertEqual(dg.cmd_gate(self.root), 1)
 
     def test_a_record_that_is_not_a_version_is_refused(self):

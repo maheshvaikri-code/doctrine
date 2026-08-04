@@ -1,0 +1,33 @@
+{
+  "at_commit": "be4f434219ef65c155e97cb662b88b76427eaeea",
+  "checkpoint_version": "1",
+  "control": {
+    "active_intents": [],
+    "gates_passed": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G7"
+    ],
+    "phase": "verification-arc-closed",
+    "ponytail_mode": "full",
+    "role": "project-reviewer"
+  },
+  "created_at": "2026-08-04T22:03:40Z",
+  "prev_sha256": "0a4a8891d5e4cc71b9fbd773ed686fdc1f7b5dcc011503236a8b3c3d9ac8d0fb",
+  "seq": 30,
+  "session_id": "s-2026-08-04-enterprise-control-plane-r5",
+  "state_index": {
+    "decisions_sha256": "0ff2e5713e0a9353a0a9d92bde877bfd534119dcb43b2b945ea8e347a8f19392",
+    "graph": {
+      "built_at_commit": null
+    },
+    "intents": {},
+    "latest_distillate_sha256": "63af9e8ab9b3a1d29edd3c60986c2be828906bf5334ce268700af3c8b1c9c146",
+    "unresolved_effects": 0
+  },
+  "worktree": "clean"
+}

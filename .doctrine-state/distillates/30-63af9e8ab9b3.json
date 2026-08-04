@@ -1,0 +1,80 @@
+{
+  "at_commit": "be4f434219ef65c155e97cb662b88b76427eaeea",
+  "created_at": "2026-08-04T22:03:40Z",
+  "dead_ends": [
+    {
+      "approach": "Anchor gold-record integrity on a committed manifest alone.",
+      "why_failed": "A legacy repo has no manifest; git mv/rm + commit removed evidence from git's CURRENT tree with nothing left to compare."
+    },
+    {
+      "approach": "Decide whether to invoke the gold gate by reading git ls-files (the index).",
+      "why_failed": "A staged-but-uncommitted git rm empties the index, so the suite skipped the gate while it still failed run directly. git log (history) is immune to staging state."
+    },
+    {
+      "approach": "Compare worktree bytes to git's committed blob without EOL normalization.",
+      "why_failed": "core.autocrlf=true (Git for Windows default) converts the worktree copy; an honest untouched clone was accused of forging its own security sign-off."
+    },
+    {
+      "approach": "Recommend a pre-commit hook running doctrine_gold gate.",
+      "why_failed": "The gate compares against HEAD, and a record has no HEAD copy until AFTER its own promoting commit exists, so a correct hook refuses the commit that files the first record."
+    },
+    {
+      "approach": "Treat 'CI running this gate on the pushed commit' as a second anchor beyond local checks.",
+      "why_failed": "CI checks out the identical HEAD a single-commit forgery was committed to and reaches the identical wrong answer. It adds nothing for that class."
+    },
+    {
+      "approach": "Chase every verifier finding into another round, uncapped.",
+      "why_failed": "Rounds 1-3 were the SAME error class (shell bypass); the thrash detector should have fired after round 2, not round 3."
+    },
+    {
+      "approach": "naive commit-map parse + bare str.replace for sha remapping",
+      "why_failed": "the map's 'old new' header became a substring rule rewriting English words across eight docs; strict 40-hex validation + word-boundary regex replaced it"
+    },
+    {
+      "approach": "codemonk console script directly after pip install on this host",
+      "why_failed": "Scripts dir not on PATH in this shell; python -m codemonk is the reliable invocation and what the integration doc teaches"
+    }
+  ],
+  "distillate_version": "1",
+  "learned": [
+    {
+      "claim": "A record forged and committed in ONE commit is undetectable by any HEAD-relative check - no prior state exists to diff against.",
+      "confidence": "verified",
+      "evidence": "docs/qa/enterprise-control-plane.md round-5 section; probe_round5.py S1/S7",
+      "kind": "constraint"
+    },
+    {
+      "claim": "Circular verification: hashing a claim against data the same artifact supplies verifies nothing. Round 4's gate did this against its own record.",
+      "confidence": "verified",
+      "evidence": "docs/retro/2026-08-04-four-rounds-of-verification.md, round-4 section",
+      "kind": "gotcha"
+    },
+    {
+      "claim": "Deletion/relocation is caught by checking git HISTORY (git log) on the path, not only the current HEAD tree or a committed manifest.",
+      "confidence": "verified",
+      "evidence": "tools/doctrine_gold.py gold_history_exists; test_a_committed_relocation_is_caught_even_with_no_manifest_entry",
+      "kind": "decision_ref"
+    },
+    {
+      "claim": "A bounded final verification round (one verifier, explicit MUST-FIX/DOCUMENT split) is a reusable pattern for ending a verification arc deliberately.",
+      "confidence": "verified",
+      "evidence": "round 5 of docs/retro/2026-08-04-four-rounds-of-verification.md",
+      "kind": "fact"
+    }
+  ],
+  "next_actions": [
+    "Configure SSH signing (git config gpg.format ssh + allowed_signers) and re-cut v0.7.0 signed at a verified commit; the unpushed tag still marks the vetoed release.",
+    "P1.2: roll the 14 drifted fleet repos forward, one first with a diff, using doctrine_fleet status.",
+    "Optionally apply the two queued doctrine edits (circular verification smell; bounded-final-round pattern) to skills/ai-slop.md and skills/loop-engineering.md as a separate Class-S change."
+  ],
+  "open_threads": [
+    "Single-commit forgery of a gold record is a disclosed, unfixed structural residual; mitigated by human diff review + branch protection, not by more code.",
+    "OpenPGP attestation remains untested on this host - gpg-agent will not start; self-enables on Linux CI.",
+    "workhawk npm audit is red (6 dev-only advisories) and needs a dependency bump with its own verification."
+  ],
+  "seq": 30,
+  "session_id": "s-2026-08-04-enterprise-control-plane-r5",
+  "task_refs": [
+    "docs/briefs/enterprise-control-plane.md"
+  ]
+}

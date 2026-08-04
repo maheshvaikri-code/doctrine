@@ -22,6 +22,9 @@ stages:
     - python -m ruff check tools tests
     # 3. the tooling suite
     - python -m unittest discover -s tests -v
+    # 4. evidence integrity by hash - the gate that holds however a record
+    #    was modified (the PreToolUse guard is only a tripwire)
+    - python tools/doctrine_gold.py gate
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH

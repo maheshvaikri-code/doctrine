@@ -45,3 +45,7 @@ steps:
 
   - script: python -m unittest discover -s tests -v
     displayName: "State-plane + lint test suite"
+
+  # Evidence integrity by hash - holds however a record was modified.
+  - script: python tools/doctrine_gold.py gate
+    displayName: "Gold-record integrity gate"

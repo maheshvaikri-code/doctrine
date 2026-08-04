@@ -422,6 +422,39 @@ def cmd_check(repo: Path, tag: str, require_signature: bool = False) -> int:
     return 0
 
 
+def cmd_gate(repo: Path, require_signature: bool = False) -> int:
+    """Re-verify EVERY gold record on disk.
+
+    The point-of-action guard is a text analysis of shell commands, and no
+    text analysis of a Turing-complete language is complete - three
+    independent security passes each found new spellings that reached a
+    protected file. This gate does not care HOW a record was modified: the
+    hashes either still match the promoted content or they do not. Run it in
+    CI and from a pre-commit hook, and tampering cannot reach history no
+    matter which primitive wrote it.
+    """
+    gold = repo / GOLD_DIR
+    records = sorted(gold.glob("*.json")) if gold.is_dir() else []
+    if not records:
+        print("gate OK: no gold records to verify")
+        return 0
+    failed = []
+    for record in records:
+        tag = record.stem
+        if not TAG_RE.fullmatch(tag):
+            print(f"gate: {record.name} is not a vX.Y.Z record - refusing")
+            failed.append(record.name)
+            continue
+        if cmd_check(repo, tag, require_signature) != 0:
+            failed.append(record.name)
+    if failed:
+        print(f"GATE FAILED: {len(failed)} of {len(records)} gold record(s) "
+              f"no longer verify: {', '.join(failed)}")
+        return 1
+    print(f"gate OK: {len(records)} gold record(s) verify")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="doctrine_gold",
                                      description=__doc__.splitlines()[0])
@@ -437,6 +470,11 @@ def main(argv: list[str] | None = None) -> int:
     p_chk.add_argument("--tag", required=True)
     p_chk.add_argument("--require-signature", action="store_true",
                        help=signature_help)
+    p_gate = sub.add_parser(
+        "gate", help="re-verify EVERY gold record; run in CI and pre-commit "
+                     "so tampering cannot reach history however it was made")
+    p_gate.add_argument("--require-signature", action="store_true",
+                        help=signature_help)
     args = parser.parse_args(argv)
 
     repo = args.root.resolve()
@@ -445,6 +483,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_record(repo, args.input, args.require_signature)
         if args.command == "check":
             return cmd_check(repo, args.tag, args.require_signature)
+        if args.command == "gate":
+            return cmd_gate(repo, args.require_signature)
     except (SchemaError, StateError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

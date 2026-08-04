@@ -99,6 +99,43 @@ from inside the repo it governs with a single write. They **ask** rather than
 deny because widening policy is a legitimate human act; what must never happen
 is the governed party doing it silently.
 
+### Two layers, and only one of them is a boundary
+
+| Layer | What it is | Strength |
+|---|---|---|
+| The guard on **Write/Edit** | structured input: one field names one file | **Sound.** The path is data, not a language to interpret |
+| The guard on **Bash** | a text analysis of a shell command | **A tripwire, not a boundary.** Best effort, and known incomplete |
+| `doctrine_gold gate` in CI and pre-commit | re-hashes every gold record | **Sound.** Tampering fails regardless of how it was written |
+
+The Bash rule is deliberately described as a tripwire, because three
+independent security passes each found new spellings that reached a protected
+file — wrapper verbs, newline segmentation, nested shell strings, program text,
+long-form output flags, process substitution. Each round was fixed; each next
+round found more. That is not a run of bad luck: **shell is Turing-complete,
+and no static text analysis of it is complete.** A gate whose guarantee rests
+on enumerating spellings is a gate that will be wrong again.
+
+So the durable guarantee is moved to where it cannot be spelled around:
+
+```
+python tools/doctrine_gold.py gate       # every record re-hashed
+```
+
+`doctrine_verify` runs it automatically when `docs/releases/gold/` exists, and
+the CI templates run it on every push. A tampered record fails there whether it
+was edited by a tool call, a shell redirect, `awk`, an editor, or a script
+nobody reviewed. Wire it as a pre-commit hook too and tampering cannot even
+reach history:
+
+```bash
+# .git/hooks/pre-commit
+python tools/doctrine_gold.py gate || exit 1
+```
+
+Use the tripwire for what a tripwire is good at — catching the accident and
+the careless, early, with a readable reason. Do not present it as a
+containment boundary for a determined adversary inside the repo.
+
 Honest limits, measured rather than assumed:
 
 - Pattern matching finds known credential formats, not every secret. A value

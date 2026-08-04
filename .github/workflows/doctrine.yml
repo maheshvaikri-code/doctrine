@@ -28,3 +28,8 @@ jobs:
         run: pip install --quiet ruff==0.15.15 && python -m ruff check tools tests
       - name: State-plane + lint test suite
         run: python -m unittest discover -s tests -v
+      # Evidence integrity by hash, not by intercepting the writer: the
+      # PreToolUse guard is a best-effort tripwire on shell commands, so the
+      # gate that actually holds runs here, on every push.
+      - name: Gold-record integrity gate
+        run: python tools/doctrine_gold.py gate

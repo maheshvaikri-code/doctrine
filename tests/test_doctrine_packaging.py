@@ -88,6 +88,20 @@ class TestInstaller(unittest.TestCase):
                                 result.returncode, 0,
                                 "hook failed from a subdirectory "
                                 f"({event}): {result.stderr[:200]}")
+                            # rc == 0 is the ONE condition a silently-off
+                            # hook also satisfies - its os.path.exists misses
+                            # and it exits 0 by design. This assertion used to
+                            # stop here, and a verifier caught it asserting
+                            # exactly the failure its own docstring named.
+                            # Every activation hook must also DO something;
+                            # either stream proves it ran (doctrine_metrics
+                            # reports on stderr).
+                            if event != "PreToolUse":
+                                self.assertTrue(
+                                    (result.stdout + result.stderr).strip(),
+                                    f"{event} hook produced no output at all "
+                                    "from a subdirectory - it resolved "
+                                    "nothing and silently did not run")
 
     def test_the_guard_hook_still_decides_from_a_subdirectory(self):
         for config in (REPO / ".claude" / "settings.json",

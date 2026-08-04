@@ -89,6 +89,14 @@ def main(argv: list[str] | None = None) -> int:
               "tool tests, if you want them: "
               'python -m unittest discover -s tests -p "test_doctrine_*.py"\n')
 
+    # Evidence integrity, checked by hash rather than by intercepting whoever
+    # wrote it. The PreToolUse guard is a best-effort tripwire on shell
+    # commands; THIS is the gate that holds, because a tampered record fails
+    # here regardless of which primitive modified it.
+    if (root / "docs" / "releases" / "gold").is_dir():
+        results.append(("gold", run_gate(
+            "gold", [py, "tools/doctrine_gold.py", "gate"], root)))
+
     if (root / ".doctrine-state" / "checkpoint.json").exists():
         results.append(("state", run_gate(
             "state", [py, "tools/doctrine_state.py", "verify"], root)))

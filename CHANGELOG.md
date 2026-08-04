@@ -6,6 +6,56 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Changed — the Bash guard is reclassified, and the real gate is elsewhere
+
+Three independent security passes each found new shell spellings that reached
+a protected file: round 1 redirects, round 2 non-redirect write primitives and
+bare directories, round 3 wrapper verbs (`env rm -rf …`), newline segmentation
+(a leading `ls` made a whole multi-line script "read-only"), nested shell
+strings, `awk` program text, `sort --output=`, and process substitution. All
+are fixed and carry regression tests — **and the pattern is the finding.**
+Shell is Turing-complete; no static analysis of it is complete, so a guarantee
+built on enumerating spellings will be wrong again.
+
+- The **Write/Edit** rules stay a sound boundary: one field names one file.
+- The **Bash** rule is now documented as a **tripwire, not a boundary** —
+  excellent at catching the accident and the careless early, not a containment
+  boundary against a determined adversary inside the repo.
+- **`doctrine_gold gate`** is the guarantee that holds. It re-hashes every gold
+  record, so tampering fails whether it came from a tool call, a redirect,
+  `awk`, an editor, or an unreviewed script. `doctrine_verify` runs it whenever
+  `docs/releases/gold/` exists; all three CI templates run it on every push;
+  a two-line pre-commit hook keeps tampering out of history entirely.
+
+### Fixed — round 3
+
+- **Wrapper verbs no longer lend their verdict.** `env` and `time` were on the
+  read-only list and *execute their arguments*: `env rm -rf <gold dir>` deleted
+  every immutable record in silence. Wrappers are stepped through to the real
+  verb; `bash -c`/`sh -c` payloads and interpreter program text are judged as
+  writers.
+- **`\n` is a command separator.** Its absence let a leading `ls` make an
+  entire multi-line script inherit a read-only verdict — and multi-line Bash
+  calls are the common case.
+- **The control surface now covers the enforcement itself**: `tools/doctrine_*`,
+  all of `.claude/` (including `settings.local.json`, which merges *over*
+  settings.json, and `agents/*`, which carries the verifier tool grants
+  ADR-012 names), `.mcp.json`, the ssh allowed-signers store and `*.pub`, plus
+  the `git config` **verb** — which rewrites `core.hooksPath`, the signing
+  trust store and aliases without ever naming the file it writes. A verifier
+  had deleted `doctrine_guard.py` itself with no decision emitted.
+- **Blanket policy entries are refused by behaviour, not by spelling.** The old
+  four-string list missed `?*`, `*.*`, `**/**` and `[a-z.]*`, each a total
+  off-switch. Entries are now tested against canary paths.
+- **Every hook in both wirings resolves and runs from the project root.** Only
+  `PreToolUse` had been repaired; the rest still used bare relative paths, so
+  for any user whose cwd was not the project root, hydration and the engagement
+  block silently never ran.
+- **The test that was supposed to catch that was test theater** — it asserted
+  `returncode == 0`, the one condition a silently-off hook also satisfies, in a
+  test whose own docstring named that failure mode. It now asserts each hook
+  produced output.
+
 ### Fixed — independent verification of v0.7.0 overturned its own sign-off
 
 Three fresh-context verifiers were dispatched on `v0.6.46..HEAD`. The author's

@@ -483,6 +483,126 @@ class TestWriteVerbsAreNotAnAllowlist(GuardTestCase):
             "ask")
 
 
+class TestShellSpellings(GuardTestCase):
+    """Regression: round 3 of independent review. Each of these reached a
+    protected path in silence, and each is a CLASS, not a payload - wrapper
+    verbs that exec their arguments, newline segmentation, nested shell
+    strings, program-text writers, long-form output flags, and process
+    substitution."""
+
+    def test_wrapper_verbs_do_not_lend_their_verdict(self) -> None:
+        _make_repo(self.repo)
+        commands = (
+            "env rm -rf docs/releases/gold",
+            "env -i truncate -s 0 .doctrine-state/checkpoint.json",
+            "nohup rm -rf docs/releases/gold",
+            "timeout 5 rm -rf docs/releases/gold",
+            "xargs rm docs/releases/gold/v1.0.0.json",
+        )
+
+        for command in commands:
+            with self.subTest(command=command[:44]):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "deny")
+
+    def test_a_newline_does_not_hide_the_next_command(self) -> None:
+        """Multi-line Bash calls are the common case, not an exotic one: a
+        leading `ls` made an entire script inherit a read-only verdict."""
+        _make_repo(self.repo)
+
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo, "ls\nrm -rf docs/releases/gold"))
+            ["permissionDecision"], "deny")
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo, "pwd\ncp README.md pyproject.toml"))
+            ["permissionDecision"], "ask")
+
+    def test_nested_shell_strings_are_judged(self) -> None:
+        _make_repo(self.repo)
+        command = "bash -c \"rm -rf docs/relea''ses/gold\""
+
+        self.assertEqual(
+            _run(self.repo, _bash(self.repo, command))["permissionDecision"],
+            "deny")
+
+    def test_program_text_and_long_flags_are_write_channels(self) -> None:
+        _make_repo(self.repo)
+        gold = "docs/releases/gold/v1.0.0.json"
+        commands = (
+            f'awk BEGIN{{print "x" > "{gold}"}}',
+            f"sort README.md --output={gold}",
+            f"cat README.md > >(tee {gold})",
+        )
+
+        for command in commands:
+            with self.subTest(command=command[:44]):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "deny")
+
+    def test_git_config_asks_though_it_never_names_the_file(self) -> None:
+        """`.git/config` was protected as a path, but the tool that writes
+        it - setting core.hooksPath, the ssh trust store, or an alias - never
+        types that path."""
+        _make_repo(self.repo)
+
+        for command in ("git config core.hooksPath /tmp/evil",
+                        "git config gpg.ssh.allowedSignersFile .allowed",
+                        "git config alias.x '!rm -rf /'"):
+            with self.subTest(command=command[:44]):
+                self.assertEqual(
+                    _run(self.repo, _bash(self.repo, command))
+                    ["permissionDecision"], "ask")
+
+        self.assertEqual(_run(self.repo, _bash(self.repo,
+                                               "git config --get user.name")),
+                         {})
+
+
+class TestControlSurfaceCoverage(GuardTestCase):
+    def test_the_gates_own_code_and_wiring_are_control_surface(self) -> None:
+        """Regression: a verifier deleted doctrine_guard.py itself with no
+        decision emitted, and `.claude/agents/*` - the verifier tool grants
+        ADR-012 names as what isolates a reviewer - was freely writable."""
+        _make_repo(self.repo)
+
+        for rel in ("tools/doctrine_guard.py", "tools/doctrine_gold.py",
+                    "tools/doctrine_verify.py", ".claude/settings.local.json",
+                    ".claude/agents/security-reviewer.md", ".mcp.json",
+                    ".allowed_signers", "keys/id_ed25519.pub"):
+            with self.subTest(rel=rel):
+                self.assertEqual(
+                    _run(self.repo, _write(self.repo, rel, "x"))
+                    ["permissionDecision"], "ask")
+
+    def test_blanket_policies_are_refused_by_behaviour(self) -> None:
+        """Regression: the refusal was a list of four literal strings, so
+        `?*` and `*.*` - equally total off-switches - sailed through."""
+        _make_repo(self.repo)
+        (self.repo / ".doctrine-state").mkdir()
+
+        for pattern in ("*", "**", "?*", "*.*", "**/**", "[a-z.]*", "*/*"):
+            (self.repo / ".doctrine-state" / "guard.json").write_text(
+                json.dumps({"allow": [pattern]}), encoding="utf-8")
+            with self.subTest(pattern=pattern):
+                self.assertEqual(
+                    _run(self.repo, _write(self.repo, "cfg.py",
+                                           f'KEY = "{AWS_KEY}"\n'))
+                    ["permissionDecision"], "deny")
+
+    def test_a_narrow_allowlist_entry_still_works(self) -> None:
+        _make_repo(self.repo)
+        (self.repo / ".doctrine-state").mkdir()
+        (self.repo / ".doctrine-state" / "guard.json").write_text(
+            json.dumps({"allow": ["tests/fixtures/*"]}), encoding="utf-8")
+
+        self.assertEqual(
+            _run(self.repo, _write(self.repo, "tests/fixtures/aws.txt",
+                                   AWS_KEY)),
+            {})
+
+
 class TestOrdinaryCommandsStaySilent(GuardTestCase):
     """Regression: verifiers measured 11 of 13 ordinary commands DENIED.
     `.git` matched `.gitignore`/`.github`, `.env` matched `os.environ`, and a

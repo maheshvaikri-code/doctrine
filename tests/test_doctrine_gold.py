@@ -491,6 +491,40 @@ class TestRealSignedTags(GoldRepo):
                              attestation)
 
 
+class TestGate(GoldRepo):
+    """The backstop that does not depend on intercepting the writer.
+
+    Three independent security passes each found new shell spellings that
+    reached a protected file, because static analysis of a Turing-complete
+    shell cannot be complete. This gate asks a different question - do the
+    recorded hashes still match? - which no spelling can dodge.
+    """
+
+    def test_an_empty_repo_passes(self):
+        self.assertEqual(dg.cmd_gate(self.root), 0)
+
+    def test_every_record_is_verified(self):
+        self.record()
+
+        self.assertEqual(dg.cmd_gate(self.root), 0)
+
+    def test_tampering_fails_the_gate_however_it_was_written(self):
+        self.record()
+        artifact = self.root / "dist" / "app.whl"
+
+        # Not through any tool the guard can see: straight to the filesystem.
+        artifact.write_bytes(b"artifact-bytes-TAMPERED")
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+    def test_a_record_that_is_not_a_version_is_refused(self):
+        self.record()
+        gold = self.root / "docs" / "releases" / "gold"
+        (gold / "notes.json").write_text("{}", encoding="utf-8")
+
+        self.assertEqual(dg.cmd_gate(self.root), 1)
+
+
 class TestSignatureParsing(unittest.TestCase):
     """The parse is pure so it is testable without provisioning a key.
 

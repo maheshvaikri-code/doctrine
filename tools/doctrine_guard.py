@@ -148,18 +148,43 @@ CONTROL_SURFACE: Final[tuple[tuple[str, str], ...]] = (
                                    "runs git in every repo it names"),
     ("pyproject.toml", "its package name decides whether the installed "
                        "corpus is protected here"),
-    (".claude/settings.json", "it wires this guard in; editing it can "
-                              "unwire it"),
-    (".claude/hooks/*", "the hook wiring that runs this guard"),
+    # The gate's own executables. A third verifier deleted doctrine_guard.py
+    # itself with no decision emitted - a control that does not defend its own
+    # binary defends nothing.
+    ("tools/doctrine_guard.py", "this guard's own code"),
+    ("tools/doctrine_gold.py", "the promotion gate's code"),
+    ("tools/doctrine_verify.py", "the gate runner's code"),
+    ("tools/doctrine_lint.py", "the corpus gate's code"),
+    # `.claude/**`, not just settings.json: settings.local.json merges OVER
+    # it, and `.claude/agents/*` carries the verifier tool grants that
+    # ADR-012 names as what actually isolates a reviewer.
+    (".claude/*", "the agent wiring - hooks, permissions, and the verifier "
+                  "tool grants that enforce separation of duties"),
+    (".mcp.json", "MCP servers run with this session's authority"),
     ("CLAUDE.md", "the always-loaded law import"),
     ("AGENTS.md", "the universal agent boot file"),
     (".github/workflows/*", "CI is a trust anchor - it runs the gates that "
                             "a local bypass cannot reach"),
+    ("**/*allowed_signers*", "the signing trust store; whoever writes it "
+                             "decides which key counts as which principal"),
+    ("**/*.pub", "a public key added here becomes a trusted signer"),
 )
-# A policy that allows everything is not a policy. These are refused as
-# `allow`/`protected_paths` entries however the file is written.
-BLANKET_PATTERNS: Final[frozenset[str]] = frozenset(
-    {"*", "**", "**/*", ".", "./*", "/", "/*", ""})
+# Commands that reconfigure git itself. `.git/config` is protected as a PATH,
+# but `git config` writes it without ever naming it, which left core.hooksPath,
+# the ssh allowed-signers file and aliases settable in silence.
+CONTROL_COMMANDS: Final[tuple[tuple[str, str], ...]] = (
+    (r"\bgit\s+config\b(?![^|;&]*\s--(?:get|list|get-all|get-regexp))",
+     "git config writes the repository's own trust and hook settings"),
+    (r"\bgit\s+config\b[^|;&]*\balias\.", "a git alias can run any command"),
+)
+# A policy that allows everything is not a policy. Enumerating the spellings
+# failed - `?*` and `*.*` are equally total off-switches - so entries are
+# tested against canaries instead: a pattern that would un-protect any of
+# these is not a policy, whatever it looks like.
+BLANKET_CANARIES: Final[tuple[str, ...]] = (
+    ".env", "docs/releases/gold/v1.0.0.json", "pyproject.toml",
+    ".doctrine-state/guard.json", ".git/config",
+)
 # ...except the shape-documenting variants the repo-devops skill REQUIRES.
 # They hold names, never values, so the secret rules still apply to them.
 PROTECTED_EXEMPT: Final[tuple[str, ...]] = (
@@ -196,6 +221,24 @@ PROTECTED_CONSUMER: Final[tuple[tuple[str, str], ...]] = (
 # writers is unbounded and fails open; an allowlist of READERS is small,
 # enumerable, and fails closed. So: a verb this file does not recognise as
 # read-only is treated as capable of writing.
+# Verbs that run their ARGUMENTS. `env` and `time` were on the read-only list
+# and are not readers at all: `env rm -rf <gold dir>` inherited `env`'s verdict
+# and deleted every immutable record in silence. They are transparent - step
+# through them to the real verb rather than trusting the wrapper.
+PREFIX_VERBS: Final[frozenset[str]] = frozenset({
+    "env", "time", "nohup", "nice", "ionice", "stdbuf", "setsid", "timeout",
+    "sudo", "doas", "command", "builtin", "exec", "xargs", "watch",
+})
+# Verbs whose PAYLOAD is another shell command; re-analyse the payload.
+NESTED_SHELLS: Final[frozenset[str]] = frozenset({
+    "bash", "sh", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", "cmd",
+})
+# Interpreters whose program text writes without any recognisable flag:
+# `awk 'BEGIN{print "x" > "gold/v1.json"}'` names the file inside the program.
+PROGRAM_TEXT_WRITERS: Final[frozenset[str]] = frozenset({
+    "awk", "gawk", "mawk", "perl", "python", "python3", "ruby", "node",
+    "deno", "bun", "php", "lua", "tclsh",
+})
 READ_ONLY_VERBS: Final[frozenset[str]] = frozenset({
     "cat", "bat", "less", "more", "head", "tail", "nl", "od", "xxd", "strings",
     "ls", "dir", "tree", "stat", "file", "du", "df", "wc", "basename",
@@ -216,10 +259,16 @@ GIT_READ_SUBCOMMANDS: Final[frozenset[str]] = frozenset({
 CONDITIONAL_WRITERS: Final[dict[str, tuple[str, ...]]] = {
     "sed": ("-i",), "perl": ("-i",), "ruby": ("-i",),
     "find": ("-exec", "-execdir", "-delete", "-ok", "-fprint", "-fprintf"),
-    "sort": ("-o",), "awk": ("-i",),
+    "sort": ("-o", "--output"), "awk": ("-i",),
 }
-REDIRECT_TARGET: Final = re.compile(r"(?:\d?>>?|\d?>&?)\s*([^\s;&|<>]+)")
-SEGMENT_SPLIT: Final = re.compile(r"[;&|]+|\breval\b|\$\(|`")
+REDIRECT_TARGET: Final = re.compile(
+    r"(?:\d?>>?|\d?<>)\s*\(?\s*([^\s;&|<>()]+)")
+# Newlines separate commands as surely as `;` does. Without `\n` here a
+# leading `ls` made an entire multi-line script inherit a read-only verdict -
+# and multi-line Bash calls are the common case, not an exotic one.
+SEGMENT_SPLIT: Final = re.compile(
+    r"[;&|\n\r]+|\breval\b|\$\(|`"
+    r"|[<>]\(")          # process substitution: >(tee FILE) runs `tee`
 ENV_ASSIGNMENT: Final = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 # Path-like runs inside a token, so an embedded literal (as in a `python -c`
 # one-liner) is still seen. Deliberately excludes the shell metacharacters
@@ -341,10 +390,23 @@ def load_config(root: Path) -> dict[str, list[str]]:
         return {}
     return {
         key: [v for v in data[key]
-              if isinstance(v, str) and v.strip() not in BLANKET_PATTERNS]
+              if isinstance(v, str) and not is_blanket(v)]
         for key in ("protected_paths", "allow")
         if isinstance(data.get(key), list)
     }
+
+
+def is_blanket(pattern: str) -> bool:
+    """Whether a policy entry would un-protect the world.
+
+    Tested by behaviour, not by spelling: `*`, `?*`, `*.*`, `[a-z.]*` and
+    `**/**` are all total off-switches, and a list of literal strings only
+    ever catches the ones someone thought of.
+    """
+    text = pattern.strip()
+    if not text:
+        return True
+    return sum(matches(canary, text) for canary in BLANKET_CANARIES) >= 2
 
 
 def normalize_target(target: str) -> str:
@@ -419,7 +481,12 @@ def command_targets(command: str, root: Path) -> list[str]:
             tokens += command.split()
     seen: list[str] = []
     for token in tokens:
-        for candidate in PATHISH.findall(token):
+        # De-quoted twin as well as the raw token: quoting SURVIVES shlex
+        # inside a nested shell string (`bash -c "rm docs/relea''ses/gold"`),
+        # and PATHISH then split the path at the quote into two harmless
+        # fragments. Rejoining first is what makes the whole path visible.
+        variants = {token, token.replace("'", "").replace('"', "")}
+        for candidate in {c for v in variants for c in PATHISH.findall(v)}:
             rel = relative_to_root(candidate, root)
             if rel and rel not in seen:
                 seen.append(rel)
@@ -563,8 +630,26 @@ def command_is_read_only(command: str) -> bool:
     """
     for segment in SEGMENT_SPLIT.split(command):
         verb, arguments = segment_verb(segment)
+        # Step through wrappers to the verb that actually runs. `sudo -u x`
+        # and `timeout 5` take their own arguments first, so skip flags and
+        # the bare operand that follows them.
+        seen = 0
+        while verb in PREFIX_VERBS and arguments and seen < 4:
+            arguments = [a for a in arguments if not a.startswith("-")]
+            if verb in {"timeout", "nice", "ionice"} and arguments:
+                arguments = arguments[1:]        # the duration / priority
+            if not arguments:
+                return False                     # a wrapper with no payload
+            verb, arguments = segment_verb(" ".join(arguments))
+            seen += 1
         if not verb:
             continue
+        if verb in NESTED_SHELLS:
+            # The payload is another command: judge THAT, not the shell.
+            return False
+        if verb in PROGRAM_TEXT_WRITERS:
+            # The program text is the write channel; no flag announces it.
+            return False
         if verb == "git":
             subcommands = [a for a in arguments if not a.startswith("-")]
             # skip the argument consumed by -C/-c before the subcommand
@@ -584,13 +669,37 @@ def command_is_read_only(command: str) -> bool:
 
 
 def redirect_paths(command: str, root: Path) -> set[str]:
-    """Repo-relative paths this command redirects OUTPUT into."""
+    """Repo-relative paths this command redirects OUTPUT into.
+
+    Targets are trimmed of trailing shell punctuation before resolving: an
+    `awk` program ends `> "file"}'`, and the ragged capture never compared
+    equal to the clean path `command_targets` produced, so the write slipped
+    between the two.
+    """
     found = set()
     for target in REDIRECT_TARGET.findall(command):
-        rel = relative_to_root(target, root)
-        if rel:
-            found.add(rel)
+        # The whole target first (normalize_target strips quoting, so
+        # `docs/'gold'/x` resolves), then its path-like fragments, which is
+        # what rescues a target glued to trailing program punctuation.
+        for candidate in [target, *PATHISH.findall(target)]:
+            rel = relative_to_root(candidate, root)
+            if rel:
+                found.add(rel)
     return found
+
+
+def check_control_commands(command: str) -> Decision:
+    """Commands that rewrite the repo's own trust settings without naming
+    the file they write."""
+    for pattern, why in CONTROL_COMMANDS:
+        if re.search(pattern, command, re.IGNORECASE):
+            return Decision(
+                "ask",
+                f"Doctrine: this command changes this repo's ENFORCEMENT "
+                f"configuration - {why}. Approve only if you meant to change "
+                "how your own gates behave.",
+            )
+    return Decision()
 
 
 def check_protected_in_command(command: str, root: Path,
@@ -719,6 +828,9 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
             return verdict
     if tool_name in COMMAND_TOOLS:
         verdict = check_protected_in_command(text, root, config)
+        if verdict.decision:
+            return verdict
+        verdict = check_control_commands(text)
         if verdict.decision:
             return verdict
         verdict = check_irreversible(text)

@@ -5,11 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_state.py'); sys.exit(subprocess.call([sys.executable,p,'hydrate','--if-present']) if os.path.exists(p) else 0)\""
+            "command": "python -c \"import os,subprocess,sys; d=os.environ.get('CLAUDE_PROJECT_DIR','') or os.getcwd(); p=os.path.join(d,'tools','doctrine_state.py'); sys.exit(subprocess.call([sys.executable,p,'hydrate','--if-present'],cwd=d) if os.path.exists(p) else 0)\""
           },
           {
             "type": "command",
-            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_metrics.py'); sys.exit(subprocess.call([sys.executable,p,'capture-hint']) if os.path.exists(p) else 0)\""
+            "command": "python -c \"import os,subprocess,sys; d=os.environ.get('CLAUDE_PROJECT_DIR','') or os.getcwd(); p=os.path.join(d,'tools','doctrine_metrics.py'); sys.exit(subprocess.call([sys.executable,p,'capture-hint'],cwd=d) if os.path.exists(p) else 0)\""
           }
         ]
       }
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_engage.py'); sys.exit(subprocess.call([sys.executable,p]) if os.path.exists(p) else 0)\""
+            "command": "python -c \"import os,subprocess,sys; d=os.environ.get('CLAUDE_PROJECT_DIR','') or os.getcwd(); p=os.path.join(d,'tools','doctrine_engage.py'); sys.exit(subprocess.call([sys.executable,p],cwd=d) if os.path.exists(p) else 0)\""
           }
         ]
       }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -c \"import os,subprocess,sys; p=os.path.join(os.environ.get('CLAUDE_PROJECT_DIR',''),'tools','doctrine_guard.py'); sys.exit(subprocess.call([sys.executable,p]) if os.path.exists(p) else 0)\""
+            "command": "python -c \"import os,subprocess,sys; d=os.environ.get('CLAUDE_PROJECT_DIR','') or os.getcwd(); p=os.path.join(d,'tools','doctrine_guard.py'); sys.exit(subprocess.call([sys.executable,p],cwd=d) if os.path.exists(p) else 0)\""
           }
         ]
       }

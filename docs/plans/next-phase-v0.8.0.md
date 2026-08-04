@@ -41,9 +41,32 @@ Two lessons worth carrying forward, both structural:
    built it, including its own repair. Fail closed on the action you judge,
    never on your own wiring.
 
-**Still open from that pass, deliberately:** the fixes themselves have not
-been independently verified. Re-dispatch before release — the reason to is the
-first lesson above.
+**Rounds 2 and 3 then vetoed the fixes**, each time because the previous round
+had patched the reported payloads rather than the class. Round 3 forced the
+real resolution: the Bash rule is reclassified as a tripwire, and the durable
+guarantee moved to `doctrine_gold gate`, which re-hashes evidence and so does
+not depend on intercepting whoever wrote it. Full account:
+`docs/retro/2026-08-04-four-rounds-of-verification.md`.
+
+**Third lesson, the expensive one:** when a bug class recurs *after* you fixed
+it, the mechanism is wrong, not the coverage. Enumeration is a smell whenever
+the domain is unbounded.
+
+**Still open:** round 4 runs against commit `2885d29`. Nothing here is signed
+off until a fresh context says so.
+
+### P1.1c Doctrine edits earned by rounds 1–3 · Class S each
+
+1. `skills/debugging.md` — "fix the whole bug class" needs its harder half: if
+   the class recurs after you fixed it, the *mechanism* is wrong, not the
+   coverage.
+2. `skills/ai-slop.md` — name "an assertion that cannot fail" as a smell, with
+   the hook test that asserted `returncode == 0` as the worked example.
+3. `standards/dos-and-donts.md` — a corrected claim must be swept repo-wide;
+   the first correction of the "reviewer physically cannot edit" claim reached
+   one file in five.
+4. `skills/tooling.md` — a gate must fail closed on the action it judges and
+   never on its own plumbing (the relative-path lockout).
 
 ### P1.1b Original scope (kept for reference)
 The gate the last release could not run. Dispatch fresh-context

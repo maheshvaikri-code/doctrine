@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/aroora-ai-labs/doctrine/security/advisories/new
+    about: >-
+      Never file security issues publicly. Use private vulnerability reporting,
+      or email mahesh.vaikri.ai@gmail.com with DOCTRINE SECURITY in the subject.
+  - name: How to contribute
+    url: https://github.com/aroora-ai-labs/doctrine/blob/main/CONTRIBUTING.md
+    about: Gates your change must pass, the class system, and good first contributions.

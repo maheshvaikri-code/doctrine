@@ -1,0 +1,64 @@
+name: Doctrine proposal (role, skill, standard, or gate)
+description: Propose a change to the corpus — the law itself
+labels: ["doctrine", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The corpus is the product, and every page costs context budget.
+        The bar is **evidence that a real gap exists**, not that the idea is
+        plausible. Please open this before writing the page.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you proposing
+      options:
+        - New skill playbook
+        - New role card
+        - New standard
+        - New domain overlay pack
+        - Change to an existing page
+        - Change to gate semantics or a task class
+        - Change to a Non-Negotiable (§7)
+    validations:
+      required: true
+
+  - type: textarea
+    id: failure
+    attributes:
+      label: What failure does this prevent
+      description: >-
+        The single most important field. Describe a concrete way work goes
+        wrong today that this would catch. Specifics you have seen beat
+        categories you can imagine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: existing
+    attributes:
+      label: Why the existing corpus does not already cover it
+      description: >-
+        Name the closest existing pages and say what they miss. Overlap is the
+        most common reason a proposal is declined.
+    validations:
+      required: true
+
+  - type: textarea
+    id: budget
+    attributes:
+      label: Why this earns its context budget
+      description: >-
+        Everything here loads into a finite window. What does this say that a
+        competent engineer would not already default to?
+    validations:
+      required: true
+
+  - type: textarea
+    id: wiring
+    attributes:
+      label: Wiring
+      description: >-
+        Which routing row (§6), role index row (§10), or signature entry would
+        change? Which roles would load it?

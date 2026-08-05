@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in Doctrine behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security issue?** Do not file it here — see
+        [SECURITY.md](https://github.com/aroora-ai-labs/doctrine/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The exact commands. A reproduction beats a description.
+      placeholder: |
+        1. python tools/doctrine_install.py --target ...
+        2. make verify
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Real output
+      description: >-
+        Paste the actual output, not a summary of it. Include the full error
+        and traceback if there is one.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Doctrine version or commit SHA
+      placeholder: "v0.7.0 (or the commit SHA)"
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: OS, Python, and ruff versions
+      description: >-
+        `python -V` and `python -m ruff --version`. CI pins ruff==0.15.15;
+        a newer ruff reports failures in files your change never touched.
+      placeholder: "Windows 11 · Python 3.12.7 · ruff 0.15.15"
+    validations:
+      required: true
+
+  - type: input
+    id: agent
+    attributes:
+      label: Agent / harness (if relevant)
+      placeholder: "Claude Code, Cursor, Codex, none…"

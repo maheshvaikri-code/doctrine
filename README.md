@@ -2,7 +2,7 @@
   <img src="images/doctrine_logo.png" alt="Doctrine">
 </h1>
 
-<h1 align="center">A gated engineering operating layer for AI coding agents for Enterprise/Startups/SoloBuilder Profiles. (Beta)</h1>
+<h1 align="center">A gated engineering operating layer for AI coding agents for Enterprise/Startup/SoloBuilder Profiles. (Beta)</h1>
 
 <p align="center">
   <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
@@ -251,6 +251,39 @@ does **not** do:
 
 Claiming more strength than a mechanism has is the same fabrication the first
 law forbids. Details: [.Doctrine/05-packaging.md](.Doctrine/05-packaging.md).
+
+## Contributing
+
+**Contributions are genuinely welcome, and this is an unusual repo to
+contribute to** — the thing you are changing is also the process you change it
+by. Your PR runs through the same gates the doctrine prescribes for everyone
+else. Ceremony is right-sized: a typo fix is a two-minute change, not a
+committee.
+
+The most useful thing you can do right now is **install it on one of your own
+repos and tell us where the docs misled you.** Doctrine has been exercised
+hard on one codebase; the gaps live in the second, third, and tenth.
+
+Also valuable, and small enough to start with:
+
+- A language profile for a stack that isn't covered yet
+- Failure modes added to a skill you have real scars from
+- An adapter improvement for the agent you actually use
+- A tighter lint or guard check — with a test that fails before your fix
+
+| | |
+|---|---|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Gates, the S/M/L class system, corpus conventions, what gets rejected |
+| [SECURITY.md](SECURITY.md) | Private reporting, what's in scope — and the **known limits**, so you don't spend time re-finding documented ones |
+| [VERSIONING.md](VERSIONING.md) | SemVer under 0.x, what "breaking" means for a corpus, how to upgrade an installed repo |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Attack the claim, never the person |
+
+One rule matters more than the rest: **paste real output.** A claim that gates
+pass, without the output, is the single thing this project cannot accept —
+because the whole premise is that honest reporting can be enforced.
+
+If a gate, a lint rule, or any doc confused you, that is a defect worth
+reporting. Confusion is a finding.
 
 ## License
 

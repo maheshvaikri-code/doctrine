@@ -103,13 +103,14 @@ from inside the repo it governs with a single write. They **ask** rather than
 deny because widening policy is a legitimate human act; what must never happen
 is the governed party doing it silently.
 
-### Two layers, and only one of them is a boundary
+### Three in-repo layers, and none of them is a containment boundary
 
 | Layer | What it is | Strength |
 |---|---|---|
 | The guard on **Write/Edit** | structured input: one field names one file | Sound *for the paths it is given*: the path is data, not a language to interpret |
 | The guard on **Bash** | a text analysis of a shell command | **A tripwire, not a boundary.** Best effort, known incomplete |
 | `doctrine_gold gate` | re-checks records against git and a manifest | **Tamper-evident, not tamper-proof** — see below |
+| **The isolation tier** (`skills/sandboxing.md`) | read-only mounts, default-deny egress, no inherited credentials | **The actual boundary** — enforced by the kernel, not by reading text. Not shipped by Doctrine; selected, built, and **proved** by you |
 
 **Nothing inside a repository the agent can write is tamper-proof against that
 agent.** An earlier version of this table claimed `gate` was "Sound. Tampering
@@ -186,6 +187,22 @@ history is guaranteed to exist.
 Use the tripwire for what a tripwire is good at — catching the accident and
 the careless, early, with a readable reason. Do not present it as a
 containment boundary for a determined adversary inside the repo.
+
+**Where the containment boundary does come from.** Since no parser of a
+Turing-complete shell can be complete, a stronger parser is the wrong
+investment; the boundary belongs one layer down, on **effects** rather than
+text. A path mounted read-only refuses `rm`, `>`, `python -c`, `find -exec`,
+and every spelling nobody has thought of yet — the kernel returns `EROFS`
+without reading the command. Egress default-deny does the same for
+exfiltration, and a sandbox holding no credentials makes the question moot.
+Selecting that tier against the blast radius, and **proving it with a recorded
+refusal rather than asserting it from a config file**, is `skills/sandboxing.md`.
+
+Doctrine ships no sandbox and provisions none — that is deliberate, since a
+container requirement would stop it installing into any repo on any OS with
+zero dependencies. It carries the playbook; the agent and its operator run it.
+Run both layers: the tripwire for the early readable reason, the mount for the
+guarantee.
 
 Honest limits, measured rather than assumed:
 

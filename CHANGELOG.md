@@ -6,6 +6,75 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Added — `skills/sandboxing.md`: the tripwire finally names its boundary
+
+`§7` and the `05-packaging.md` strength table have said for several releases
+that the `PreToolUse` guard is *"a tripwire, not a boundary"* on Bash, and that
+it should not be presented as containment. Both were honest. Both then **stopped
+there** — naming the absence of a boundary without routing to the presence of
+one. That silence was the defect, not the tripwire.
+
+The containment answer was never a better parser. Shell is Turing-complete and
+the path need not appear in the command at all —
+
+```bash
+p=$(echo L2dvbGQvcmVjb3Jk | base64 -d); rm "$p"   # names no path
+```
+
+— so text analysis is permanently incomplete, and four review rounds each
+finding a new spelling was the evidence, not bad luck. A path mounted
+**read-only** refuses that line and every spelling nobody has invented yet,
+because the kernel never reads the command. The boundary is one layer down.
+
+`skills/sandboxing.md` (63 → 64 playbooks) carries the doctrine for getting it:
+
+- **A six-tier ladder** (none → least privilege → container → microVM/gVisor →
+  separate host → ephemeral remote), each row stating what it stops and — the
+  column that matters — what it **does not**. Pick the lowest tier whose
+  "does not stop" you can genuinely accept. Tier 5 leaves the machine, so it
+  is a §5 escalation before the data moves.
+- **Five control dimensions named separately**, because most real "sandboxes"
+  control one and are assumed to control all five: writable filesystem,
+  network egress, credentials that cross in, lifetime, and what results carry
+  back out.
+- **A boundary proof** — runnable commands that must *fail* inside the sandbox
+  (write to a protected path, curl an unlisted host, read a credential file,
+  find the docker socket), with the output pasted. **A config file is a claim;
+  a pasted `Read-only file system` is a boundary.** Re-prove after every config
+  change: one added `-v` flag silently returns tier 2 to tier 0 while the docs
+  still say tier 2.
+- **Sandbox theater**, enumerated: root in the container, the mounted docker
+  socket (a host root shell with extra steps), the rw host bind-mount,
+  `--net=host`, and the jail holding the same credentials as the host.
+- **Honest limits kept, not traded away.** Containers share a kernel and an
+  escape is one kernel bug away. No tier protects what you deliberately mounted.
+  And isolation is a blast-radius control, **not** a correctness control — "it
+  ran sandboxed" never substitutes for review, tests, or evidence.
+
+Wired in: a `§6` routing row; `§7` now routes from the tripwire to the boundary
+in the same breath that admits the tripwire's limit; the `05-packaging.md`
+strength table gains the isolation layer as a fourth row and a section on where
+containment actually comes from; and `/sandbox` (byte-identical plugin twin)
+sizes the tier and runs the proof.
+
+**No new role card.** Evidence first: "sandbox" appeared nowhere in
+`platform-engineering.md`, `security.md`, `platform-engineer.md`,
+`devops-engineer.md`, or `05-packaging.md` — the gap was a *skill*, not a hat.
+The three hats already exist, so the skill was added to their **Loads**:
+platform-engineer builds the tier as a paved road, devops-engineer runs it,
+security-reviewer holds the veto on a tier that is unproved or mismatched to
+the blast radius. The dispatched subagent cards indirect through the role
+card's Loads, so they picked it up with no `.claude/agents/` change; the count
+stays at 14.
+
+**No isolation-detecting hook.** Reliable container/VM detection across
+platforms is real work with real false-negative risk, and a detector that is
+wrong is worse than none — an agent that believes it is contained and is not is
+worse off than one that knows it is on the host. The detection *procedure* is
+in the skill as a verification recipe instead. Doctrine ships no sandbox and
+provisions none: a container requirement would end its ability to install into
+any repo on any OS with zero dependencies.
+
 ### Added — security operations: Doctrine carries the SOC playbooks
 
 Doctrine had `skills/security.md` (build-time: secrets, input boundaries,

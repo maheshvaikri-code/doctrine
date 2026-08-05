@@ -19,9 +19,10 @@ enforced by tooling, not vibes.
 - **42 roles**, verifiers dispatched as fresh-context subagents whose tool
   grants exclude Edit/Write (they still hold Bash, so the isolation is a
   strong default, not a sandbox)
-- **63 skill playbooks + 8 standards + 10 language profiles** — full-SDLC
+- **64 skill playbooks + 8 standards + 10 language profiles** — full-SDLC
   coverage from backend to mobile, ML, data, privacy, incident response,
-  and security operations (triage, detection engineering, hunting, forensics)
+  security operations (triage, detection engineering, hunting, forensics),
+  and sandboxing (pick the isolation tier, then *prove* the boundary holds)
 - **Gates G0→G7** with right-sized ceremony (a typo fix never convenes
   a council; a release always does)
 - **Personal/solo builder profile** — `--personal` / `--solo` routes routine
@@ -58,6 +59,11 @@ The classic OS primitives map onto real components:
 - **Protection ring** — the `PreToolUse` guard (`doctrine_guard`) decides before
   the tool runs: secrets and immutable evidence deny, §5 and test-weakening ask.
   Sound on Write/Edit; a *tripwire* on shell commands (ADR-012)
+- **Address-space isolation** — the tripwire reads text, so it can never be
+  complete; the boundary is one layer down and enforced by the kernel.
+  `skills/sandboxing.md` sizes the tier to the blast radius and makes you
+  **prove** it with a recorded refusal. Doctrine carries the playbook, ships no
+  sandbox
 - **Provenance** — gold records carry the tag's **attestation**
   (`--require-signature`), and `doctrine_gold gate` re-checks them against git:
   tamper-evident in CI, never tamper-proof inside a repo you can write

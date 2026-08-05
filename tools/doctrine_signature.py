@@ -88,6 +88,10 @@ SKILL_EXTRA = {
     "metrics": {"tools": "CodeMonk (`integrations/codemonk.md`)"},
     "graphify": {"tools": "the code-graph tool (`integrations/graphify.md`)"},
     "platform-engineering": {"workflows": "paved-road provisioning"},
+    "sandboxing": {
+        "workflows": "blast radius -> tier -> five dimensions -> boundary proof",
+        "tools": "the isolation tier you select (container / microVM / VM); "
+                 "Doctrine ships none"},
     "incident-response": {"workflows": "the incident lifecycle + HOTFIX"},
     "security-operations": {
         "workflows": "the detect -> triage -> respond loop; escalates into HOTFIX"},

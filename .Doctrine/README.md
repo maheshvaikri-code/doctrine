@@ -28,11 +28,13 @@ workflow produces.
 │                       ciso, risk-officer — policy above the gates
 │                       + 3 domain specialists: clinical-safety, regulatory-affairs,
 │                       quant-researcher)
-├── skills/             63 discipline playbooks (G0 requirements → G1
+├── skills/             64 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + security operations: detection engineering, threat
 │                       hunting, forensics, threat intel
+│                       + sandboxing: the isolation tier that IS the boundary
+│                       the PreToolUse tripwire deliberately is not
 │                       + startup craft: marketing→fundraising)
 ├── domains/            Vertical overlays: regime + canonical entities + domain
 │                       sign-offs, composed onto the horizontal core (healthcare pilot)

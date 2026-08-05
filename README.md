@@ -20,6 +20,7 @@
   <a href="#what-it-looks-like">What it looks like</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#whats-inside">What's inside</a> ·
+  <a href="#integrations--built-on-never-bundled">Integrations</a> ·
   <a href="#an-os-for-agents">The OS model</a> ·
   <a href="#how-its-built-and-proven">Proof</a> ·
   <a href="#honest-limits">Limits</a>
@@ -174,6 +175,37 @@ Full install matrix: [.Doctrine/05-packaging.md](.Doctrine/05-packaging.md).
 Every one of those numbers is **lint-enforced** against the filesystem — a
 stale count fails CI rather than quietly misleading you.
 
+## Integrations — built on, never bundled
+
+Doctrine's own tooling is **stdlib-only Python with zero dependencies**, and it
+**vendors nothing**. Where excellent open source already exists, Doctrine ships
+a thin *shim* — a pinned reference plus the doctrine-side precedence rules —
+rather than a copied fork that would silently go stale. Credit where it is due:
+
+| Project | What it adds | Licence |
+|---|---|---|
+| [**ponytail**](https://github.com/DietrichGebert/ponytail) | A brevity ladder (YAGNI → reuse → stdlib → native → dep → one line) that forces the laziest solution that *works*. Validation, security, data-loss handling and accessibility are never on the chopping block. | MIT |
+| [**graphify**](https://github.com/Graphify-Labs/graphify) | Turns a repo into a queryable knowledge graph via tree-sitter AST — deterministic, local, zero LLM calls, ~40 languages. *Graph before grep* for "what calls X". | — |
+| [**MAPLE**](https://github.com/maheshvaikri-code/maple-oss) | Multi-agent runtime: typed messages, `Result<T,E>`, and **broker-enforced** separation of duties — a verifier physically cannot route to a builder. | AGPL-3.0 |
+| [**floci**](https://github.com/floci-io/floci) | Local cloud emulation that the `cloud-*` skills and the FDE prototype pipeline build on — local-first, so real cloud spend stays a §5 decision. | MIT |
+| [**CodeMonk**](https://github.com/aroora-ai-labs/codemonk) | The metrology subsystem: change metrics, token metering, and a graded scorecard for agent coding. | MIT |
+
+**All five are optional.** Doctrine's gates never depend on them, and it neither
+installs nor imports any of them — that is what keeps it installable into any
+repo on any OS with nothing to resolve. Install what you want; the rest degrade
+cleanly and silently.
+
+Two honest caveats, since a shim is easy to mistake for a bundled feature:
+
+- **A shim is a pointer, not the tool.** `skills/ponytail.md` declares
+  `requires: ponytail >= 4.8.4`; `skills/graphify.md` needs `graphifyy` and a
+  built `graph.json`. Without the upstream installed, the routing row still
+  resolves but nothing runs.
+- **AGPL is not a constraint on use.** MAPLE is free copyleft — anyone may run
+  and build on it, commercially included. Reciprocity attaches to redistributing
+  a modified version or serving one over a network, not to using it. Doctrine
+  neither vendors nor imports it, so nothing propagates here either way.
+
 ## An OS for agents
 
 **An operating system for coding agents — not the machine that runs them.**
@@ -287,4 +319,4 @@ reporting. Confusion is a finding.
 
 ## License
 
-[MIT](LICENSE) — © 2026 Aroora AI Labs (Mahesh Vaikri).
+[MIT](LICENSE) — © 2026 Aroora AI Labs (Mahesh Vaikri). https://aroora.ai

@@ -97,17 +97,44 @@ def check_agents(root: Path, findings: list[str]) -> None:
 
 
 def check_counts(root: Path, findings: list[str]) -> None:
+    roles = len(list((root / ".Doctrine" / "roles").glob("*.md")))
+    skills = len(list((root / ".Doctrine" / "skills").glob("*.md")))
+    # One filesystem truth, several phrasings. The marketing surfaces say
+    # "42 roles"; the corpus says "42 role cards". Both are claims about the
+    # same directory, so both are checked - plugin.json drifted to "38 roles /
+    # 58 skills" precisely because only the corpus phrasings were enforced.
     actual = {
-        "role cards": len(list((root / ".Doctrine" / "roles").glob("*.md"))),
-        "discipline playbooks":
-            len(list((root / ".Doctrine" / "skills").glob("*.md"))),
+        "role cards": roles,
+        "roles": roles,
+        "discipline playbooks": skills,
+        "skill playbooks": skills,
+        "skills": skills,
+        "hard standards":
+            len(list((root / ".Doctrine" / "standards").glob("*.md"))),
+        "standards":
+            len(list((root / ".Doctrine" / "standards").glob("*.md"))),
+        "language profiles":
+            len(list((root / ".Doctrine" / "standards" / "languages")
+                     .glob("*.md"))),
+        "artifact templates":
+            len(list((root / ".Doctrine" / "templates").glob("*.md"))),
         "ready subagents":
             len(list((root / ".claude" / "agents").glob("*.md"))),
     }
-    for f in (root / ".Doctrine" / "README.md", root / ".Doctrine.md"):
+    # Every surface that states a count to a human, including the two the
+    # marketplace and PyPI render.
+    surfaces = (
+        root / ".Doctrine" / "README.md",
+        root / ".Doctrine.md",
+        root / "README.md",
+        root / "plugin" / ".claude-plugin" / "plugin.json",
+    )
+    for f in surfaces:
+        if not f.exists():
+            continue
         text = f.read_text("utf-8")
         for label, real in actual.items():
-            for claim in re.findall(rf"(\d+) {re.escape(label)}", text):
+            for claim in re.findall(rf"(\d+) {re.escape(label)}\b", text):
                 if int(claim) != real:
                     findings.append(f"{f.name}: claims {claim} {label}, "
                                     f"filesystem has {real}")

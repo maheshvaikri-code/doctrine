@@ -28,3 +28,6 @@ error_*.md
 
 # personal, private planning (never committed)
 docs/personal/
+
+# WorkHawk is a separate project/repo - not tracked here (see README)
+workhawk/

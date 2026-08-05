@@ -126,27 +126,26 @@ repo is the cue) — or be explicit:
 - **`/role <name> [task]`** — act as one hat: `/role security-reviewer`, `/role chief-architect` (reviewer roles run fresh-context)
 - **`/checkpoint`** — save session state so the repo remembers, not you
 
-### WorkHawk
+### The operations bridge (for WorkHawk and other clients)
 
-The bundled WorkHawk agentic engineering workbench consumes Doctrine as its
-currently connected governance module. It renders the current repository's
-real activation, state-chain, Git, release, and verification evidence without
-making the frontend part of Doctrine's installable core. Start the loopback
-bridge from the repository root, then WorkHawk:
+**WorkHawk is a separate project and lives in its own repository** — it is not
+part of this repo and not part of Doctrine's installable core. What Doctrine
+ships is the server side of the seam: a loopback-only operations bridge that
+exposes the current repository's real activation, state-chain, Git, release,
+and verification evidence to a local client.
 
 ```bash
-python tools/doctrine_dashboard.py
-cd workhawk && npm ci && npm run dev
+python tools/doctrine_dashboard.py     # http://127.0.0.1:3003/
 ```
 
-Open `http://localhost:3003/`. The bridge exposes no arbitrary command surface;
-its only mutation is the fixed Doctrine verifier. MAPLE, STIX, and Trust are
-shown as unavailable until real connectors exist. Remote hosting,
-multi-repository aggregation, editor/terminal execution, and public deployment
-are intentionally not claimed by this bundle. Full operating and security
-notes: [workhawk/README.md](workhawk/README.md). Source CI checks the WorkHawk
-lockfile, lint, types, production build/tests, dependency audit, and hosted
-Chromium behavior.
+The bridge exposes no arbitrary command surface; its only mutation is the fixed
+Doctrine verifier. Remote hosting, multi-repository aggregation,
+editor/terminal execution, and public deployment are intentionally not claimed.
+The OpenAPI contract is
+[docs/contracts/doctrine-control-room.openapi.json](docs/contracts/doctrine-control-room.openapi.json);
+the boundary decisions are recorded in
+[ADR-009](docs/adr/009-workhawk-application-boundary.md) and
+[ADR-010](docs/adr/010-workhawk-verification-execution-lifecycle.md).
 
 ## How it's built (and proven)
 
@@ -169,10 +168,9 @@ system (everything else loads on demand via its routing table).
 .Doctrine/            roles, skills, standards, templates, adapters,
                       state-plane spec, packaging
 tools/                stdlib-only enforcement: state plane, corpus lint,
-                      gold builds, MCP server, installer, WorkHawk bridge
-workhawk/             source-only agentic engineering workbench
+                      gold builds, MCP server, installer, operations bridge
 plugin/               Claude Code plugin (byte-parity lint-enforced)
-tests/               195 tests; `make verify` = lint + ruff + tests
+tests/               324 tests; `make verify` = lint + ruff + tests
 .doctrine-state/      this repo's own hash-chained session memory
 ```
 

@@ -103,5 +103,84 @@ class TestEngage(unittest.TestCase):
             self.assertEqual(eng.find_root(sub), root)
 
 
+class TestCorpusDrift(unittest.TestCase):
+    """A session `@`-imports .Doctrine.md ONCE, at start. Reinstalling the
+    corpus under a live session leaves it acting on deleted roles and skills,
+    and nothing said so - garagebox kept emitting `[ROLE: Solo Builder]` after
+    that role had been removed from its disk."""
+
+    def _corpus(self, root: Path) -> None:
+        (root / ".Doctrine.md").write_text("# doctrine v1\n", "utf-8")
+        for sub in ("roles", "skills"):
+            (root / ".Doctrine" / sub).mkdir(parents=True)
+        (root / ".Doctrine" / "roles" / "backend-engineer.md").write_text(
+            "x\n", "utf-8")
+        (root / ".Doctrine" / "skills" / "testing.md").write_text("x\n", "utf-8")
+
+    def test_first_turn_records_baseline_and_stays_quiet(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            self.assertEqual(eng.drift_notice(root, "s1"), "")
+
+    def test_unchanged_corpus_never_warns(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.drift_notice(root, "s1")
+            for _ in range(3):
+                self.assertEqual(eng.drift_notice(root, "s1"), "")
+
+    def test_deleted_role_card_is_detected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.drift_notice(root, "s1")
+            (root / ".Doctrine" / "roles" / "backend-engineer.md").unlink()
+            self.assertIn("STALE", eng.drift_notice(root, "s1"))
+
+    def test_edited_root_law_is_detected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.drift_notice(root, "s1")
+            (root / ".Doctrine.md").write_text("# doctrine v2\n", "utf-8")
+            self.assertIn("STALE", eng.drift_notice(root, "s1"))
+
+    def test_a_restarted_session_starts_clean(self):
+        """The banner must clear on restart, or it becomes permanent noise."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.drift_notice(root, "old-session")
+            (root / ".Doctrine.md").write_text("# doctrine v2\n", "utf-8")
+            self.assertIn("STALE", eng.drift_notice(root, "old-session"))
+            self.assertEqual(eng.drift_notice(root, "new-session"), "")
+
+    def test_skill_body_edits_do_not_warn(self):
+        """Card BODIES are Read on demand mid-session, so they are never stale.
+        Hashing them would fire on every ordinary edit and train the reader to
+        ignore the banner."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.drift_notice(root, "s1")
+            (root / ".Doctrine" / "skills" / "testing.md").write_text(
+                "rewritten entirely\n", "utf-8")
+            self.assertEqual(eng.drift_notice(root, "s1"), "")
+
+    def test_missing_session_id_is_a_silent_no_op(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            self.assertEqual(eng.drift_notice(root, None), "")
+
+    def test_undecodable_payload_does_not_take_the_hook_down(self):
+        """A hook that raises blocks the turn. One bad byte must not."""
+        self.assertIsNone(eng._session_id(b"\xff\xfe not json"))
+        self.assertIsNone(eng._session_id(b""))
+        self.assertEqual(eng._session_id(b'{"session_id":"a/b..c"}'), "abc")
+
+
 if __name__ == "__main__":
     unittest.main()

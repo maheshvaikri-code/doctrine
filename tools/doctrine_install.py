@@ -234,11 +234,60 @@ def copy_file(src: Path, dest: Path, target: Path, report: Report,
     report.copied.append(dest.relative_to(target).as_posix())
 
 
+# Machine-local files that must NEVER travel from the source repo into a
+# consumer. `*.local.json` is Claude Code's personal override layer: it MERGES
+# OVER settings.json (the guard's own CONTROL_SURFACE note says so), it is
+# untracked by convention, and it accumulates whatever that operator happened
+# to approve. Shipping it silently grants every consumer the source machine's
+# standing permissions - and leaks its absolute paths.
+#
+# This is the FALLBACK only. The primary rule is `source_manifest` below: ship
+# what the source repo TRACKS. A denylist of known-bad names is the shape this
+# project already learned loses - the guard's write-verb blocklist had to be
+# inverted to a read-only allowlist after four rounds of new spellings - and
+# the same applies here: `settings.local.json` was the leak we found,
+# `scheduled_tasks.lock` was sitting right beside it, and the next runtime
+# file Claude Code adds would leak too.
+LOCAL_ONLY_SUFFIX = ".local.json"
+LOCAL_ONLY_NAMES = ("settings.local.json", "scheduled_tasks.lock")
+
+
+def is_machine_local(src: Path) -> bool:
+    return (src.name in LOCAL_ONLY_NAMES
+            or src.name.endswith(LOCAL_ONLY_SUFFIX))
+
+
+def source_manifest(source: Path) -> set[str] | None:
+    """Posix paths git TRACKS in the source tree, or None if git cannot say.
+
+    Tracked-ness is the honest definition of "part of the framework": if the
+    doctrine's own repo does not commit a file, it is not something to install
+    into somebody else's. Returns None (not an empty set) when git is absent or
+    the source is not a repo, so the caller can fall back rather than install
+    nothing.
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(source), "ls-files", "-z"],
+                             capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    paths = {p for p in out.stdout.split("\0") if p}
+    return paths or None
+
+
 def copy_tree(src_dir: Path, dest_dir: Path, target: Path, report: Report,
-              force: bool) -> None:
+              force: bool, source: Path | None = None,
+              tracked: set[str] | None = None) -> None:
     for src in sorted(src_dir.rglob("*")):
         if src.is_dir() or "__pycache__" in src.parts:
             continue
+        if tracked is not None and source is not None:
+            if src.relative_to(source).as_posix() not in tracked:
+                continue          # untracked in the source = not framework
+        elif is_machine_local(src):
+            continue              # no git: fall back to the denylist
         copy_file(src, dest_dir / src.relative_to(src_dir), target,
                   report, force)
 
@@ -351,8 +400,9 @@ def install(source: Path, target: Path, tools: list[str],
     # the law
     copy_file(source / ".Doctrine.md", target / ".Doctrine.md", target,
               report, force)
+    tracked = source_manifest(source)
     copy_tree(source / ".Doctrine", target / ".Doctrine", target, report,
-              force)
+              force, source, tracked)
     # ...and, under --force only, remove corpus files deleted upstream, after
     # backing each one up. Copy-only upgrades left deleted roles installed and
     # selectable forever.
@@ -392,7 +442,7 @@ def install(source: Path, target: Path, tools: list[str],
 
     if "claude" in tools:
         copy_tree(source / ".claude", target / ".claude", target, report,
-                  force)
+                  force, source, tracked)
         append_lines(target / "CLAUDE.md", CLAUDE_IMPORTS, None, report,
                      target)
     for tool in tools:

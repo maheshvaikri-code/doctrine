@@ -145,6 +145,61 @@ class TestInstaller(unittest.TestCase):
         gitignore = (self.target / ".gitignore").read_text("utf-8")
         self.assertIn(".doctrine-state/local/", gitignore)
 
+    def test_machine_local_settings_never_travel_to_a_consumer(self):
+        """SECURITY. `.claude/settings.local.json` is Claude Code's personal
+        override layer: it MERGES OVER settings.json, is untracked by
+        convention, and accumulates whatever that operator approved.
+
+        The installer used to copy the whole `.claude/` tree, so the source
+        machine's standing permissions - and its absolute paths - were
+        installed into every consumer as allow rules. Found in a real repo,
+        which had inherited three `Bash(cp ...)` approvals from this one,
+        one of them containing the source machine's full path.
+        """
+        self.assertEqual(self.install(), 0)
+        leaked = self.target / ".claude" / "settings.local.json"
+        self.assertFalse(
+            leaked.exists(),
+            "the source repo's machine-local permissions were installed")
+
+        # and it must not sneak back in under --force
+        self.assertEqual(self.install(force=True), 0)
+        self.assertFalse(leaked.exists())
+
+    def test_only_git_tracked_files_are_installed(self):
+        """The PRIMARY rule, and why it is an allowlist.
+
+        `settings.local.json` was the leak we found; `scheduled_tasks.lock` was
+        sitting untracked right beside it and a name denylist would have missed
+        it, exactly as the guard's write-verb blocklist missed new spellings
+        for four rounds. Tracked-ness is the honest definition of "part of the
+        framework": if the doctrine's own repo does not commit a file, it is
+        not something to install into somebody else's.
+        """
+        self.assertEqual(self.install(), 0)
+        tracked = di.source_manifest(REPO)
+        self.assertIsNotNone(tracked, "source repo should be a git checkout")
+        for path in sorted((self.target / ".claude").rglob("*")):
+            if path.is_file():
+                rel = path.relative_to(self.target).as_posix()
+                self.assertIn(rel, tracked,
+                              f"installed an untracked source file: {rel}")
+
+    def test_manifest_is_none_for_a_non_git_source(self):
+        """Must degrade, not install nothing: a tarball source has no git, and
+        the caller falls back to the name denylist."""
+        with tempfile.TemporaryDirectory() as d:
+            self.assertIsNone(di.source_manifest(Path(d)))
+
+    def test_any_local_json_override_is_treated_as_machine_local(self):
+        """The FALLBACK, used only when git cannot answer. Guards the class,
+        not one filename: Claude Code's override layer is `*.local.json`."""
+        for name in ("settings.local.json", "mcp.local.json",
+                     "anything.local.json", "scheduled_tasks.lock"):
+            self.assertTrue(di.is_machine_local(Path("x") / name), name)
+        for name in ("settings.json", "local.json", "plugin.json"):
+            self.assertFalse(di.is_machine_local(Path("x") / name), name)
+
     def test_force_prunes_corpus_files_deleted_upstream(self):
         """The installer used to only COPY, so a role deleted from the doctrine
         survived forever in every consumer - garagebox kept offering
@@ -358,8 +413,12 @@ class TestInstaller(unittest.TestCase):
         calls = []
 
         def fake_run(cmd, cwd=None, **kw):
-            calls.append((list(cmd), Path(cwd)))
-            return type("R", (), {"returncode": 0})()
+            # cwd is None only for the installer's read-only `git ls-files`
+            # against the SOURCE; every TARGET-side call passes cwd=target.
+            # This test is about the target-side plumbing.
+            if cwd is not None:
+                calls.append((list(cmd), Path(cwd)))
+            return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
         with mock.patch.object(di.subprocess, "run", fake_run):
             rc = di.install(REPO, self.target, ["claude"], False, False,
@@ -377,7 +436,8 @@ class TestInstaller(unittest.TestCase):
         # a failing gate suite must surface as a non-zero install exit
         def fake_run(cmd, cwd=None, **kw):
             hit = any("doctrine_verify.py" in str(c) for c in cmd)
-            return type("R", (), {"returncode": 1 if hit else 0})()
+            return type("R", (), {"returncode": 1 if hit else 0,
+                                  "stdout": "", "stderr": ""})()
 
         with mock.patch.object(di.subprocess, "run", fake_run):
             rc = di.install(REPO, self.target, ["claude"], False, False,
@@ -394,8 +454,12 @@ class TestInstaller(unittest.TestCase):
         calls = []
 
         def fake_run(cmd, cwd=None, **kw):
-            calls.append(cmd)
-            return type("R", (), {"returncode": 0})()
+            # Record TARGET-side calls only. cwd is None solely for the
+            # installer's read-only `git ls-files` against the SOURCE, which
+            # executes nothing from the target and is not what this guards.
+            if cwd is not None:
+                calls.append(cmd)
+            return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
         with mock.patch.object(di.subprocess, "run", fake_run):
             rc = di.install(REPO, self.target, ["claude"], False, False,
@@ -403,16 +467,33 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(rc, 2)
         self.assertEqual(calls, [])  # never executed the target's tools
 
-    def test_no_verify_runs_no_subprocess(self):
+    def test_no_verify_executes_nothing_from_the_target(self):
+        """The property this protects is 'never execute the TARGET's tools' -
+        the sibling verify tests say so, and the recorded failure is real: a
+        --verify path once ran target-side tool files that copy_file had
+        SKIPPED, i.e. unvetted code the installer had not written.
+
+        Asserted by ORIGIN rather than by call count, because the installer now
+        also asks git, read-only, which files the SOURCE tracks (so it stops
+        shipping the source machine's settings.local.json). A bare
+        `calls == []` would forbid that harmless source-side read while still
+        permitting a target-side execution introduced under some other cwd.
+        """
         calls = []
 
         def fake_run(cmd, cwd=None, **kw):
-            calls.append(cmd)
-            return type("R", (), {"returncode": 0})()
+            calls.append((list(cmd), cwd))
+            return type("R", (), {"returncode": 1, "stdout": "", "stderr": ""})()
 
         with mock.patch.object(di.subprocess, "run", fake_run):
             di.install(REPO, self.target, ["claude"], False, False, False)
-        self.assertEqual(calls, [])
+
+        target = str(self.target)
+        for cmd, cwd in calls:
+            self.assertNotEqual(str(cwd), target,
+                                f"ran a subprocess IN the target: {cmd}")
+            self.assertNotIn(target, " ".join(str(c) for c in cmd),
+                             f"executed something FROM the target: {cmd}")
 
     def test_idempotent(self):
         self.install()

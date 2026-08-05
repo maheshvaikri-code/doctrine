@@ -71,9 +71,22 @@ class TestAwaken(unittest.TestCase):
 class TestEngage(unittest.TestCase):
     def test_reminder_names_personal_builder_and_devops_path(self):
         self.assertIn("Delivery profile: personal", eng.REMINDER)
-        self.assertIn("Solo Builder -> DevOps verification", eng.REMINDER)
+        self.assertIn("Solo Builder posture", eng.REMINDER)
+        self.assertIn("DevOps verification", eng.REMINDER)
         self.assertIn("creative build -> deterministic verification",
                       eng.REMINDER)
+
+    def test_reminder_keeps_craft_roles_on_the_personal_profile(self):
+        """Regression: the reminder used to say specialists activate "only from
+        real risk", so personal-profile work wore `[ROLE: Solo Builder]` alone
+        and never loaded the craft card (interop for a CLI, database for a
+        schema). The profile relaxes ceremony, not the role system."""
+        self.assertIn("CRAFT hat", eng.REMINDER)
+        self.assertIn("relaxes", eng.REMINDER)
+        self.assertIn("not the role system", eng.REMINDER)
+        # the exact instruction that caused the collapse must not come back
+        self.assertNotIn("activate other roles only from real risk",
+                         eng.REMINDER)
 
     def test_find_root_none_outside_doctrine_repo(self):
         with tempfile.TemporaryDirectory() as d:

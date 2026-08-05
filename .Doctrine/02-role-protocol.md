@@ -11,9 +11,12 @@ genuinely distinct. These mechanics make that real.
 - Stay in the role for the whole gate. Don't drift from Reviewer back into
   Builder to "just quickly fix" a finding — log the finding, close the
   review, then switch and fix.
-- On `Delivery profile: personal`, default to `[ROLE: Solo Builder]` and switch
-  to `[ROLE: DevOps Engineer]` for routine verification. Other hats activate
-  only when the task's real surface needs them. Default `Agent latitude` to
+- On `Delivery profile: personal`, wear the **craft hat the work calls for**
+  under the Solo Builder posture (`[ROLE: Interop Engineer] . solo posture`),
+  and switch to `[ROLE: DevOps Engineer]` for routine verification. The profile
+  relaxes ceremony, NOT the role system: craft hats activate by craft, risk
+  specialists activate by risk, and `[ROLE: Solo Builder]` alone -- no craft hat
+  named -- is a defect, not a shortcut. Default `Agent latitude` to
   `creative`; governance may fence a risky effect but does not become the
   steering wheel for reversible local work.
 

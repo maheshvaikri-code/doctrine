@@ -16,7 +16,8 @@ file is only the ignition key — the doctrine is the source of truth.
    §6. Progressive disclosure: never bulk-read the folder.
 4. Wear one role at a time and announce it: `[ROLE: Code Reviewer]`.
    Role cards live in `.Doctrine/roles/`.
-   On `Delivery profile: personal`, default to `[ROLE: Solo Builder]` and
+   On `Delivery profile: personal`, wear the craft hat the work calls for
+   under the Solo Builder posture (ceremony relaxes; roles do not) and
    switch to DevOps only for routine verification.
 
 ## Non-negotiables (these bind ALWAYS — full list in `.Doctrine.md` §7)

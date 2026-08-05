@@ -14,7 +14,7 @@ Usage:
   python tools/doctrine_install.py --target ../my-repo --tool claude
   python tools/doctrine_install.py --target . --tool claude,cursor,codex
   python tools/doctrine_install.py --target ../svc --tool all --enterprise
-  python tools/doctrine_install.py --target ../app --tool codex --solo
+  python tools/doctrine_install.py --target ../app --tool codex --solobuilder
   python tools/doctrine_install.py --target . --verify   # turnkey: one command
 
 --verify makes it turnkey: after copying, it initializes the state plane
@@ -58,6 +58,11 @@ ADAPTERS: dict[str, list[tuple[str, str]]] = {
 }
 CLAUDE_IMPORTS = ["@.Doctrine.md",
                   "@.doctrine-state/local/hydration.bundle.md"]
+# The canonical brief marker. "personal" is the LEGACY spelling and is still
+# recognised, because 15+ installed repos carry it; only the new one is written.
+DELIVERY_MARKER = "Delivery profile: solobuilder"
+DELIVERY_MARKERS = (DELIVERY_MARKER, "Delivery profile: personal")
+
 TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
               "doctrine_mcp.py", "doctrine_install.py",
               "doctrine_metrics.py", "doctrine_verify.py",
@@ -258,7 +263,7 @@ def install(source: Path, target: Path, tools: list[str],
         print("error: personal/solo and enterprise delivery profiles are "
               "mutually exclusive", file=sys.stderr)
         return 2
-    if enterprise and "Delivery profile: personal" in existing_brief:
+    if enterprise and any(m in existing_brief for m in DELIVERY_MARKERS):
         print("error: enterprise and personal/solo delivery profiles are "
               "mutually exclusive", file=sys.stderr)
         return 2
@@ -345,7 +350,7 @@ def install(source: Path, target: Path, tools: list[str],
     if startup:
         brief_lines.append("Company profile: startup")
     if personal:
-        brief_lines.append("Delivery profile: personal")
+        brief_lines.append(DELIVERY_MARKER)
         has_agent_latitude = any(
             line.strip().startswith("Agent latitude:")
             or "**Agent latitude:**" in line
@@ -411,11 +416,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--startup", action="store_true",
                         help="seed 'Company profile: startup' in the brief "
                              "(activates the founder-ops roles)")
-    parser.add_argument("--personal", "--solo", dest="personal",
+    parser.add_argument("--solobuilder", dest="personal",
                         action="store_true",
-                        help="use creative Solo Builder work with deterministic "
-                             "DevOps verification ('Delivery profile: "
-                             "personal')")
+                        help="solo-builder delivery: relaxed GATING, full role "
+                             "set, creative build then deterministic DevOps "
+                             "verification ('Delivery profile: solobuilder')")
     parser.add_argument("--ci", action="store_true",
                         help="also install the CI gate suite (see "
                              "--ci-provider)")

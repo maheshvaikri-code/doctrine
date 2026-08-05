@@ -35,7 +35,6 @@ NONE = "—"  # em dash = "no capability in this dimension"
 ROLE_GATE = {
     "product-owner": "G0 (Intake)",
     "chief-architect": "G1 (Architecture) + G2 (Planning)",
-    "solo-builder": "personal profile G3 (Build)",
     "ux-designer": "G1/G3 (UX flows + states)",
     "web-designer": "G1 (site look & feel)",
     "backend-engineer": "G3 (Build)",

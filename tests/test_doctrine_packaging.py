@@ -158,7 +158,7 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("Workforce runtime: maple", brief)
         self.assertNotIn("Agent latitude:", brief)
 
-    def test_personal_profile_seeds_canonical_marker(self):
+    def test_solobuilder_profile_seeds_canonical_marker(self):
         self.assertEqual(
             di.install(REPO, self.target, ["claude"], False, False, False,
                        personal=True), 0)
@@ -166,20 +166,32 @@ class TestInstaller(unittest.TestCase):
             di.install(REPO, self.target, ["claude"], False, False, False,
                        personal=True), 0)
         brief = (self.target / "docs" / "brief.md").read_text("utf-8")
-        self.assertIn("Delivery profile: personal", brief)
+        self.assertIn("Delivery profile: solobuilder", brief)
         self.assertEqual(brief.count("Agent latitude: creative"), 1)
         self.assertIn("Workforce runtime: maple", brief)
 
-    def test_solo_cli_alias_seeds_personal_profile(self):
+    def test_solobuilder_cli_flag_seeds_the_profile(self):
         self.assertEqual(di.main([
             "--source", str(REPO),
             "--target", str(self.target),
             "--tool", "codex",
-            "--solo",
+            "--solobuilder",
         ]), 0)
         brief = (self.target / "docs" / "brief.md").read_text("utf-8")
-        self.assertIn("Delivery profile: personal", brief)
+        self.assertIn("Delivery profile: solobuilder", brief)
         self.assertIn("Agent latitude: creative", brief)
+
+    def test_legacy_personal_marker_still_blocks_enterprise(self):
+        """15+ repos were installed with the old spelling. Enterprise must
+        still refuse to combine with a legacy brief, or the mutual-exclusion
+        rule silently stops applying to every repo installed before the
+        rename."""
+        (self.target / "docs").mkdir(parents=True, exist_ok=True)
+        (self.target / "docs" / "brief.md").write_text(
+            "Delivery profile: personal\n", encoding="utf-8")
+        self.assertEqual(
+            di.install(REPO, self.target, ["claude"],
+                       True, False, False), 2)
 
     def test_personal_reinstall_preserves_explicit_agent_latitude(self):
         brief_path = self.target / "docs" / "brief.md"
@@ -221,12 +233,12 @@ class TestInstaller(unittest.TestCase):
         )
         self.assertFalse((self.target / ".Doctrine.md").exists())
 
-    def test_personal_remains_compatible_with_startup(self):
+    def test_solobuilder_remains_compatible_with_startup(self):
         self.assertEqual(
             di.install(REPO, self.target, ["claude"], False, False, False,
                        startup=True, personal=True), 0)
         brief = (self.target / "docs" / "brief.md").read_text("utf-8")
-        self.assertIn("Delivery profile: personal", brief)
+        self.assertIn("Delivery profile: solobuilder", brief)
         self.assertIn("Company profile: startup", brief)
 
     def test_verify_flag_runs_init_then_gates(self):

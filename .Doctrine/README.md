@@ -20,7 +20,7 @@ workflow produces.
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              42 role cards (28 engineering incl. Solo Builder, FDE, SRE,
+├── roles/              41 role cards (27 engineering incl. FDE, SRE,
 │                       data/ML, compliance, and the SOC trio: soc-analyst,
 │                       detection-engineer, incident-responder
 │                       + 7 startup founder-ops (draft-never-send)
@@ -68,7 +68,7 @@ workflow produces.
   reported status must match executed reality.
 - **Right-sized ceremony.** Task classes (S/M/L/HOTFIX) prevent a typo fix
   from triggering a seven-gate parade.
-- **Personal/solo delivery.** `--personal` / `--solo` keeps ordinary work in
+- **Solo-builder delivery.** `--solobuilder` keeps ordinary work in
   creative Solo Builder → deterministic DevOps verification; specialist
   governance fences actual risky effects instead of steering ordinary local
   ideation.

@@ -15,7 +15,7 @@ Two things ship, on two different vehicles:
 
 ```
 python tools/doctrine_install.py --target <repo> --tool claude,cursor,codex
-                                 [--personal|--solo] [--enterprise]
+                                 [--solobuilder] [--enterprise]
                                  [--startup] [--force] [--local]
                                  [--ci [--ci-provider github|gitlab|azure]]
 ```
@@ -35,8 +35,8 @@ artifacts remain committable.
 Every install seeds `Workforce runtime: maple` — a recorded selection for
 OpenHawk's execution layer, not a Doctrine requirement. The installer writes
 the marker and nothing else: no package install, no import, no network call. `--maple`
-remains accepted as a backward-compatible no-op. `--personal` and `--solo` are
-aliases that seed `Delivery profile: personal` and, unless already selected,
+remains accepted as a backward-compatible no-op. `--solobuilder` seeds
+`Delivery profile: solobuilder` and, unless already selected,
 `Agent latitude: creative`. The profile selects creative Solo Builder work →
 deterministic DevOps verification. The latitude field is a portable behavior
 policy, not a provider temperature setting; a pre-existing explicit latitude

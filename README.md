@@ -53,7 +53,7 @@ by tooling, not vibes.**
 
 - 🚦 **Gates G0→G7** with right-sized ceremony — a typo fix never convenes a
   council; a release always does
-- 👥 **42 roles**, and verifiers are *dispatched, not worn* — a fresh-context
+- 👥 **41 roles**, and verifiers are *dispatched, not worn* — a fresh-context
   subagent reviews the work, because a builder reviewing its own build is a
   changed narration, not a changed mind
 - 📚 **62 skill playbooks** — backend to mobile, ML, data, privacy, incident
@@ -108,7 +108,7 @@ still a write. Use the owning tool, or record the exception in
 ```bash
 git clone https://github.com/aroora-ai-labs/doctrine
 python doctrine/tools/doctrine_install.py --target <your-repo> \
-    --tool claude,cursor,codex   # add --solo, --startup, or --enterprise
+    --tool claude,cursor,codex   # add --solobuilder, --startup, or --enterprise
 cd <your-repo> && python tools/doctrine_state.py init && make verify
 ```
 
@@ -116,7 +116,7 @@ Pick the profile that matches how you actually work:
 
 | Flag | Profile | Ceremony |
 |---|---|---|
-| `--solo` / `--personal` | Solo Builder | Creative build → deterministic DevOps verification. Governance fences real risk, not ordinary ideation. |
+| `--solobuilder` | Solo builder | **Full role set, relaxed gating.** Creative build → deterministic DevOps verification; governance fences real risk, not ordinary ideation. |
 | `--startup` | Founder-ops | Adds growth, sales, support, finance, legal roles — all **draft-only**; you send. |
 | `--enterprise` | Merge council | Adds the Gold Build ladder, permission matrix, and governance co-signs. |
 
@@ -163,7 +163,7 @@ Full install matrix: [.Doctrine/05-packaging.md](.Doctrine/05-packaging.md).
 
 | | Count | |
 |---|---:|---|
-| **Roles** | 42 | engineering · governance heads · founder-ops · domain specialists |
+| **Roles** | 41 | engineering · governance heads · founder-ops · domain specialists |
 | **Skill playbooks** | 62 | full SDLC + security operations + sandboxing |
 | **Hard standards** | 8 | coding, API design, errors, deps, git, governance, merge |
 | **Language profiles** | 10 | per-language conventions |

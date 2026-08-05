@@ -17,7 +17,7 @@ file is only the ignition key — the doctrine is the source of truth.
 4. Wear one role at a time and announce it: `[ROLE: Code Reviewer]`.
    Role cards live in `.Doctrine/roles/`.
    On `Delivery profile: personal`, wear the craft hat the work calls for
-   under the Solo Builder posture (ceremony relaxes; roles do not) and
+   exactly as an enterprise repo would (only GATING relaxes) and
    switch to DevOps only for routine verification.
 
 ## Non-negotiables (these bind ALWAYS — full list in `.Doctrine.md` §7)
@@ -44,7 +44,7 @@ Iteration budgets (5 per criterion Class S, 10 for M/L), thrash detector
 no retry-until-lucky on flaky tests. Budget out = stop and report
 honestly what was tried.
 
-Personal/solo repos use the direct path: Solo Builder G3 + self-review →
+Personal/solo repos use the direct path: craft-role G3 + self-review →
 DevOps verification. Other gates/roles are optional unless the task's actual
 risk surface activates them. `Agent latitude: creative` is the personal
 default: explore reversible local solutions freely, then converge at

@@ -70,16 +70,16 @@ agents use native subagents or serial roles. Profile flags seed your project's
 
 | Flag | Effect |
 |------|--------|
-| `--personal` / `--solo` | Creative Solo Builder → deterministic DevOps verification (`Delivery profile: personal`, `Agent latitude: creative`) |
+| `--solobuilder` | Full role set, relaxed gating: creative build → deterministic DevOps verification (`Delivery profile: solobuilder`, `Agent latitude: creative`) |
 | `--enterprise` | Merge Council + Gold Build promotion (`Merge profile: enterprise`) |
 | `--startup` | Founder-ops roles: growth, sales, support, finance, legal (`Company profile: startup`) |
 | `--maple` | Legacy compatibility flag; MAPLE is already the default |
 
 ```bash
-python tools/doctrine_install.py --target ../my-project --solo --verify
+python tools/doctrine_install.py --target ../my-project --solobuilder --verify
 ```
 
-Personal/solo and enterprise are mutually exclusive. Startup can combine with
+Solo-builder and enterprise are mutually exclusive. Startup can combine with
 personal for a solo founder. Personal `Agent latitude` is a portable
 `creative | balanced | deterministic` policy knob; edit the brief to override
 the creative default. It controls reversible solution search, not permissions,

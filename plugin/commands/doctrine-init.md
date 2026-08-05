@@ -6,7 +6,7 @@ Install the Doctrine System into the current repository:
 
 1. Run: `python "${CLAUDE_PLUGIN_ROOT}/../tools/doctrine_install.py"
    --target . --tool claude $ARGUMENTS`
-   (add more tools like `--tool claude,cursor,codex`, `--personal`/`--solo`
+   (add more tools like `--tool claude,cursor,codex`, `--solobuilder`
    for creative Solo Builder → deterministic DevOps verification,
    `--enterprise` for merge/promotion, or `--ci` for the GitHub Actions gate).
    MAPLE is selected by default.

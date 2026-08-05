@@ -3,7 +3,7 @@
 
 **Date:** · **Class:** S / M / L / HOTFIX (why) · **Requested by:** human
 
-**Delivery profile:** standard / personal (`--personal` and `--solo` are
+**Delivery profile:** standard / solobuilder (`--solobuilder` is
 aliases) · **Company profile:** standard / startup · **Merge profile:**
 standard / enterprise · **Workforce runtime:** maple (default; native/serial
 fallback when unavailable) · **Agent latitude:** creative / balanced /

@@ -70,8 +70,10 @@ class TestAwaken(unittest.TestCase):
 
 class TestEngage(unittest.TestCase):
     def test_reminder_names_personal_builder_and_devops_path(self):
+        # BOTH markers: new installs write "solobuilder", but 15+ existing
+        # repos carry the legacy "personal". Keying on one strands the other.
+        self.assertIn("Delivery profile: solobuilder", eng.REMINDER)
         self.assertIn("Delivery profile: personal", eng.REMINDER)
-        self.assertIn("Solo Builder posture", eng.REMINDER)
         self.assertIn("DevOps verification", eng.REMINDER)
         self.assertIn("creative build -> deterministic verification",
                       eng.REMINDER)
@@ -81,12 +83,12 @@ class TestEngage(unittest.TestCase):
         real risk", so personal-profile work wore `[ROLE: Solo Builder]` alone
         and never loaded the craft card (interop for a CLI, database for a
         schema). The profile relaxes ceremony, not the role system."""
-        self.assertIn("CRAFT hat", eng.REMINDER)
-        self.assertIn("relaxes", eng.REMINDER)
-        self.assertIn("not the role system", eng.REMINDER)
-        # the exact instruction that caused the collapse must not come back
+        self.assertIn("FULL ROLE SET", eng.REMINDER)
+        self.assertIn("GATING ONLY", eng.REMINDER)
+        # both instructions that collapsed the role system must stay gone
         self.assertNotIn("activate other roles only from real risk",
                          eng.REMINDER)
+        self.assertNotIn("default to Solo Builder", eng.REMINDER)
 
     def test_find_root_none_outside_doctrine_repo(self):
         with tempfile.TemporaryDirectory() as d:

@@ -28,7 +28,7 @@ native platform → installed dep → one line → minimum that works), with val
 security, data-loss handling, and accessibility explicitly never on the chopping block.
 Benchmarked at ~54% less code, ~20% cheaper, ~27% faster on real Claude Code sessions.
 
-**graphify** (`Graphify-Labs/graphify`, pinned PyPI `graphifyy` 0.9.12) — `/graphify .`
+**graphify** (`Graphify-Labs/graphify`, pinned PyPI `graphifyy` 0.9.33) — `/graphify .`
 maps a repo into a queryable knowledge graph (`graph.json` + `graph.html` +
 `GRAPH_REPORT.md`). Code pass is tree-sitter AST: deterministic, local, zero LLM calls,
 ~40 languages. Every edge is tagged `EXTRACTED` (explicit in source) or `INFERRED`

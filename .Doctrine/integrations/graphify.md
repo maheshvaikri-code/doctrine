@@ -2,7 +2,7 @@
 integration: graphify
 upstream: https://github.com/Graphify-Labs/graphify
 package: graphifyy (PyPI)   # package is graphifyy, command is graphify
-pinned_version: 0.9.12
+pinned_version: 0.9.33
 discipline: retrieval-context-engineering
 ---
 

@@ -3,7 +3,7 @@
 > The reviewer discipline of catching the failure modes **specific to
 > AI-generated code and content** — the smells that survive a naive read but rot
 > the codebase. It composes with the anti-fabrication law (Non-Negotiable #1),
-> "no placeholder reported as done" (#9), and `skills/ponytail.md` (brevity): those
+> "no placeholder reported as done" (#9): those
 > forbid the acts; this skill is the fresh-context *detector* at G4/G5.
 
 ## Scope
@@ -21,7 +21,7 @@ slop hides.
    functions but does not do what it claims — verify behavior against the actual
    API/spec, not the vibe.
 3. **Over-engineering.** Abstraction, config surface, or layers for a one-off
-   (ponytail YAGNI) — an interface with one implementation, a strategy pattern for
+   (YAGNI) — an interface with one implementation, a strategy pattern for
    two cases.
 4. **Boilerplate bloat.** Verbose scaffolding, defensive noise on impossible paths,
    and comments that restate the code line-for-line.
@@ -35,8 +35,8 @@ slop hides.
 8. **Fabricated evidence.** "Tests pass" with no pasted output; invented benchmark
    or coverage numbers; a summary of output presented as the output (#1).
 9. **Ignores the codebase.** Re-implements an existing util, breaks the local
-   pattern/style, or adds a dep for what's already present — `skills/graphify.md`
-   rung 2 ("already in this codebase?") answers this in one query.
+   pattern/style, or adds a dep for what's already present. Search the repo
+   before concluding nothing reusable exists.
 10. **Security theater.** A check that looks like validation but isn't — a no-op
     auth middleware, a regex that matches everything, permissive defaults dressed as
     safe. (Route real findings to `roles/security-reviewer.md`.)

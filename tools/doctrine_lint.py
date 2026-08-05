@@ -27,9 +27,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from doctrine_state import SchemaError, canonical_bytes, validate  # noqa: E402
 
 # References that intentionally point outside this repo (upstream docs).
-ALLOWED_EXTERNAL = {
-    "skills/ponytail/SKILL.md",  # upstream ponytail repo path
-}
+# Empty by default: add a path here only when the corpus must cite a file
+# that lives in an upstream project rather than in this repo.
+ALLOWED_EXTERNAL: set[str] = set()
 
 REF_RE = re.compile(
     r"`((?:skills|standards|roles|templates|rubrics|schemas|examples|"

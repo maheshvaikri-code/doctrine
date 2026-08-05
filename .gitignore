@@ -31,6 +31,3 @@ docs/personal/
 
 # WorkHawk is a separate project/repo - not tracked here (see README)
 workhawk/
-
-# graphify generated output (rebuild with: graphify . --code-only)
-graphify-out/

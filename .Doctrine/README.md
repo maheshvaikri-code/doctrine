@@ -28,7 +28,7 @@ workflow produces.
 │                       ciso, risk-officer — policy above the gates
 │                       + 3 domain specialists: clinical-safety, regulatory-affairs,
 │                       quant-researcher)
-├── skills/             64 discipline playbooks (G0 requirements → G1
+├── skills/             62 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + security operations: detection engineering, threat
@@ -44,7 +44,7 @@ workflow produces.
 │                       merge verdict, release, retro, risk register, domain pack,
 │                       data contract, paved road, compatibility manifest,
 │                       analysis report, security incident report)
-├── integrations/       Third-party tool wiring: FDE/floci overview, ponytail, graphify
+├── integrations/       Third-party tool wiring: FDE/floci overview, MAPLE, CodeMonk
 ├── rubrics/            Authority documents for interview-style gates (FDE discovery)
 ├── schemas/            JSON Schemas for machine-checked artifacts (parity ledger)
 ├── examples/           Worked examples (floci.manifest.yaml)

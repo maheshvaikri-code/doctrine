@@ -79,8 +79,7 @@ floci; elevation to real cloud requires an explicit human go).
 
 Customer demo/PoC asks → the FDE role (`.Doctrine/roles/fde.md`):
 emulator-only prototypes, parity ledger before any promotion claim.
-Structure questions → graph before grep (`.Doctrine/skills/graphify.md`).
-Code brevity ladder → `.Doctrine/skills/ponytail.md`. Repos with the
+Repos with the
 state plane hydrate/checkpoint per `.Doctrine/state-plane/STATE.md`.
 
 ---

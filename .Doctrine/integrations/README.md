@@ -1,63 +1,42 @@
-# doctrine-integrations: ponytail + graphify
+# doctrine-integrations — index
 
-Wires two third-party OSS tools into `.Doctrine` as **integrations** — thin shims over
-pinned upstream, never vendored copies. Both are actively developed; vendoring would go
-stale and fork the behavior silently.
+Wiring for third-party projects Doctrine **composes with**. Every one is a thin
+shim over a pinned upstream — **never a vendored copy**, because a vendored fork
+goes stale and forks the behaviour silently.
 
-## Installed layout (merged into `.Doctrine/` at doctrine v0.1.3)
+## The rule
 
-```
-.Doctrine/
-├── integrations/
-│   ├── README.md            ← you are here (index; also see fde.md)
-│   ├── ponytail.md          ← pin, per-adapter install, health check, precedence
-│   └── graphify.md          ← pin, install, modes, doctrine wiring
-└── skills/
-    ├── ponytail.md          ← doctrine-side shim: when agents engage it
-    └── graphify.md          ← doctrine-side shim: graph before grep
-```
+Doctrine's own tooling is **stdlib-only with zero dependencies**, and it
+installs, imports, and vendors **nothing** from this folder. That is what keeps
+it installable into any repo on any OS with nothing to resolve, and what keeps
+the gates working when none of these are present.
 
-The shim skills are routed via `.Doctrine.md` §6; the `integrations/*.md` files are
-for humans (and for agents running setup/health tasks).
+**Every integration is optional. No gate depends on one.** A missing upstream
+degrades that one capability and nothing else.
 
-## What each one is
+## What is wired
 
-**ponytail** (`DietrichGebert/ponytail`, MIT, pinned v4.8.4) — a behavioral skill that
-forces the laziest solution that works via a 7-rung ladder (YAGNI → reuse → stdlib →
-native platform → installed dep → one line → minimum that works), with validation,
-security, data-loss handling, and accessibility explicitly never on the chopping block.
-Benchmarked at ~54% less code, ~20% cheaper, ~27% faster on real Claude Code sessions.
+| File | Upstream | What it adds |
+|---|---|---|
+| `maple.md` | [maple-oss](https://github.com/maheshvaikri-code/maple-oss) (AGPL-3.0) | Multi-agent runtime: typed messages, `Result<T,E>`, broker-enforced separation of duties. Carried for **OpenHawk**; Doctrine itself needs no runtime. |
+| `floci.md` | [floci](https://github.com/floci-io/floci) (MIT) | Local cloud emulation under the `cloud-*` skills and the FDE pipeline — local-first, so real spend stays a §5 decision. |
+| `fde.md` | — | Overview of the FDE prototype pipeline (P1–P6) that `floci` serves. |
+| `codemonk.md` | [codemonk](https://github.com/aroora-ai-labs/codemonk) (MIT) | The metrology subsystem: change metrics, token metering, a graded scorecard. |
 
-**graphify** (`Graphify-Labs/graphify`, pinned PyPI `graphifyy` 0.9.33) — `/graphify .`
-maps a repo into a queryable knowledge graph (`graph.json` + `graph.html` +
-`GRAPH_REPORT.md`). Code pass is tree-sitter AST: deterministic, local, zero LLM calls,
-~40 languages. Every edge is tagged `EXTRACTED` (explicit in source) or `INFERRED`
-(resolved), and `graphify query|path|explain` replaces grepping for structure questions.
+## Adding one
 
-## Taxonomy placement
+An integration document is a **contract**, not an endorsement. It must state:
 
-ponytail → **Behavior Engineering** (a behavior-shaping skill: ponytail governs
-code-brevity behavior specifically; broader behavioral conformance is a separate
-bring-your-own plane). graphify → **Retrieval/Context Engineering** (deterministic
-code-structure retrieval; complements embedding/vector retrieval rather than overlapping
-— no embeddings, no vector store). graphify publishes LongMemEval-S 76% and LOCOMO recall
-figures — a datapoint when comparing memory/retrieval approaches.
+- the upstream URL, licence, and a **pinned version** that has actually been
+  verified — a pin nobody re-checked is a claim, not a fact
+- what the shim adds on top (doctrine-side precedence rules), and what it does not
+- how the capability **degrades** when the upstream is absent; every integration
+  degrades cleanly and never fails a gate
+- a `verified:` date, against a real run whose output was pasted
 
-## Precedence (binding, in order)
+If a shim needs its upstream installed before it does anything, **say so in the
+shim itself**. A routed skill that silently does nothing is worse than no
+skill, because it reads as covered when it is not.
 
-1. **Repo charter invariants beat the ladder.** Determinism scaffolding — canonical
-   JSON, hash gates, conformance vectors, seeded PRNGs — counts as validation/safety
-   and is never simplified away, even under `ultra`.
-2. **Rung 5 is charter-constrained.** Ponytail's "already-installed dependency? use it"
-   yields to a repo pinned stdlib-only/zero-dependency (most of your OSS libraries):
-   in those repos rung 5 is skipped and the ladder goes 4 → 6.
-3. **Graph before grep.** When a fresh `graph.json` exists, structure questions route
-   through graphify queries; ponytail's rung 2 ("already in this codebase?") is answered
-   by `graphify explain/query`, not by skimming.
-
-## Composition
-
-The two reinforce each other: graphify makes rung 2 cheap and precise (reuse what exists,
-found in one query), and ponytail keeps the graph small (less code → fewer nodes). In the
-FDE pipeline: run P4 builds under `ponytail full` (prototypes must stay minimal), and
-optionally ship `GRAPH_REPORT.md` in the deliverable as the handoff orientation doc.
+New integrations pass `standards/dependency-policy.md` first, and adoption is
+the human's decision (§5).

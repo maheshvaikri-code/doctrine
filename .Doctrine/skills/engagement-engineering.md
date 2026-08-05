@@ -1,7 +1,7 @@
 # Skill: Engagement Engineering
 
 > The craft of **how an agent engages** a task and a human — from the opening
-> frame to the clean handoff. Cross-cutting like `skills/ponytail.md` (brevity)
+> frame to the clean handoff. Cross-cutting
 > and `skills/loop-engineering.md` (stuck-handling): **every role applies it, on
 > every engagement.** Distinct from `skills/requirements.md` (deciding *what* to
 > build) — this is *how you show up, decide, report, and stay useful.*
@@ -90,8 +90,8 @@ human-in-the-loop.
   boundary). ◻ An explicit resolution selector + per-action pins + the trust-ratchet
   is the increment this discipline implies; today the engage hook + escalation-park
   + default-deny provide the seed.
-- **Adjacent skills it composes with:** `ponytail` (brevity of every reply),
-  `loop-engineering` (when stuck/iterating), `requirements` (task intake).
+- **Adjacent skills it composes with:** `loop-engineering` (when stuck or
+  iterating) and `requirements` (task intake).
 
 ## Review checklist
 - [ ] Opened with a right-sized Engagement Block (class, role, plan, gates)

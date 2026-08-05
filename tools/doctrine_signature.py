@@ -86,7 +86,6 @@ SKILL_EXTRA = {
     "web-publishing": {"hooks": "opt-in auto-publish on push (§5)"},
     "iac": {"tools": "provisioning (Terraform / IaC)"},
     "metrics": {"tools": "CodeMonk (`integrations/codemonk.md`)"},
-    "graphify": {"tools": "the code-graph tool (`integrations/graphify.md`)"},
     "platform-engineering": {"workflows": "paved-road provisioning"},
     "sandboxing": {
         "workflows": "blast radius -> tier -> five dimensions -> boundary proof",

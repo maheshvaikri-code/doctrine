@@ -56,7 +56,7 @@ by tooling, not vibes.**
 - 👥 **42 roles**, and verifiers are *dispatched, not worn* — a fresh-context
   subagent reviews the work, because a builder reviewing its own build is a
   changed narration, not a changed mind
-- 📚 **64 skill playbooks** — backend to mobile, ML, data, privacy, incident
+- 📚 **62 skill playbooks** — backend to mobile, ML, data, privacy, incident
   response, security operations, and sandboxing
 - 🧠 **Hash-chained session state** — the repo remembers so the model doesn't
   have to (`checkpoint` → `hydrate`)
@@ -164,7 +164,7 @@ Full install matrix: [.Doctrine/05-packaging.md](.Doctrine/05-packaging.md).
 | | Count | |
 |---|---:|---|
 | **Roles** | 42 | engineering · governance heads · founder-ops · domain specialists |
-| **Skill playbooks** | 64 | full SDLC + security operations + sandboxing |
+| **Skill playbooks** | 62 | full SDLC + security operations + sandboxing |
 | **Hard standards** | 8 | coding, API design, errors, deps, git, governance, merge |
 | **Language profiles** | 10 | per-language conventions |
 | **Domain overlays** | 15 | healthcare, finance, quant, aerospace, agentic-AI… |
@@ -184,23 +184,18 @@ rather than a copied fork that would silently go stale. Credit where it is due:
 
 | Project | What it adds | Licence |
 |---|---|---|
-| [**ponytail**](https://github.com/DietrichGebert/ponytail) | A brevity ladder (YAGNI → reuse → stdlib → native → dep → one line) that forces the laziest solution that *works*. Validation, security, data-loss handling and accessibility are never on the chopping block. | MIT |
-| [**graphify**](https://github.com/Graphify-Labs/graphify) | Turns a repo into a queryable knowledge graph via tree-sitter AST — deterministic, local, zero LLM calls, ~40 languages. *Graph before grep* for "what calls X". | — |
 | [**MAPLE**](https://github.com/maheshvaikri-code/maple-oss) | Multi-agent runtime: typed messages, `Result<T,E>`, and **broker-enforced** separation of duties — a verifier physically cannot route to a builder. | AGPL-3.0 |
 | [**floci**](https://github.com/floci-io/floci) | Local cloud emulation that the `cloud-*` skills and the FDE prototype pipeline build on — local-first, so real cloud spend stays a §5 decision. | MIT |
 | [**CodeMonk**](https://github.com/aroora-ai-labs/codemonk) | The metrology subsystem: change metrics, token metering, and a graded scorecard for agent coding. | MIT |
 
-**All five are optional.** Doctrine's gates never depend on them, and it neither
+**All three are optional.** Doctrine's gates never depend on them, and it neither
 installs nor imports any of them — that is what keeps it installable into any
 repo on any OS with nothing to resolve. Install what you want; the rest degrade
 cleanly and silently.
 
-Two honest caveats, since a shim is easy to mistake for a bundled feature:
+One caveat worth stating, since an integration is easy to mistake for a
+bundled feature:
 
-- **A shim is a pointer, not the tool.** `skills/ponytail.md` declares
-  `requires: ponytail >= 4.8.4`; `skills/graphify.md` needs `graphifyy` and a
-  built `graph.json`. Without the upstream installed, the routing row still
-  resolves but nothing runs.
 - **AGPL is not a constraint on use.** MAPLE is free copyleft — anyone may run
   and build on it, commercially included. Reciprocity attaches to redistributing
   a modified version or serving one over a network, not to using it. Doctrine

@@ -21,7 +21,7 @@ adoption gate) and `skills/mcp-tooling.md` (governed MCP servers).
   `standards/dependency-policy.md`; adopting/provisioning a paid or external tool
   is a §5 escalation. A recommendation is not an adoption.
 - **Prefer proven and boring.** The cheapest tool that fully meets the requirement
-  wins (the `skills/ponytail.md` ladder applies to tools too).
+  wins (the least-tooling-that-works rule applies to tools too).
 - **Recommendations rot — encode the rule, not a frozen list.** "Best tool for X"
   changes fast; this skill names the *stable* portfolio map and the *procedure*,
   and defers per-domain external specifics to the routed discipline skill + a
@@ -43,21 +43,19 @@ and wire it as a new `integrations/*.md` shim (provisioning/paying is a §5 deci
 | **CodeMonk** | metrics/metrology — CESR, token cost, HITL (skill: metrics; gate: G7) | wired | `integrations/codemonk.md` |
 | **MAPLE** | multi-agent **workforce runtime** — persistent fleet, typed messages (subagents; parallel G3) | one runtime among many; Doctrine needs none (native/serial otherwise). First-party; what OpenHawk runs | `integrations/maple.md` |
 | **floci / FDE** | demo/prototype provisioning (role: fde; P1–P6) | wired | `integrations/floci.md` |
-| **ponytail** | code-brevity behavior — the 7-rung least-code ladder | wired | `integrations/ponytail.md` |
-| **graphify** | deterministic code-structure retrieval — graph before grep | wired | `integrations/graphify.md` |
 
 ## Best-fit by mechanism (portfolio-first; external = the routed skill + a current check)
 
 | Need in a… | Wired-first | Then / external anchor |
 |------------|-------------|------------------------|
 | **role** | the mechanism the role owns (metrics→CodeMonk, workforce→MAPLE, demo→floci) | the role card's own `Loads`; vet new tools via dependency-policy |
-| **skill** | a wired integration that serves the discipline (metrics, structure→graphify, brevity→ponytail) | the discipline skill already recommends in-domain — follow it, verify current |
+| **skill** | a wired integration that serves the discipline (e.g. metrics→CodeMonk) | the discipline skill already recommends in-domain — follow it, verify current |
 | **workflow (gate)** | G7 metrics→CodeMonk; parallel G3→MAPLE | the gate's owning role card |
 | **plugin** | the Doctrine plugin (shared) | tool-native plugins only if they pass dependency-policy |
 | **MCP server** | — | `skills/mcp-tooling.md` (governed open-source servers; writes/spends = §5) |
 | **subagent** | MAPLE for a persistent fleet | `.claude/agents/` for one-shot fresh-context verifiers/workers |
 | **action / behavior / provenance** | — (bring-your-own extension point) | pick a fit, vet via dependency-policy, wire as an `integrations/*.md` shim |
-| **retrieval / structure** | `integrations/graphify.md` (code structure) | `skills/ponytail.md` rung 2; a vetted retrieval/KG tool for semantic recall |
+| **retrieval / structure** | none wired | a vetted retrieval/KG tool for code structure or semantic recall |
 
 ## Selection procedure
 

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
@@ -117,15 +118,34 @@ class TestBrokenRefCaught(unittest.TestCase):
             self.assertIn("does-not-exist", findings[0])
 
     def test_allowlisted_external_ignored(self):
+        """ALLOWED_EXTERNAL ships EMPTY, so patch it: the MECHANISM is under
+        test, not any particular entry. Pinning a real entry here is how the
+        list came to name an integration that had been removed."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / ".Doctrine").mkdir()
             (root / ".claude" / "agents").mkdir(parents=True)
             (root / ".Doctrine.md").write_text(
-                "upstream `skills/ponytail/SKILL.md`\n", encoding="utf-8")
+                "upstream `skills/upstream-tool/SKILL.md`\n", encoding="utf-8")
+            findings: list[str] = []
+            with mock.patch.object(
+                    dl, "ALLOWED_EXTERNAL", {"skills/upstream-tool/SKILL.md"}):
+                dl.check_references(root, findings)
+            self.assertEqual(findings, [])
+
+    def test_external_ref_flagged_when_not_allowlisted(self):
+        """The other direction: with the allowlist empty as shipped, the same
+        reference must be reported. Without this, emptying the list would look
+        identical to the check passing."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".Doctrine").mkdir()
+            (root / ".claude" / "agents").mkdir(parents=True)
+            (root / ".Doctrine.md").write_text(
+                "upstream `skills/upstream-tool/SKILL.md`\n", encoding="utf-8")
             findings: list[str] = []
             dl.check_references(root, findings)
-            self.assertEqual(findings, [])
+            self.assertEqual(len(findings), 1)
 
 
 class TestVersionSync(unittest.TestCase):

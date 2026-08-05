@@ -6,6 +6,70 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Added — security operations: Doctrine carries the SOC playbooks
+
+Doctrine had `skills/security.md` (build-time: secrets, input boundaries,
+dependencies), `skills/ai-security.md` (reviewing an AI deployment), and
+`skills/incident-response.md` (reliability incidents). It had nothing for
+*running* security operations — the standing capability that assumes an
+adversary is already inside and works a queue, a hunt, and an investigation.
+Doctrine now carries those playbooks so an agent operating under it can
+execute them; Doctrine itself does not run a SOC.
+
+**5 skills** (58 → 63 playbooks):
+
+- `skills/security-operations.md` — the SOC backbone: detect → triage →
+  respond, the triage four questions, severity matrix, incident command,
+  MTTD/MTTR/dwell time. States plainly how it differs from
+  `skills/incident-response.md`: an adversary is *adaptive* and evidence is
+  *perishable*, so containment is partly a timing decision and capture
+  precedes mitigation.
+- `skills/detection-engineering.md` — detection-as-code. The repo is the
+  source of truth and the SIEM console is a deploy target; rule metadata
+  (hypothesis / ATT&CK / data sources / known FP causes / response guidance /
+  test evidence); tuning by **specificity, never blanket exclusion**; and
+  three-colour coverage where **untested rules never count as green** —
+  an all-green map built from untested rules is §7 #1 fabrication with a chart
+  on it.
+- `skills/threat-hunting.md` — hypothesis-first, time-boxed, and productive
+  when it finds nothing *only if* it records what was searched. Stack-don't-scan
+  at estate scale; every manual find becomes a detection or an explanation of
+  why it cannot.
+- `skills/digital-forensics.md` — order of volatility, chain of custody, never
+  analyse the original, UTC normalisation, and observed-vs-inferred marked
+  throughout. Cloud/container control-plane logs called out as the richest
+  and fastest-expiring evidence.
+- `skills/threat-intelligence.md` — the pyramid of pain, source scoring,
+  indicator expiry, and attribution treated as a §5 decision with legal weight
+  rather than a technical conclusion.
+
+**3 roles** (39 → 42 cards):
+
+- `roles/soc-analyst.md` — works the queue; every alert ends in a recorded
+  disposition with a reason. Benign true positives are not false positives.
+- `roles/detection-engineer.md` — owns detections as code through G3/G4/G5,
+  and owns the honest red cells on the coverage map.
+- `roles/incident-responder.md` — adversary-shaped incident command,
+  explicitly distinguished from `roles/sre.md`'s reliability-shaped command;
+  notification, law enforcement, disclosure, and extortion decisions are
+  always the human's (§5).
+
+**2 commands + 1 template:** `/soc-triage` and `/soc-hunt` (byte-identical
+twins in `.claude/commands/` and `plugin/commands/`), and
+`templates/security-incident-report.md` — a confidence table, an
+observed-vs-inferred timeline, a chain-of-custody block, an enumerated
+persistence checklist, and a §5 human-decision record.
+
+**No new subagents and no new hooks.** The SOC roles work a live queue rather
+than review a diff, so they need no fresh-context isolation; `.claude/agents/`
+stays at 14. No SOC hook was added because none would do real work — the
+action-level control at the tool boundary already exists as the `PreToolUse`
+guard, and a hook that merely announced "security" would be theater.
+
+Also corrected while touching them: stale corpus counts in `README.md`
+(39 → 42 roles, 58 → 63 skills, 7 → 8 standards) and `.Doctrine/README.md`
+(templates claimed 10; the filesystem had 14 before this change, 15 after).
+
 ### Fixed — round 5 (final, bounded): the anchor was weaker than it read
 
 A single scoped security round audited only `doctrine_gold gate` and

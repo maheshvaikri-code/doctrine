@@ -16,11 +16,12 @@ turns a repository into a disciplined software company: explicit
 requirements, adversarial review gates, tested code, honest reports —
 enforced by tooling, not vibes.
 
-- **39 roles**, verifiers dispatched as fresh-context subagents whose tool
+- **42 roles**, verifiers dispatched as fresh-context subagents whose tool
   grants exclude Edit/Write (they still hold Bash, so the isolation is a
   strong default, not a sandbox)
-- **58 skill playbooks + 7 standards + 10 language profiles** — full-SDLC
-  coverage from backend to mobile, ML, data, privacy, incident response
+- **63 skill playbooks + 8 standards + 10 language profiles** — full-SDLC
+  coverage from backend to mobile, ML, data, privacy, incident response,
+  and security operations (triage, detection engineering, hunting, forensics)
 - **Gates G0→G7** with right-sized ceremony (a typo fix never convenes
   a council; a release always does)
 - **Personal/solo builder profile** — `--personal` / `--solo` routes routine

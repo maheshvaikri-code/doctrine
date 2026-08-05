@@ -20,22 +20,28 @@ workflow produces.
 ├── 04-agent-adapters.md      Run the doctrine on Codex/Cursor/Windsurf/Copilot/any agent
 ├── 05-packaging.md     Distribution: installer, Claude Code plugin, MCP server, wheel
 ├── adapters/           Ignition files: AGENTS.md (universal) + per-tool overlays
-├── roles/              39 role cards (25 engineering incl. Solo Builder, FDE, SRE, data/ML,
-│                       compliance + 7 startup founder-ops (draft-never-send)
+├── roles/              42 role cards (28 engineering incl. Solo Builder, FDE, SRE,
+│                       data/ML, compliance, and the SOC trio: soc-analyst,
+│                       detection-engineer, incident-responder
+│                       + 7 startup founder-ops (draft-never-send)
 │                       + 4 governance heads: head-of-ai, head-of-data,
 │                       ciso, risk-officer — policy above the gates
 │                       + 3 domain specialists: clinical-safety, regulatory-affairs,
 │                       quant-researcher)
-├── skills/             58 discipline playbooks (G0 requirements → G1
+├── skills/             63 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
+│                       + security operations: detection engineering, threat
+│                       hunting, forensics, threat intel
 │                       + startup craft: marketing→fundraising)
 ├── domains/            Vertical overlays: regime + canonical entities + domain
 │                       sign-offs, composed onto the horizontal core (healthcare pilot)
 ├── standards/          8 hard standards (incl. enterprise merge/promotion
 │                       + GRC governance) + languages/ profiles
-├── templates/          10 artifact templates (brief, ADR, plan, reviews,
-│                       merge verdict, release, retro, risk register, domain pack)
+├── templates/          15 artifact templates (brief, ADR, plan, reviews, QA,
+│                       merge verdict, release, retro, risk register, domain pack,
+│                       data contract, paved road, compatibility manifest,
+│                       analysis report, security incident report)
 ├── integrations/       Third-party tool wiring: FDE/floci overview, ponytail, graphify
 ├── rubrics/            Authority documents for interview-style gates (FDE discovery)
 ├── schemas/            JSON Schemas for machine-checked artifacts (parity ledger)

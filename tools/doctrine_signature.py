@@ -50,6 +50,10 @@ ROLE_GATE = {
     "data-analyst": "G0 analysis brief -> decision",
     "ml-engineer": "G3 (Build; before/after eval evidence)",
     "sre": "G3 (reliability) + Incident Commander on HOTFIX",
+    "soc-analyst": "triage of the live alert queue; escalates into HOTFIX",
+    "detection-engineer": "G3/G4/G5 on detection content + ATT&CK coverage review",
+    "incident-responder": "Security Incident Command (contain/eradicate/recover) "
+                          "on the HOTFIX path + mandatory G7",
     "code-reviewer": "G4 (Code Review)",
     "security-reviewer": "G5 (Verification; holds the ship veto)",
     "qa-engineer": "G5 (Verification)",
@@ -85,6 +89,15 @@ SKILL_EXTRA = {
     "graphify": {"tools": "the code-graph tool (`integrations/graphify.md`)"},
     "platform-engineering": {"workflows": "paved-road provisioning"},
     "incident-response": {"workflows": "the incident lifecycle + HOTFIX"},
+    "security-operations": {
+        "workflows": "the detect -> triage -> respond loop; escalates into HOTFIX"},
+    "detection-engineering": {
+        "workflows": "detection-as-code: rule -> test -> shadow -> production (G3->G5)"},
+    "threat-hunting": {"workflows": "hypothesis -> hunt -> detection | incident | gap"},
+    "digital-forensics": {
+        "workflows": "acquisition -> chain of custody -> timeline -> report"},
+    "threat-intelligence": {
+        "workflows": "requirements -> collection -> analysis -> dissemination -> feedback"},
     "floci-provision": {"workflows": "the FDE P1-P6 demo-to-promotion loop"},
     "floci-seed": {"workflows": "the FDE P1-P6 demo-to-promotion loop"},
     "floci-parity": {"workflows": "the FDE P1-P6 demo-to-promotion loop"},

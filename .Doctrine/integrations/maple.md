@@ -1,35 +1,57 @@
 ---
 integration: maple
 upstream: https://github.com/maheshvaikri-code/maple-oss
-license: AGPL-3.0 (see the license verdict below — default selection, never linked)
-pinned_version: 1.1.2
+license: AGPL-3.0 — free/open-source copyleft; ordinary use is unrestricted
+pinned_version: 1.1.3
 discipline: multi-agent-runtime
-verified: 2026-07-14
+verified: 2026-08-04
 ---
 
-# MAPLE — Integration (default workforce runtime)
+# MAPLE — Integration (one agent runtime among many; Doctrine needs none)
+
+**Read this first, because the older framing of this file got it backwards.**
+**Doctrine does not need an agent runtime.** Its gates, roles, artifacts, and
+state plane run on plain serial role-switching in a single session, and on the
+host agent's native subagents when it has them. Nothing in G0→G7 requires a
+broker, a message bus, or a persistent fleet.
+
+**MAPLE is one agent runtime among many, not a designated default.** Doctrine
+is runtime-agnostic and carries integration playbooks the same way it carries
+any other tool knowledge (`skills/tooling.md` — portfolio first, adoption via
+`standards/dependency-policy.md` and §5). MAPLE has the fullest document here
+for two ordinary reasons: it is first-party, and it is what **OpenHawk** runs.
+Another runtime in the same slot gets the same treatment and the same
+boundaries — nothing in this file privileges MAPLE over an alternative.
+
+**Scope: software development.** What Doctrine carries about any runtime is
+the engineering usage — how work packages, gate verdicts, separation of duties,
+and escalations map onto its primitives for building software. Doctrine does
+not govern the runtime's other applications, does not operate it, and does not
+document it beyond that seam.
 
 MAPLE (Multi Agent Protocol Language Engine, `pip install maple-oss`) is a
 multi-agent runtime and protocol: typed messages with `Result<T,E>` error
 handling, a broker (in-memory to NATS), pairwise link-identified secure
 channels, resource negotiation, task scheduling, and an autonomy layer
 with LLM providers (Anthropic included) — three layers: L1 protocol,
-L2 runtime, L3 autonomy SDK. As of **1.1.2** it ships a first-class
-**doctrine profile** (`maple.adapters.doctrine_adapter`) and a
-**broker-enforced fresh-context verifier preset**
-(`maple.security.separation`) built to this integration's spec.
-Verified here (2026-07-14, Windows, Python 3.12) against the 1.1.2 source
-tree, all real output: the case-trap fix (a lowercase-registered handler
-now fires), `require_routable=True` returning `Err UNROUTABLE` for a
-missing agent, `build_work_package`/`build_gate_result` producing and
-validating typed messages (bogus verdict rejected), the preset **blocking
-a verifier→builder route**, and `tokens` as a `ResourceRequest` field.
+L2 runtime, L3 autonomy SDK. It ships a first-class **doctrine profile**
+(`maple.adapters.doctrine_adapter`) and a **broker-enforced fresh-context
+verifier preset** (`maple.security.separation`) built to this integration's
+spec.
 
-Doctrine remains runtime-agnostic: MAPLE is the declared default workforce
-runtime, not an automatically installed dependency. When `maple-oss` is
-available, roles become persistent, addressable agents. When it is unavailable,
-the workforce degrades to the host agent's native subagents (or serial
-role-switching per `04-agent-adapters.md`) without weakening gates.
+Re-verified here (2026-08-04, Windows, Python 3.12) against **1.1.3**, in an
+ephemeral install, all real output: `register_handler("work.package")`
+normalizing to `WORK.PACKAGE`; `MessageBroker.is_routable` present and
+`Agent.send` accepting `require_routable`; `build_work_package` producing a
+typed `WORK.PACKAGE`; `GATE_VERDICTS == {PASS, FAIL, BLOCKED, WAIVED}` with a
+bogus `"LGTM"` verdict rejected; `tokens` present as a `ResourceRequest` field;
+and the preset **blocking a verifier→builder route** with
+`SEPARATION_OF_DUTIES_VIOLATION`.
+
+When `maple-oss` is available to OpenHawk, roles become persistent, addressable
+agents. When it is unavailable, execution degrades to native subagents or
+serial role-switching (`04-agent-adapters.md`) **without weakening gates** —
+because the gates never depended on it.
 
 ## The fit — Doctrine concept → MAPLE primitive
 
@@ -56,7 +78,7 @@ Two hard boundaries, non-negotiable:
    in `.doctrine-state/` (hash-chained, git-committed) — never in the
    broker.
 
-## Wiring pattern (verified shape, 1.1.2)
+## Wiring pattern (verified shape, 1.1.3)
 
 ```python
 from maple import Agent, Config
@@ -65,7 +87,7 @@ from maple.security.separation import ArtifactRef, fresh_context_verifier_preset
 
 worker = Agent(Config(agent_id="backend-engineer",
                       broker_url="memory://localhost", capabilities=["build"]))
-worker.register_handler("work.package", on_work_package)  # 1.1.2 normalizes case
+worker.register_handler("work.package", on_work_package)  # normalized to WORK.PACKAGE
 
 # separation of duties as a runtime guarantee, not a convention:
 policy = fresh_context_verifier_preset(
@@ -85,7 +107,7 @@ fresh. Message types are Doctrine's protocol vocabulary: `WORK.PACKAGE`,
 `GATE.RESULT`, plus §5 escalations, which always terminate at the human,
 never at another agent.
 
-## Resolved in 1.1.2 (the 1.1.1 sharp edges, now fixed)
+## Resolved in 1.1.2, still holding at 1.1.3 (the 1.1.1 sharp edges)
 
 - **Handler-key case trap → fixed.** `register_handler` now normalizes keys
   to upper-case, matching `Message` (the `@agent.handler` decorator path
@@ -103,9 +125,9 @@ never at another agent.
   `TaskQueue` **shutdown hang** (`stop()` blocked ~5s on a sleeping cleanup
   thread).
 
-## Enhancement asks — SHIPPED in maple-oss 1.1.2
+## Enhancement asks — SHIPPED in maple-oss 1.1.2, re-verified at 1.1.3
 
-All five landed (the 1.1.2 CHANGELOG maps each to its ask number; verified
+All five landed (the 1.1.2 CHANGELOG maps each to its ask number; re-verified
 here against the source tree):
 
 1. ✅ `register_handler` key normalization (kills the case trap). 5 tests.
@@ -130,22 +152,27 @@ documented convention; with ask #3 shipped it is a broker-enforced
 guarantee. Remaining open upstream: a true post-delivery acknowledgement
 receipt (beyond send-time reachability).
 
-## License verdict (dependency-policy §4: AGPL = explicit human decision)
+## License — a note, not a gate
 
-MAPLE is free/open-source software under AGPL-3.0 and first-party (same author
-as this doctrine). AGPL is not a usage fee or a prohibition on personal,
-enterprise, or commercial use; its reciprocal source obligations matter when
-covered software is modified and served over a network or conveyed.
-Disposition, recorded 2026-07-13 (unchanged at 1.1.2): **never vendored,
-never imported by doctrineos** — the wheel, MCP server, and tools stay
-stdlib-only; this integration is a document and a protocol contract. The
-doctrine profile ships inside `maple-oss`, not here, so no AGPL code
-enters this repo. Every installed brief records `Workforce runtime: maple` as
-the selected runtime. That marker alone installs or links no AGPL code. A
-A consumer that modifies, serves, combines, or distributes `maple-oss` follows
-the applicable AGPL terms; ordinary use remains free. Doctrine's installer
-does not perform a hidden package/network mutation. The framework owner
-selected this default on 2026-07-29.
+MAPLE is free/open-source software under **AGPL-3.0**, and first-party (same
+author as this doctrine). **Anyone may use, run, and build on it freely,
+including commercially.** Copyleft is a reciprocity condition on *redistribution
+and on serving a modified version over a network* — it is not a usage fee, not a
+restriction on ordinary use, and not something a consumer of this doctrine needs
+clearance for.
+
+`standards/dependency-policy.md` §4 makes GPL/AGPL **in a shipped library** an
+explicit human decision. Doctrine ships no such library, so that clause never
+applied here — an earlier revision of this file invoked it anyway and turned a
+non-issue into a "verdict." That framing was wrong and is removed.
+
+The reason `doctrineos` does not import `maple-oss` is not the license. It is
+that **Doctrine needs no runtime**: the wheel, MCP server, and tools stay
+stdlib-only so the doctrine installs into any repo on any OS with zero
+dependencies, and so the gates keep working when no broker exists. The doctrine
+profile ships inside `maple-oss`, not here. A brief's `Workforce runtime: maple`
+marker records a selection for OpenHawk; it installs, links, and downloads
+nothing, and the installer performs no hidden package or network mutation.
 
 ## Boundaries
 
@@ -154,3 +181,9 @@ authority. If the broker is down, the doctrine still runs — degraded to
 native subagents or serial role-switching. Adoption order: prove the
 task needs persistent cross-agent messaging first (most Class M work
 does not); the runtime earns its keep at fleet scale, not on a bugfix.
+
+**And the direction of dependence only points one way.** OpenHawk needs both
+Doctrine and MAPLE; Doctrine needs neither OpenHawk nor MAPLE. Per ADR-003 the
+family is `product → {doctrine, maple}` with `doctrine ⟂ maple` — no cycles.
+A reader who comes away thinking Doctrine *requires* a runtime has read this
+file wrong, and earlier revisions of it were partly to blame.

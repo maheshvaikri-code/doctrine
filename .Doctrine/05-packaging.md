@@ -32,8 +32,9 @@ paths, MCP registration) instead of just machine-local state, so Doctrine
 stays out of the repo's history — one block to add or delete; `docs/`
 artifacts remain committable.
 
-Every install seeds `Workforce runtime: maple`; the installer selects the
-runtime but does not install or import the external AGPL package. `--maple`
+Every install seeds `Workforce runtime: maple` — a recorded selection for
+OpenHawk's execution layer, not a Doctrine requirement. The installer writes
+the marker and nothing else: no package install, no import, no network call. `--maple`
 remains accepted as a backward-compatible no-op. `--personal` and `--solo` are
 aliases that seed `Delivery profile: personal` and, unless already selected,
 `Agent latitude: creative`. The profile selects creative Solo Builder work →

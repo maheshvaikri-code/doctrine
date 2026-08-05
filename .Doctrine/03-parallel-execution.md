@@ -5,10 +5,10 @@ Claude Code subagents (`.claude/agents/`). Parallelism is a tool for Class
 M/L tasks with genuinely independent work — not a default. A wrong parallel
 split costs more than serial execution.
 
-MAPLE is the default persistent workforce transport when it is available.
-It applies the same work-package and separation rules in
-`integrations/maple.md`; when unavailable, use native subagents or the serial
-fallback. Personal-profile routine work stays in the Solo Builder main thread
+Parallelism needs no runtime: native subagents and the serial fallback are
+first-class. Where OpenHawk runs MAPLE, it applies the same work-package and
+separation rules in `integrations/maple.md`; everywhere else, use native
+subagents or the serial fallback with no loss of gate strength. Personal-profile routine work stays in the Solo Builder main thread
 unless parallelism has concrete information value.
 
 ## 1. When to fan out

@@ -28,8 +28,11 @@ enforced by tooling, not vibes.
 - **Personal/solo builder profile** — `--personal` / `--solo` routes routine
   work through a creatively free Solo Builder phase, then deterministic DevOps
   verification; governance fences real risks rather than ordinary ideation
-- **MAPLE by default** — selected for every install, with native/serial fallback
-  and explicit installation of the free/open-source AGPL runtime
+- **No runtime required** — the gates run on serial role-switching or native
+  subagents. Agent runtimes are a catalog entry, not a dependency:
+  [MAPLE](https://github.com/maheshvaikri-code/maple-oss) is the first-party
+  one (and what **OpenHawk** runs), carried for software-development use.
+  Doctrine never installs, vendors, or imports it
 - **Hash-chained session state** — the repo remembers, the model doesn't
   have to (`.doctrine-state/`, checkpoint → hydrate)
 - **Gold Build deployment** (opt-in enterprise profile) — deploy only

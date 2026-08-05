@@ -41,7 +41,7 @@ and wire it as a new `integrations/*.md` shim (provisioning/paying is a §5 deci
 | Integration | Serves (mechanism) | Status | Ref |
 |-------------|--------------------|--------|-----|
 | **CodeMonk** | metrics/metrology — CESR, token cost, HITL (skill: metrics; gate: G7) | wired | `integrations/codemonk.md` |
-| **MAPLE** | multi-agent **workforce runtime** — persistent fleet, typed messages (subagents; parallel G3) | wired (default selection; native/serial fallback) | `integrations/maple.md` |
+| **MAPLE** | multi-agent **workforce runtime** — persistent fleet, typed messages (subagents; parallel G3) | one runtime among many; Doctrine needs none (native/serial otherwise). First-party; what OpenHawk runs | `integrations/maple.md` |
 | **floci / FDE** | demo/prototype provisioning (role: fde; P1–P6) | wired | `integrations/floci.md` |
 | **ponytail** | code-brevity behavior — the 7-rung least-code ladder | wired | `integrations/ponytail.md` |
 | **graphify** | deterministic code-structure retrieval — graph before grep | wired | `integrations/graphify.md` |

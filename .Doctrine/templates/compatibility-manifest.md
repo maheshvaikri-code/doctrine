@@ -9,7 +9,7 @@
 | Component | Repo | Pinned version | Commit / tag | Notes |
 |-----------|------|----------------|--------------|-------|
 | Governance | `doctrine` | vA.B.C | <tag/sha> | law + tooling |
-| Runtime | `maple-oss` | vD.E.F | <tag/sha> | AGPL; default selection, external/not vendored |
+| Runtime | `maple-oss` | vD.E.F | <tag/sha> | AGPL (free copyleft); external, never vendored by doctrine |
 | Product | `<product-app>` | vX.Y.Z | <tag/sha> | this release |
 
 Dependency direction (ADR-003): product → {doctrine, maple}; doctrine ⟂ maple. No cycles.
@@ -24,8 +24,10 @@ If a pin is a range, the lockfile records the exact resolved version.
       ```
 - [ ] The product's own gate suite green against these pins.
 - [ ] `doctrine_verify` (consumer mode) green in the product repo: lint + state.
-- [ ] AGPL obligation acknowledged for this release (MAPLE is AGPL; see the
-      product brief's `Workforce runtime: maple`).
+- [ ] **If** this product modifies `maple-oss` and redistributes it or serves
+      the modified version over a network, its AGPL reciprocity is handled.
+      Ordinary use, and the brief's `Workforce runtime: maple` marker alone,
+      carry no obligation — leave unticked and note "n/a" in that case.
 
 ## Compatibility notes
 

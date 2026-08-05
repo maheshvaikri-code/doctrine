@@ -6,6 +6,69 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Fixed — MAPLE positioning: Doctrine needs no agent runtime, and AGPL was never a gate
+
+Three corrections from the framework owner, two of which the corpus had been
+stating wrongly for several releases.
+
+**1. Doctrine requires no runtime.** The corpus repeatedly called MAPLE "the
+default workforce runtime **for every profile**" (`.Doctrine.md` §4),
+"the default persistent workforce transport" (`03-parallel-execution.md`), and
+"MAPLE by default — selected for every install" (`README.md`). Read plainly,
+those say Doctrine depends on a runtime. It does not. The gates, roles,
+artifacts, and state plane run on serial role-switching in a single session, or
+on the host agent's native subagents; nothing in G0→G7 needs a broker, a
+message bus, or a persistent fleet. The dependency direction has always been
+ADR-003's `product → {doctrine, maple}` with `doctrine ⟂ maple`; the prose had
+been implying a cycle the architecture never had.
+
+**1b. MAPLE is one agent runtime among many, not a designated default.**
+"Default" appeared in five files and read as a designation. Doctrine is
+runtime-agnostic: it carries integration playbooks for runtimes the same way it
+carries any other tool knowledge (`skills/tooling.md` — portfolio first,
+adoption via `dependency-policy.md` and §5), and **scoped to
+software-development use** — how work packages, gate verdicts, separation of
+duties, and escalations map onto a runtime's primitives for building software.
+MAPLE has the fullest document here for two ordinary reasons: it is
+first-party, and it is what **OpenHawk** runs. Another runtime in the same slot
+gets the same treatment and the same boundaries.
+
+**2. AGPL is not a constraint.** `integrations/maple.md` carried a section
+headed *"License verdict (dependency-policy §4: AGPL = explicit human
+decision)"* — hedged, defensive, and a category error. AGPL-3.0 is a
+free/open-source copyleft licence: **anyone may use, run, and build on MAPLE
+freely, including commercially.** Reciprocity attaches to redistributing a
+modified version or serving one over a network — not to use. And
+`dependency-policy.md` §4 governs "GPL/AGPL **in a shipped library**";
+Doctrine ships no such library, so the clause never applied and invoking it
+manufactured a gate out of a non-issue. The section is now a short factual
+note. The compatibility-manifest checkbox became conditional ("**if** this
+product modifies and redistributes or network-serves `maple-oss`…"), with
+ordinary use explicitly marked n/a.
+
+The real reason `doctrineos` does not import `maple-oss` is unchanged and has
+nothing to do with the licence: Doctrine stays stdlib-only so it installs into
+any repo on any OS with zero dependencies, and so the gates keep working when
+no broker exists.
+
+**3. Pin moved 1.1.2 → 1.1.3**, and re-verified rather than merely bumped.
+Against an ephemeral 1.1.3 install (scratchpad only; the host environment was
+not modified), all real output: `register_handler("work.package")` normalizing
+to `WORK.PACKAGE`; `MessageBroker.is_routable` present and `Agent.send`
+accepting `require_routable`; `build_work_package` producing a typed
+`WORK.PACKAGE`; `GATE_VERDICTS == {PASS, FAIL, BLOCKED, WAIVED}` with a bogus
+`"LGTM"` verdict rejected; `tokens` present as a `ResourceRequest` field; and
+`fresh_context_verifier_preset` **blocking a verifier→builder route** with
+`SEPARATION_OF_DUTIES_VIOLATION`.
+
+Touched: `.Doctrine.md` (§4 + routing row), `README.md`,
+`.Doctrine/integrations/maple.md`, `03-parallel-execution.md`,
+`05-packaging.md`, `skills/tooling.md`, `templates/compatibility-manifest.md`,
+and both copies of `AGENTS.md` (root + `adapters/`, which are a synced pair).
+ADR-011 is **not** superseded — its decision text ("Doctrine will not install,
+vendor, or import MAPLE") was already correct; only the surrounding prose was
+wrong.
+
 ### Added — `skills/sandboxing.md`: the tripwire finally names its boundary
 
 `§7` and the `05-packaging.md` strength table have said for several releases

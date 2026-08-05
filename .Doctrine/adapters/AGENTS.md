@@ -48,8 +48,8 @@ DevOps verification. Other gates/roles are optional unless the task's actual
 risk surface activates them. `Agent latitude: creative` is the personal
 default: explore reversible local solutions freely, then converge at
 deterministic tests/evidence. Governance fences risky effects, not ideation.
-MAPLE is the default workforce runtime; if it is unavailable, degrade to native
-subagents or serial roles.
+Doctrine needs no agent runtime; MAPLE is carried for OpenHawk's multi-agent
+execution. Without it, use native subagents or serial roles — gates unchanged.
 
 ## Reviews when this tool has no subagents
 

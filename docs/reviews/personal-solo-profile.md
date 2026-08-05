@@ -2,7 +2,7 @@
 <!-- G4 artifact. Verdict: PASS (same-session review limitation recorded). -->
 
 **Reviewer role:** Code Reviewer · **Date:** 2026-07-29
-**Base commit:** `9f42611a892a71d94741b8083329135162a04f19`
+**Base commit:** `9006dd5fd33c4ca11e871cf3b4ed3a9f01f54c10`
 **Reviewed against:** `docs/briefs/personal-solo-profile.md`,
 `docs/adr/011-personal-delivery-and-default-maple.md`, and
 `docs/plans/personal-solo-profile.md`

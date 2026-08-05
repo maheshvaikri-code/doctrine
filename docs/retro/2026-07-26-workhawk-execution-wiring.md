@@ -7,7 +7,7 @@ start lock, ready/connected/clean preflight, one-resource recursive polling,
 one terminal snapshot reconciliation, a semantic execution record, degraded
 sync preservation, and modal isolation.
 
-Implementation commit: `4c9f26c251440f90d451f786d4772311e15975e4`.
+Implementation commit: `0a459c956e9dc0ae492d400e23b3a9356482b54c`.
 Exact-commit evidence: lint and typecheck pass, six production tests pass,
 audit reports zero vulnerabilities, 12 Chromium scenarios pass, 186 Doctrine
 tests pass, Ruff passes, and the 28-checkpoint state chain verifies. No

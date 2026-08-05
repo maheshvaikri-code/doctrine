@@ -84,7 +84,7 @@ acceptance criterion; repeated path or browser failures return to this plan.
 
 ## Status snapshot
 
-Done: the extraction and official-brand slices. Exact commit `751e284` passed hosted WorkHawk Windows,
+Done: the extraction and official-brand slices. Exact commit `4ada7e2` passed hosted WorkHawk Windows,
 Ubuntu, six production tests per OS, and seven-scenario Chromium jobs plus
 Doctrine's Windows/Ubuntu and Python 3.11/3.12 matrix. Review, QA, security, and
 retrospective evidence are recorded. The subsequent enterprise-UI refinement

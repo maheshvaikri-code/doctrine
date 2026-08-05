@@ -3,7 +3,7 @@
 
 **QA Engineer** · **Security Reviewer** · **Date:** 2026-07-29
 **Build under test:** uncommitted working tree on `main`, based at
-`9f42611a892a71d94741b8083329135162a04f19`; tests include all working-tree
+`9006dd5fd33c4ca11e871cf3b4ed3a9f01f54c10`; tests include all working-tree
 changes. Environment: Windows, Python 3.12.7, Ruff 0.15.15.
 
 ## Acceptance criteria verification

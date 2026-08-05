@@ -1,4 +1,4 @@
-# Code Review - WorkHawk application extraction @ 751e284
+# Code Review - WorkHawk application extraction @ 4ada7e2
 
 **Reviewer roles:** Code Reviewer, Security Reviewer, Project Reviewer
 **Date:** 2026-07-25
@@ -37,7 +37,7 @@ doctrine_lint: corpus clean
 ```
 
 Hosted evidence for exact commit
-`751e2849785709406be7be0298c1a2adebfb7cf5`:
+`4ada7e2c2353404533013d7d09f83fb5a07fc958`:
 
 - [WorkHawk run 30189529300](https://github.com/aroora-ai-labs/doctrine/actions/runs/30189529300):
   Ubuntu success, Windows success, six of six production tests on both
@@ -50,12 +50,12 @@ Hosted evidence for exact commit
 
 | # | Sev | Location | Finding | Resolution |
 |---|---|---|---|---|
-| 1 | [BLOCKER] | `workhawk/build/sites-vite-plugin.ts` | The repository-wide `build/` ignore rule silently excluded the moved Sites plug-in. A fresh checkout would therefore fail even though the local build retained the file. | Force-track the exact rename and assert its presence in the source/CI contract test. fixed@`b61a086` |
-| 2 | [MINOR] | `workhawk/playwright.config.mjs` | Port `3003` was already occupied locally, causing the first E2E web-server attempt to stall instead of exercising the UI. | Add a digits-only, range-checked `WORKHAWK_E2E_PORT` override while keeping `3003` as the default. fixed@`b61a086` |
-| 3 | [MINOR] | `workhawk/app/globals.css` | Adding four module rows could make the fixed navigation inaccessible on a short viewport because the sidebar did not scroll independently. | Add contained vertical scrolling and exercise a 390 x 600 viewport in hosted Chromium. fixed@`b61a086` |
-| 4 | [MINOR] | `workhawk/tests/browser/workhawk.spec.mjs` | The first module assertion proved only one “Unavailable” label rather than the individual MAPLE, STIX, and Trust rows required by AC4. | Assert Doctrine connected and each future module unavailable by its own row. fixed@`b61a086` |
+| 1 | [BLOCKER] | `workhawk/build/sites-vite-plugin.ts` | The repository-wide `build/` ignore rule silently excluded the moved Sites plug-in. A fresh checkout would therefore fail even though the local build retained the file. | Force-track the exact rename and assert its presence in the source/CI contract test. fixed@`8a0d63a` |
+| 2 | [MINOR] | `workhawk/playwright.config.mjs` | Port `3003` was already occupied locally, causing the first E2E web-server attempt to stall instead of exercising the UI. | Add a digits-only, range-checked `WORKHAWK_E2E_PORT` override while keeping `3003` as the default. fixed@`8a0d63a` |
+| 3 | [MINOR] | `workhawk/app/globals.css` | Adding four module rows could make the fixed navigation inaccessible on a short viewport because the sidebar did not scroll independently. | Add contained vertical scrolling and exercise a 390 x 600 viewport in hosted Chromium. fixed@`8a0d63a` |
+| 4 | [MINOR] | `workhawk/tests/browser/workhawk.spec.mjs` | The first module assertion proved only one “Unavailable” label rather than the individual MAPLE, STIX, and Trust rows required by AC4. | Assert Doctrine connected and each future module unavailable by its own row. fixed@`8a0d63a` |
 | 5 | [MINOR] | `workhawk/tests/browser/workhawk.spec.mjs:135` | The first hosted run used a non-exact `WORKHAWK` locator that also matched the footer and fixture commit title. The UI was correct, but one browser scenario failed strict locator resolution. | Scope the assertion to exact brand text; the next hosted run passed seven of seven. fixed@`43d1a30` |
-| 6 | [MINOR] | `workhawk/public/workhawk-logo.png` | The human-supplied official logo arrived after the initial extraction review and was not part of the reviewed commit. | Preserve the exact raster in public assets, crop it non-destructively in the compact shell, and prove source presence, SSR reference, production HTTP delivery, and hosted browser rendering. fixed@`751e284` |
+| 6 | [MINOR] | `workhawk/public/workhawk-logo.png` | The human-supplied official logo arrived after the initial extraction review and was not part of the reviewed commit. | Preserve the exact raster in public assets, crop it non-destructively in the compact shell, and prove source presence, SSR reference, production HTTP delivery, and hosted browser rendering. fixed@`4ada7e2` |
 
 All findings are resolved. The diff preserves the one-way
 `WorkHawk -> Doctrine API` dependency, adds no executable module connector, and

@@ -52,7 +52,7 @@ not depend on intercepting whoever wrote it. Full account:
 it, the mechanism is wrong, not the coverage. Enumeration is a smell whenever
 the domain is unbounded.
 
-**Still open:** round 4 runs against commit `2885d29`. Nothing here is signed
+**Still open:** round 4 runs against commit `62f16b2`. Nothing here is signed
 off until a fresh context says so.
 
 ### P1.1c Doctrine edits earned by rounds 1–3 · Class S each

@@ -1,8 +1,8 @@
-# QA + Security Report - WorkHawk verification execution wiring @ 4c9f26c
+# QA + Security Report - WorkHawk verification execution wiring @ 0a459c9
 
 **QA Engineer / Security Reviewer:** serial role-hat validation  
 **Date:** 2026-07-26  
-**Build under test:** `4c9f26c251440f90d451f786d4772311e15975e4`
+**Build under test:** `0a459c956e9dc0ae492d400e23b3a9356482b54c`
 
 ## Acceptance criteria verification
 
@@ -43,7 +43,7 @@ covered by the unchanged Doctrine dashboard suite.
 ## Regression
 
 ```text
-CANDIDATE 4c9f26c251440f90d451f786d4772311e15975e4
+CANDIDATE 0a459c956e9dc0ae492d400e23b3a9356482b54c
 
 npm run lint                                      exit 0
 npm run typecheck                                 exit 0
@@ -68,10 +68,10 @@ the machine test cache; no repository dependency or lockfile changed.
 
 | # | Minimal reproduction | Severity | Fixed @ | Re-verified | Regression |
 |---|---|---|---|---|---|
-| 1 | Open command palette before delayed snapshot resolves and inspect verification eligibility | major | `4c9f26c` | yes | loading-state zero-POST scenario |
-| 2 | Run Axe with command dialog open | minor | `4c9f26c` | yes | dialog Axe + focus scenario |
-| 3 | Render initial execution metadata and run Axe | minor | `4c9f26c` | yes | desktop/dialog/narrow Axe |
-| 4 | Render a failed terminal verification | minor | `4c9f26c` | yes | blocked final-record scenario |
+| 1 | Open command palette before delayed snapshot resolves and inspect verification eligibility | major | `0a459c9` | yes | loading-state zero-POST scenario |
+| 2 | Run Axe with command dialog open | minor | `0a459c9` | yes | dialog Axe + focus scenario |
+| 3 | Render initial execution metadata and run Axe | minor | `0a459c9` | yes | desktop/dialog/narrow Axe |
+| 4 | Render a failed terminal verification | minor | `0a459c9` | yes | blocked final-record scenario |
 
 ## Security sweep
 

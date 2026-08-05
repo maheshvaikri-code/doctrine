@@ -21,7 +21,7 @@ reads source from disk is non-deterministic under concurrent edits, and
 reporting either result would have been false evidence.)
 
 ```
-HEAD=9f42611  tree-frozen: no edits during this run
+HEAD=9006dd5  tree-frozen: no edits during this run
 === lint: PASS
 
 === ruff: C:\Program Files\Python312\python.exe -m ruff check tools tests
@@ -187,7 +187,7 @@ unmet" above was **false**: three were unmet.
 | Guard denies the four classes, silent on ordinary edits | PASS | **FAIL** — 11 of 13 ordinary shell commands were *denied*. `.git` matched `.gitignore`/`.github`; `.env` matched `os.environ`; a path in a comment or in another repo triggered a refusal. The guard blocked the QA session itself six times. |
 | ...and a verifier-role write | reported as met | **FAIL** — never implemented; no role concept in the guard or its tests. |
 | Malformed input never crashes; fail-closed inside a governed repo | PASS | **FAIL** — a payload nested 3000 deep raised `RecursionError` past `except ValueError`; exit 1, no decision, tool proceeds. A denied secret write went through with one decoy field appended. |
-| Gates run at the end **on the final commit** | claimed on `HEAD=9f42611`, 253 tests | **FAIL** — measured `cc2101d` + 10 uncommitted files, 259 tests. The artifact certified a build that was not the one on disk, with a module under test among the uncommitted changes. |
+| Gates run at the end **on the final commit** | claimed on `HEAD=9006dd5`, 253 tests | **FAIL** — measured `008f1c5` + 10 uncommitted files, 259 tests. The artifact certified a build that was not the one on disk, with a module under test among the uncommitted changes. |
 | `fleet status` reports for N repos, never mutating | PASS | **FAIL** — read-only holds for file contents, but it crashed on an unreadable directory and on a non-cp1252 repo name, and it rewrote the git index whenever the stat cache was stale. |
 
 Independently **confirmed** as passing: the bridge regression genuinely fails

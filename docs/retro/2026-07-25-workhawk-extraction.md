@@ -8,7 +8,7 @@ the live Doctrine v1 adapter, truthful unavailable states for MAPLE/STIX/Trust,
 renamed cross-platform CI, seven hosted browser scenarios, and updated
 architecture/operating documentation.
 
-Implementation commits: `b61a086`, `43d1a30`, and `751e284`. Gates G0 through
+Implementation commits: `8a0d63a`, `43d1a30`, and `4ada7e2`. Gates G0 through
 G7 were walked. No site, package, tag, or external release was created.
 
 Defects caught after the initial extraction: an ignored Sites build plug-in, a
@@ -84,5 +84,5 @@ Hosted CI already installed fresh Chromium and supplied authoritative evidence.
   service, multi-repository backend, or public deployment.
 - Automated Axe and keyboard coverage is strong evidence, but it is not manual
   screen-reader or enterprise accessibility certification.
-- The original WorkHawk logo is tracked in `751e284`; the unused derived
+- The original WorkHawk logo is tracked in `4ada7e2`; the unused derived
   `public/brand/workhawk-mark.png` remains untracked and outside the product.

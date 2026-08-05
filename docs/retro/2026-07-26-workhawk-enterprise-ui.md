@@ -7,7 +7,7 @@ palette, exact KPI status/progress, four-gate meter, evidence-derived SVG trend,
 official brand mark, narrow-layout hardening, and desktop/dialog/mobile
 accessibility assertions.
 
-Application commits: `8801e61`, `8b1e369`, `10c182b`, and `ae04e20`. Exact
+Application commits: `926757f`, `8b1e369`, `20c551d`, and `ae04e20`. Exact
 application commit `ae04e20` passed Windows, Ubuntu, seven hosted Chromium
 scenarios, and Doctrine's four OS/Python combinations. No dependency, API,
 deployment, tag, package, or release changed.

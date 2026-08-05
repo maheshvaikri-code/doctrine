@@ -88,7 +88,7 @@ trigger.
 Worth recording separately, because these were honesty failures rather than
 engineering ones:
 
-- The QA report certified `HEAD=9f42611, 253 tests` for a build that was two
+- The QA report certified `HEAD=9006dd5, 253 tests` for a build that was two
   commits and a dirty tree away from what was on disk. Three QA passes failed
   the same criterion for the same reason before the work was finally committed.
 - ADR-012, the brief and the plan all specified a verifier-write-isolation

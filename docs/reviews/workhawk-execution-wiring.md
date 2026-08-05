@@ -1,4 +1,4 @@
-# Code Review - WorkHawk verification execution wiring @ 4c9f26c
+# Code Review - WorkHawk verification execution wiring @ 0a459c9
 
 **Reviewer roles:** Code Reviewer, Security Reviewer, Project Reviewer  
 **Date:** 2026-07-26  
@@ -13,7 +13,7 @@ reviewer pass.
 ## Executed evidence
 
 Exact implementation commit:
-`4c9f26c251440f90d451f786d4772311e15975e4`.
+`0a459c956e9dc0ae492d400e23b3a9356482b54c`.
 
 ```text
 npm run lint
@@ -43,11 +43,11 @@ VERIFY OK: 4 gate(s) green
 
 | # | Sev | Location | Finding | Resolution |
 |---|---|---|---|---|
-| 1 | [MAJOR] | `workhawk/app/doctrine-module.tsx:790,919` | The command palette is available while the initial snapshot is loading or unavailable. Its verification command and imperative guard originally checked only dirty/running state, so a keyboard user could POST before repository eligibility was known. | Require a ready, connected snapshot in both the rendered command state and `runVerification`; browser loading state proves a disabled command and zero POST. fixed@`4c9f26c` |
-| 2 | [MINOR] | `workhawk/app/doctrine-module.tsx:821` | A rejected or lost start response launched snapshot rediscovery without awaiting it, leaving a short retry window before an accepted server-side job could be rediscovered. | Await bounded snapshot reconciliation before releasing the client start lock. fixed@`4c9f26c` |
-| 3 | [MINOR] | `workhawk/app/doctrine-module.tsx:396` | Failed and timed-out final records used the neutral execution tone and refresh icon. | Map both terminal failure states to the blocked semantic treatment and add a failed-record browser scenario. fixed@`4c9f26c` |
-| 4 | [MINOR] | command-dialog background | Keyboard focus was trapped, but the dashboard behind the modal remained exposed to assistive technology; the dialog Axe scan also evaluated obscured background content. | Apply `inert` and `aria-hidden` to the sidebar/workspace while the command dialog is open; focus restoration remains verified. fixed@`4c9f26c` |
-| 5 | [MINOR] | execution metadata colors | Initial metadata text measured 4.42:1, below the WCAG AA 4.5:1 threshold. | Darken the local execution metadata token; desktop, dialog, and 390-pixel Axe scans pass. fixed@`4c9f26c` |
+| 1 | [MAJOR] | `workhawk/app/doctrine-module.tsx:790,919` | The command palette is available while the initial snapshot is loading or unavailable. Its verification command and imperative guard originally checked only dirty/running state, so a keyboard user could POST before repository eligibility was known. | Require a ready, connected snapshot in both the rendered command state and `runVerification`; browser loading state proves a disabled command and zero POST. fixed@`0a459c9` |
+| 2 | [MINOR] | `workhawk/app/doctrine-module.tsx:821` | A rejected or lost start response launched snapshot rediscovery without awaiting it, leaving a short retry window before an accepted server-side job could be rediscovered. | Await bounded snapshot reconciliation before releasing the client start lock. fixed@`0a459c9` |
+| 3 | [MINOR] | `workhawk/app/doctrine-module.tsx:396` | Failed and timed-out final records used the neutral execution tone and refresh icon. | Map both terminal failure states to the blocked semantic treatment and add a failed-record browser scenario. fixed@`0a459c9` |
+| 4 | [MINOR] | command-dialog background | Keyboard focus was trapped, but the dashboard behind the modal remained exposed to assistive technology; the dialog Axe scan also evaluated obscured background content. | Apply `inert` and `aria-hidden` to the sidebar/workspace while the command dialog is open; focus restoration remains verified. fixed@`0a459c9` |
+| 5 | [MINOR] | execution metadata colors | Initial metadata text measured 4.42:1, below the WCAG AA 4.5:1 threshold. | Darken the local execution metadata token; desktop, dialog, and 390-pixel Axe scans pass. fixed@`0a459c9` |
 
 All findings are resolved. There are zero open BLOCKER or MAJOR findings.
 

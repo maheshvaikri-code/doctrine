@@ -1,8 +1,8 @@
-# QA + Security Report - WorkHawk application extraction @ 751e284
+# QA + Security Report - WorkHawk application extraction @ 4ada7e2
 
 **QA Engineer / Security Reviewer:** serial role-hat validation
 **Date:** 2026-07-25
-**Build under test:** `751e2849785709406be7be0298c1a2adebfb7cf5`
+**Build under test:** `4ada7e2c2353404533013d7d09f83fb5a07fc958`
 
 ## Acceptance criteria verification
 
@@ -66,10 +66,10 @@ green.
 
 | # | Minimal reproduction | Severity | Fixed @ | Re-verified | Regression test |
 |---|---|---|---|---|---|
-| 1 | Move the app while `build/` is globally ignored, then inspect staged paths. | blocker | `b61a086` | hosted fresh checkout | required Sites plug-in access assertion |
-| 2 | Open mobile navigation at 390 x 600 after adding four module rows. | minor | `b61a086` | hosted Chromium | narrow keyboard scenario |
+| 1 | Move the app while `build/` is globally ignored, then inspect staged paths. | blocker | `8a0d63a` | hosted fresh checkout | required Sites plug-in access assertion |
+| 2 | Open mobile navigation at 390 x 600 after adding four module rows. | minor | `8a0d63a` | hosted Chromium | narrow keyboard scenario |
 | 3 | Run live browser fixture containing WorkHawk in brand, activity, and footer. | minor | `43d1a30` | 7/7 hosted Chromium | exact brand locator |
-| 4 | Build from the initial extraction commit after the official logo was supplied. | minor | `751e284` | Windows/Ubuntu/Chromium | source, SSR, HTTP, and browser logo assertions |
+| 4 | Build from the initial extraction commit after the official logo was supplied. | minor | `4ada7e2` | Windows/Ubuntu/Chromium | source, SSR, HTTP, and browser logo assertions |
 
 ## Security sweep
 

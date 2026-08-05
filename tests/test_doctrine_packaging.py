@@ -145,6 +145,35 @@ class TestInstaller(unittest.TestCase):
         gitignore = (self.target / ".gitignore").read_text("utf-8")
         self.assertIn(".doctrine-state/local/", gitignore)
 
+    def test_force_reinstall_never_touches_the_state_plane(self):
+        """INVARIANT: --force refreshes the FRAMEWORK, never the repo's MEMORY.
+
+        .doctrine-state holds checkpoints, distillates and decisions - a
+        consumer's session history, hash-chained. The installer must not write
+        into it under any flag. Asserted at the INSTALLER level, not just on
+        doctrine_state.init, so that adding .doctrine-state to a copy_tree (or
+        any new seed step) fails here rather than costing a consumer its
+        memory on the next upgrade.
+        """
+        self.assertEqual(self.install(), 0)
+        state = self.target / ".doctrine-state"
+        state.mkdir(exist_ok=True)
+        (state / "checkpoints").mkdir(exist_ok=True)
+        durable = {
+            state / "checkpoints" / "7-abc123.json": b'{"seq":7}\n',
+            state / "decisions.ndjson": b'{"id":"d-1"}\n',
+        }
+        for path, blob in durable.items():
+            path.write_bytes(blob)
+
+        self.assertEqual(self.install(force=True), 0)
+
+        for path, blob in durable.items():
+            self.assertTrue(path.exists(),
+                            f"--force deleted {path.name} from the state plane")
+            self.assertEqual(path.read_bytes(), blob,
+                             f"--force rewrote {path.name}")
+
     def test_agents_boot_is_refreshed_under_force(self):
         """Regression: AGENTS.md was guarded by `if not agents.exists()`, so it
         was exempt from --force. The ignition file for every non-Claude agent

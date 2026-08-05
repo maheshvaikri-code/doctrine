@@ -7,6 +7,7 @@ docs/reviews/state-tooling.md and docs/qa/state-tooling*.md).
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import shutil
@@ -684,6 +685,56 @@ class TestHydrate(TempRepo):
         self.assertEqual(ds.cmd_hydrate(self.plane, emit_agents=True), 0)
         self.assertTrue(agents.read_text("utf-8")
                         .startswith(ds.AGENTS_BEGIN))
+
+    def test_reinit_never_disturbs_existing_memory(self):
+        """INVARIANT: reinstalling must not cost a repo its memory.
+
+        `doctrine_install --force` runs `doctrine_state init` on a plane that
+        may already hold months of checkpoints. init is mkdir(exist_ok) by
+        construction; this pins that, because the day it stops being true a
+        consumer silently loses its session history and the hash chain with it.
+        Byte-level, not count-level: a rewritten-but-same-count plane would
+        pass a count check and still have destroyed the chain.
+        """
+        for _ in range(3):
+            self.checkpoint()
+
+        def digest() -> dict[str, str]:
+            return {
+                p.relative_to(self.plane.state).as_posix():
+                    hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in sorted(self.plane.state.rglob("*"))
+                if p.is_file()
+                and "local" not in p.relative_to(self.plane.state).parts
+            }
+
+        before = digest()
+        self.assertEqual(ds.cmd_verify(self.plane), 0)
+
+        self.assertEqual(ds.cmd_init(self.plane), 0)      # what --force runs
+
+        self.assertEqual(digest(), before, "re-init altered durable state")
+        self.assertEqual(ds.cmd_verify(self.plane), 0,
+                         "chain broken by re-init")
+
+    def test_memory_still_hydrates_after_a_reinit(self):
+        """The other half: surviving on disk is not enough, it must still LOAD.
+
+        A restart replays SessionStart -> hydrate, so this is what a consumer
+        actually experiences after a reinstall. Hydration DISTILLS - it carries
+        the newest checkpoint, not a replay of every one - so the contract is
+        that the bundle resolves the latest seq and is not stale.
+        """
+        for _ in range(3):
+            self.checkpoint()
+        ds.cmd_init(self.plane)
+
+        self.assertEqual(ds.cmd_hydrate(self.plane), 0)
+        bundle = self.plane.local / "hydration.bundle.md"
+        self.assertTrue(bundle.exists(), "no bundle after re-init")
+        text = bundle.read_text("utf-8")
+        self.assertIn('"checkpoint_seq":2', text.replace(" ", ""))
+        self.assertIn('"stale":[]', text.replace(" ", ""))
 
 
 if __name__ == "__main__":

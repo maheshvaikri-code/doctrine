@@ -1,4 +1,4 @@
-# ADR-012: Mechanical enforcement at the tool boundary, attestation via git
+# ADR-010: Mechanical enforcement at the tool boundary, attestation via git
 <!-- G1 artifact. File as docs/adr/NNN-slug.md. One decision per ADR. -->
 
 **Date:** 2026-08-03 · **Status:** accepted, amended 2026-08-03 (see

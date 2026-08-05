@@ -416,7 +416,7 @@ for a bounded final pass.
 - Every claim of the form "tampering fails regardless of how it was written"
   / "CI running this gate on the pushed commit is the real anchor" /
   "wire it as pre-commit and tampering cannot reach history" is corrected —
-  in `.Doctrine.md`, `05-packaging.md`, ADR-012, and the tool's own help text
+  in `.Doctrine.md`, `05-packaging.md`, ADR-010, and the tool's own help text
   — to say precisely what the gate does and does not catch.
 
 **DOCUMENT — real, disclosed, not fixed in code:** a record forged and

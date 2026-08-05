@@ -186,8 +186,8 @@ pay**. A doctrine that only ever adds gates is a doctrine nobody follows.
 The open thread the state plane has carried for several sessions: five UI
 states, keyboard, focus, responsive, reduced-motion, screen-reader — none
 executed, because no browser backend is available in this environment.
-- **Blocker:** a Playwright-capable environment. Until then the WorkHawk
-  control room stays honestly unverified rather than quietly assumed.
+- **Blocker:** a Playwright-capable environment. Until then the control
+  room client stays honestly unverified rather than quietly assumed.
 
 ### P4.2 Attestation for the state chain · Class M
 Extend v0.7.0's tag-signature model from gold records to state checkpoints,

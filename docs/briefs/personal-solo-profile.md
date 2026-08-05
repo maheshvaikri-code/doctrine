@@ -52,7 +52,7 @@ risk. MAPLE is also opt-in even though it is the intended workforce runtime.
 ## Constraints
 Python stdlib only; existing installer API remains backward compatible; no
 network or package installation; existing uncommitted dashboard packaging fix
-and user-owned WorkHawk brand assets remain intact.
+and user-owned brand assets remain intact.
 
 ## Assumptions (chosen defaults — correct me if wrong)
 - “MAPLE enabled for all” means selected in Doctrine's runtime policy and

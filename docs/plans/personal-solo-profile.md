@@ -2,7 +2,7 @@
 <!-- G2 artifact. File as docs/plans/<task>.md. Update as reality diverges. -->
 
 **Brief:** `docs/briefs/personal-solo-profile.md` · **Design/ADRs:**
-`docs/adr/011-personal-delivery-and-default-maple.md` · **Class:** L
+`docs/adr/009-personal-delivery-and-default-maple.md` · **Class:** L
 
 ## Slices (ordered; each leaves the tree green)
 | # | Slice | Role | Files touched | Proven by (tests) | Status |

@@ -55,7 +55,7 @@ No product defect escaped the build pass.
 | # | Amendment | Target file / CI check | Status |
 |---|-----------|------------------------|--------|
 | 1 | Add an explicit personal/solo path with a permanent safety floor and risk overlays | `.Doctrine.md`, workflow, role protocol, governance, Solo Builder role | completed |
-| 2 | Make MAPLE the declared default but retain the dependency/license boundary | installer, MAPLE integration, ADR-011 | completed |
+| 2 | Make MAPLE the declared default but retain the dependency/license boundary | installer, MAPLE integration, ADR-009 | completed |
 | 3 | Keep source documentation from presenting superseded opt-in semantics as current | ADR-001, ADR-003, historical productization plan | completed |
 | 4 | Default personal work to creative latitude while keeping effects and evidence deterministic | installer, root law, workflow, governance, Solo Builder, engagement/loop skills | completed |
 

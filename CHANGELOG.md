@@ -65,7 +65,7 @@ Touched: `.Doctrine.md` (§4 + routing row), `README.md`,
 `.Doctrine/integrations/maple.md`, `03-parallel-execution.md`,
 `05-packaging.md`, `skills/tooling.md`, `templates/compatibility-manifest.md`,
 and both copies of `AGENTS.md` (root + `adapters/`, which are a synced pair).
-ADR-011 is **not** superseded — its decision text ("Doctrine will not install,
+ADR-009 is **not** superseded — its decision text ("Doctrine will not install,
 vendor, or import MAPLE") was already correct; only the surrounding prose was
 wrong.
 
@@ -283,7 +283,7 @@ built on enumerating spellings will be wrong again.
 - **The control surface now covers the enforcement itself**: `tools/doctrine_*`,
   all of `.claude/` (including `settings.local.json`, which merges *over*
   settings.json, and `agents/*`, which carries the verifier tool grants
-  ADR-012 names), `.mcp.json`, the ssh allowed-signers store and `*.pub`, plus
+  ADR-010 names), `.mcp.json`, the ssh allowed-signers store and `*.pub`, plus
   the `git config` **verb** — which rewrites `core.hooksPath`, the signing
   trust store and aliases without ever naming the file it writes. A verifier
   had deleted `doctrine_guard.py` itself with no decision emitted.
@@ -374,23 +374,11 @@ the verifier's own payload.
   `02-role-protocol.md`, `/review`, `/qa` and the per-turn engage reminder now
   require fresh-context subagents at G4/G5, and an in-session fallback must
   open its artifact with that disclosure.
-- ADR-012, the brief, `README.md` and `05-packaging.md` corrected: they
+- ADR-010, the brief, `README.md` and `05-packaging.md` corrected: they
   described a verifier-write-isolation rule that was never implemented and
   could not be from a payload that carries no role. What actually isolates a
   verifier is its subagent tool grant — which still includes `Bash`, so the
   gap is now stated rather than claimed shut.
-
-### Security
-
-- `npm audit` in `workhawk/`: 6 advisories (3 moderate, 3 high) via
-  `undici`/`brace-expansion`/`fast-uri`, all reaching only through
-  `miniflare`/`wrangler`/`@cloudflare/vite-plugin`. **Disposition:**
-  `npm audit --omit=dev` reports **0 vulnerabilities**, so runtime exposure is
-  nil and this is build-host supply chain. The repo's own
-  `npm run audit --audit-level=moderate` gate is therefore **red today**; it
-  is a real red, not a stale one, and must be cleared (or the gate's level
-  consciously re-scoped) before a WorkHawk release. Not fixed here — a
-  dependency bump is a separate change with its own verification.
 
 ## [0.7.0] - 2026-08-03
 
@@ -473,36 +461,6 @@ the verifier's own payload.
   tool and its tests. Consumer installs can run the advertised optional
   `test_doctrine_*.py` suite without the source-only contract test failing on a
   missing file; a packaging regression test verifies byte-for-byte delivery.
-
-- **WorkHawk verification execution lifecycle** - completes the existing
-  fixed Doctrine verification operation without expanding browser authority.
-  WorkHawk now locks every verification trigger while a start is unsettled,
-  blocks dirty-tree starts with commit-or-stash remediation, polls the dedicated
-  current-verification resource instead of repeatedly collecting the full
-  repository snapshot, and reconciles one snapshot after terminal completion.
-  A semantic execution record exposes only authoritative run identity, commit,
-  timing, exit code, observed test count, summary, and gate evidence. Poll
-  failures preserve the last valid record and surface delayed synchronization.
-  Browser QA covers the accepted/running/terminal sequence, exact one-POST
-  behavior, dirty preflight, rejected starts, degraded polling, modal isolation,
-  responsive overflow, reduced motion, and WCAG A/AA with no new dependency or
-  bridge/API capability.
-
-- **WorkHawk application boundary** - moves the source-only frontend from
-  `dashboard/` to `workhawk/`, presents WorkHawk as the agentic engineering
-  workbench, and keeps Doctrine as its independently installable governance
-  module over the unchanged v1 loopback contract. A typed registry names
-  Doctrine, MAPLE, STIX, and Trust while exposing only Doctrine as connected.
-  Source CI, Chromium QA, production asset regression, operating docs, and
-  Sites metadata now follow the WorkHawk application path. No external site or
-  package is published by this change. The human-supplied official WorkHawk
-  raster is preserved and wired into the shell as a production-served asset.
-  Overview cards now pair exact values with semantic status/progress, while
-  verification and repository trends use accessible, evidence-derived graphics.
-  The enterprise visual refinement adds a functional keyboard-first action
-  search, a native gate meter, a real-series SVG activity chart, responsive
-  WCAG checks, and a cohesive analytical surface system without adding another
-  animation runtime or copying external registry source.
 
 - **Control Room Windows production loading repair** - the repository-owned
   production launcher now normalizes vinext's Windows static-cache keys so

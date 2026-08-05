@@ -564,7 +564,7 @@ class TestControlSurfaceCoverage(GuardTestCase):
     def test_the_gates_own_code_and_wiring_are_control_surface(self) -> None:
         """Regression: a verifier deleted doctrine_guard.py itself with no
         decision emitted, and `.claude/agents/*` - the verifier tool grants
-        ADR-012 names as what isolates a reviewer - was freely writable."""
+        ADR-010 names as what isolates a reviewer - was freely writable."""
         _make_repo(self.repo)
 
         for rel in ("tools/doctrine_guard.py", "tools/doctrine_gold.py",

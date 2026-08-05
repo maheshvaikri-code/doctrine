@@ -4,7 +4,7 @@
 
 **Brief:** (private) · **Design/ADRs:** `docs/adr/001-turnkey-distribution.md` · **Class:** L (program) / this slice M
 
-> Historical plan: MAPLE was opt-in when these slices shipped. ADR-011 changed
+> Historical plan: MAPLE was opt-in when these slices shipped. ADR-009 changed
 > the current default on 2026-07-29; the completed evidence below is retained
 > as the record of the earlier behavior.
 

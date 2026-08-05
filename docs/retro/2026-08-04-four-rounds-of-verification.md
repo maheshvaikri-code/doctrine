@@ -80,7 +80,7 @@ under all four for a day taught more about the tool than the test suite did.
 **Keep:** wire an enforcement tool into the repo that builds it, on day one.
 **New rule, learned the hard way:** a gate must fail closed on the *action* it
 judges and never on its own plumbing. A gate that can brick the session is one
-users disable, which is the failure mode ADR-012 names as its own invalidation
+users disable, which is the failure mode ADR-010 names as its own invalidation
 trigger.
 
 ## Where my own artifacts were wrong
@@ -91,7 +91,7 @@ engineering ones:
 - The QA report certified `HEAD=9006dd5, 253 tests` for a build that was two
   commits and a dirty tree away from what was on disk. Three QA passes failed
   the same criterion for the same reason before the work was finally committed.
-- ADR-012, the brief and the plan all specified a verifier-write-isolation
+- ADR-010, the brief and the plan all specified a verifier-write-isolation
   rule I had deliberately dropped and disclosed only in conversation. Silently
   narrowed scope, in writing, in three places.
 - Five documents claimed a reviewer "physically cannot" edit what it judges.

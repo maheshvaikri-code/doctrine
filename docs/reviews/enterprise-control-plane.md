@@ -38,10 +38,10 @@ Severity: BLOCKER (must fix) · MAJOR (fix before release) · MINOR · NIT.
 
 | # | Sev | Finding | Disposition |
 |---|-----|---------|-------------|
-| 8 | MAJOR | The guard binds only runtimes that honour a pre-execution hook. Another agent editing the same repo is unconstrained. | ADR-012 consequence, accepted. The tool is runtime-neutral (JSON in, JSON out), so a second adapter is wiring, not a rewrite. The doctrine must not claim enforcement it lacks: §7 now states exactly which four rules are mechanical and that the other six are not. |
+| 8 | MAJOR | The guard binds only runtimes that honour a pre-execution hook. Another agent editing the same repo is unconstrained. | ADR-010 consequence, accepted. The tool is runtime-neutral (JSON in, JSON out), so a second adapter is wiring, not a rewrite. The doctrine must not claim enforcement it lacks: §7 now states exactly which four rules are mechanical and that the other six are not. |
 | 9 | MINOR | Writes to paths *outside* the repo skip the path rule (they have no repo-relative meaning). The secret rules still apply to them. | Denying them would break legitimate cross-repo work — installing Doctrine into a sibling repo is exactly that. Documented. |
 | 10 | MINOR | Pattern-based detection has false negatives: a bare high-entropy string with no credential-shaped name is not caught, and after finding 5, neither is a passphrase containing spaces. | Stated in `05-packaging.md` — a floor, not a scanner. The provider formats (AWS/GitHub/Anthropic/OpenAI/Slack/Google/private-key blocks) are matched regardless of naming, and `skills/security.md` still calls for a real scanner at G5. |
-| 11 | MINOR | `git verify-tag` proves the tag was signed by a key in the verifier's trust store — not that the signer read the evidence. | ADR-012 consequence; stated in `standards/merge-and-promotion.md`. |
+| 11 | MINOR | `git verify-tag` proves the tag was signed by a key in the verifier's trust store — not that the signer read the evidence. | ADR-010 consequence; stated in `standards/merge-and-promotion.md`. |
 | 12 | MINOR | The ssh-signature text fallback depends on a git output string that could change. | Fails **closed** by construction: a format drift can only under-report a signature, never invent one. Asserted by `test_a_failed_verification_is_never_reported_as_signed`. |
 
 ## Checklist
@@ -91,7 +91,7 @@ or two tool calls, and the author's pass found none of them.
 | "`allow` is committed config, so widening it is a visible, reviewable act" | **False.** `.doctrine-state/guard.json` was unprotected and the widening took effect immediately, in-session. Two tool calls disabled all four rules. |
 | Nothing was said about `pyproject.toml` | A second self-service switch: its package name decided whether the installed corpus was protected, and it was writable. |
 | "`doctrine_fleet` is strictly read-only (a test hashes the tree)" | **False.** `git status` rewrites the index whenever the stat cache is stale — true of any fresh clone. The test passed only because its fixture was committed microseconds earlier. It also executed `core.fsmonitor` **from the repo being inspected**. |
-| Finding 3 disclosed verifier-write-isolation as "accepted limitation #8" | Understated: ADR-012, the brief and the plan all *specified* the rule as shipped. That is silently narrowed scope, not a documented limitation. |
+| Finding 3 disclosed verifier-write-isolation as "accepted limitation #8" | Understated: ADR-010, the brief and the plan all *specified* the rule as shipped. That is silently narrowed scope, not a documented limitation. |
 | "no acceptance criterion in the brief is unmet" (QA artifact) | Three were unmet. |
 
 Additional findings this pass never considered: the guard **failed open** on a

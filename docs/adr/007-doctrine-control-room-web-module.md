@@ -1,6 +1,7 @@
 # ADR-007 — Doctrine Control Room web module
 
-**Status:** Superseded by ADR-009 for frontend ownership and naming
+**Status:** Superseded — the frontend is no longer part of this repository.
+The loopback operations bridge it consumed remains, under ADR-008.
 **Date:** 2026-07-25
 
 ## Context

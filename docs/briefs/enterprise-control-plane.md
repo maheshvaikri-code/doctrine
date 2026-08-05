@@ -26,7 +26,7 @@ intermittently (~1 run in 6 under load).
 1. `tools/doctrine_guard.py` — a `PreToolUse` decision hook: fail-closed
    secret blocking, protected-path refusal, destructive-command refusal, and
    test weakening. Decides at the point of action, before the edit - soundly
-   for Write/Edit, as a tripwire for shell commands (ADR-012 Correction 2).
+   for Write/Edit, as a tripwire for shell commands (ADR-010 Correction 2).
 2. `doctrine_gold` attestation — verify the release tag's cryptographic
    signature through git (GPG/SSH keys the developer already holds), record the
    signer identity in the gold record, and offer `--require-signature` so a
@@ -48,7 +48,7 @@ tool reports, the human decides); scanning a host repo's own code.
 > **Amended 2026-08-03**, after independent verification. The first criterion
 > below originally required the guard to deny "a verifier-role write". That
 > rule was never implemented and could not be, because the hook payload
-> carries no role and a self-attested one proves nothing (ADR-012,
+> carries no role and a self-attested one proves nothing (ADR-010,
 > Correction). The criterion is corrected here rather than quietly dropped —
 > narrowed scope is reported scope. Verifier isolation now lives in the
 > dispatch rule in `02-role-protocol.md`, with its Bash-shaped gap stated.

@@ -145,7 +145,7 @@ PROTECTED_ALWAYS: Final[tuple[tuple[str, str], ...]] = (
 # in their own enforcement - but an outright refusal would block the very
 # workflow the docs prescribe (adding an allowlist entry, bumping a version),
 # and a gate that blocks legitimate work gets uninstalled, which is the
-# failure mode ADR-012 names as its own invalidation trigger.
+# failure mode ADR-010 names as its own invalidation trigger.
 CONTROL_SURFACE: Final[tuple[tuple[str, str], ...]] = (
     (CONFIG_REL, "this guard's own policy - widening it silently would let "
                  "the governed agent switch its own enforcement off"),
@@ -162,7 +162,7 @@ CONTROL_SURFACE: Final[tuple[tuple[str, str], ...]] = (
     ("tools/doctrine_lint.py", "the corpus gate's code"),
     # `.claude/**`, not just settings.json: settings.local.json merges OVER
     # it, and `.claude/agents/*` carries the verifier tool grants that
-    # ADR-012 names as what actually isolates a reviewer.
+    # ADR-010 names as what actually isolates a reviewer.
     (".claude/*", "the agent wiring - hooks, permissions, and the verifier "
                   "tool grants that enforce separation of duties"),
     (".mcp.json", "MCP servers run with this session's authority"),

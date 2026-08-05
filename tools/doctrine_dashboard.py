@@ -1,4 +1,4 @@
-"""Loopback-only Doctrine operations bridge for WorkHawk.
+"""Loopback-only Doctrine operations bridge for local control-room clients.
 
 The browser cannot read a repository or execute Doctrine's Python tools. This
 module exposes a deliberately small HTTP boundary: a bounded repository
@@ -1091,7 +1091,7 @@ def create_server(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="doctrine-dashboard",
-        description="Serve Doctrine's loopback operations API for WorkHawk.",
+        description="Serve Doctrine's loopback operations API for local clients.",
     )
     parser.add_argument(
         "--repo",
@@ -1120,7 +1120,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, SnapshotError) as exc:
         parser.error(str(exc))
     host, port = server.server_address
-    print(f"Doctrine bridge for WorkHawk listening on http://{host}:{port}")
+    print(f"Doctrine operations bridge listening on http://{host}:{port}")
     print("Press Ctrl+C to stop.")
     try:
         server.serve_forever(poll_interval=0.25)

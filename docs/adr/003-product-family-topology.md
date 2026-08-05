@@ -5,7 +5,7 @@
 **Date:** 2026-07-14 · **Status:** accepted (topology); family gate enforcement deferred
 **Deciders:** Chief Architect (+ human: "say go and I'll formalize it")
 
-**Amended 2026-07-29:** ADR-011 supersedes only the phrase "opt-in
+**Amended 2026-07-29:** ADR-009 supersedes only the phrase "opt-in
 integration." Doctrine still has no code dependency on MAPLE, but selects it as
 the default external workforce runtime with native/serial fallback. The
 separate-repository topology remains active.

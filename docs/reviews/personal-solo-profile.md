@@ -4,7 +4,7 @@
 **Reviewer role:** Code Reviewer · **Date:** 2026-07-29
 **Base commit:** `9006dd5fd33c4ca11e871cf3b4ed3a9f01f54c10`
 **Reviewed against:** `docs/briefs/personal-solo-profile.md`,
-`docs/adr/011-personal-delivery-and-default-maple.md`, and
+`docs/adr/009-personal-delivery-and-default-maple.md`, and
 `docs/plans/personal-solo-profile.md`
 **Executed:** `git diff --check`; targeted reference/stale-wording scans;
 packaging and awakening regression suites; `python tools/doctrine_verify.py`;
@@ -14,7 +14,7 @@ black-box installer invocations.
 
 | # | Sev | Location | Finding | Suggested fix | Resolution |
 |---|-----|----------|---------|---------------|------------|
-| 1 | [MINOR] | `docs/adr/001-turnkey-distribution.md`, `docs/adr/003-product-family-topology.md`, `docs/plans/productization-v0.1.md` | Historical documents still called MAPLE opt-in without identifying the current superseding decision. | Add dated amendments pointing to ADR-011 while preserving the historical record. | resolved in working tree |
+| 1 | [MINOR] | `docs/adr/001-turnkey-distribution.md`, `docs/adr/003-product-family-topology.md`, `docs/plans/productization-v0.1.md` | Historical documents still called MAPLE opt-in without identifying the current superseding decision. | Add dated amendments pointing to ADR-009 while preserving the historical record. | resolved in working tree |
 | 2 | [MINOR] | `tools/doctrine_install.py`, `.Doctrine/templates/project-brief.md` | Initial explicit-latitude preservation recognized the installer's plain marker but not the bold metadata form emitted by the project-brief template. A reinstall could append creative beside a templated deterministic choice. | Recognize both canonical plain and template metadata fields; make the regression use the public template form. | resolved in working tree |
 
 No open BLOCKER, MAJOR, MINOR, or NIT findings remain.
@@ -40,7 +40,7 @@ No open BLOCKER, MAJOR, MINOR, or NIT findings remain.
 - Root and canonical adapter `AGENTS.md` files are byte-identical; generated
   signatures are current; `git diff --check` is clean.
 - The previously present control-room contract packaging edits remain intact.
-  User-owned untracked WorkHawk brand assets were not touched.
+  User-owned untracked brand assets were not touched.
 
 ## Independence limitation
 

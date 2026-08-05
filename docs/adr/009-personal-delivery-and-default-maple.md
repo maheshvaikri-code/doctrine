@@ -1,4 +1,4 @@
-# ADR-011: Personal delivery profile and default MAPLE selection
+# ADR-009: Personal delivery profile and default MAPLE selection
 <!-- G1 artifact. File as docs/adr/NNN-slug.md. One decision per ADR. -->
 
 **Date:** 2026-07-29 · **Status:** accepted

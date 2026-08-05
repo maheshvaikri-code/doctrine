@@ -3,7 +3,7 @@
   "info": {
     "title": "Doctrine Local Operations Bridge",
     "version": "1.0.0",
-    "description": "Loopback-only adapter from Doctrine repository authority to WorkHawk and compatible local clients."
+    "description": "Loopback-only adapter from Doctrine repository authority to compatible local clients."
   },
   "servers": [
     {

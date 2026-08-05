@@ -43,6 +43,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+import doctrine_features  # noqa: E402
+
 # tool -> [(source under .Doctrine/adapters/, dest under target root)]
 ADAPTERS: dict[str, list[tuple[str, str]]] = {
     "claude": [],  # native wiring copied separately (.claude/, CLAUDE.md)
@@ -58,7 +61,7 @@ ADAPTERS: dict[str, list[tuple[str, str]]] = {
     "continue": [("continue-doctrine.md", ".continue/rules/doctrine.md")],
     "junie": [("junie-doctrine.md", ".junie/guidelines.md")],
 }
-CLAUDE_IMPORTS = ["@.Doctrine.md",
+CLAUDE_IMPORTS = ["@.Doctrine.md", "@FEATURES.md",
                   "@.doctrine-state/local/hydration.bundle.md"]
 # The canonical brief marker. "personal" is the LEGACY spelling and is still
 # recognised, because 15+ installed repos carry it; only the new one is written.
@@ -70,7 +73,8 @@ TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
               "doctrine_metrics.py", "doctrine_verify.py",
               "doctrine_engage.py", "doctrine_awaken.py",
               "doctrine_signature.py", "doctrine_dashboard.py",
-              "doctrine_guard.py", "doctrine_fleet.py"]
+              "doctrine_guard.py", "doctrine_fleet.py",
+              "doctrine_features.py"]
 COMPANION_FILES = [
     "docs/contracts/doctrine-control-room.openapi.json",
 ]
@@ -190,6 +194,10 @@ def prune_corpus(source: Path, target: Path, report: Report,
     """
     installed_corpus = target / ".Doctrine"
     if not force or not installed_corpus.is_dir():
+        return
+    # The target's own FEATURES.md decides. Default-on, so a repo installed
+    # before the toggle existed behaves exactly as before.
+    if not doctrine_features.is_on(target, "prune-on-force"):
         return
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup = target / ".doctrine-state" / "local" / "prune-backup" / stamp
@@ -421,6 +429,13 @@ def install(source: Path, target: Path, tools: list[str],
     if ci:
         src_rel, dest_rel = CI_PROVIDERS[ci_provider]
         copy_file(source / src_rel, target / dest_rel, target, report, force)
+
+    # FEATURES.md - the repo's toggle switchboard. CONSUMER-OWNED policy, so
+    # it is seeded when absent and NEVER overwritten, not even under --force:
+    # clobbering it would silently re-enable something the human turned off.
+    features = target / "FEATURES.md"
+    if not features.exists():
+        copy_file(source / "FEATURES.md", features, target, report, force)
 
     # AGENTS.md universal boot. Seeded when absent; when it exists and differs,
     # copy_file SKIPS it and reports it in skipped_diff unless --force. It used

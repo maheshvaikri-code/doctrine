@@ -200,6 +200,44 @@ class TestInstaller(unittest.TestCase):
         for name in ("settings.json", "local.json", "plugin.json"):
             self.assertFalse(di.is_machine_local(Path("x") / name), name)
 
+    def test_features_md_is_seeded_but_never_overwritten(self):
+        """FEATURES.md is CONSUMER-owned policy, unlike the corpus. Clobbering
+        it under --force would silently re-enable something the human turned
+        off - the one failure mode a toggle file must not have."""
+        self.assertEqual(self.install(), 0)
+        features = self.target / "FEATURES.md"
+        self.assertTrue(features.exists(), "FEATURES.md was not seeded")
+
+        mine = "| `prune-on-force` | off | my choice |\n"
+        features.write_text(mine, encoding="utf-8")
+        self.assertEqual(self.install(force=True), 0)
+        self.assertEqual(features.read_text("utf-8"), mine,
+                         "--force overwrote the repo's own toggles")
+
+    def test_a_toggle_actually_governs_behaviour(self):
+        """Guards against a decorative switchboard: a table nobody reads is
+        worse than no table, because it reads as configuration."""
+        self.assertEqual(self.install(), 0)
+        stale = self.target / ".Doctrine" / "roles" / "zz-stale.md"
+
+        (self.target / "FEATURES.md").write_text(
+            "| `prune-on-force` | off | |\n", encoding="utf-8")
+        stale.write_text("stale\n", encoding="utf-8")
+        self.assertEqual(self.install(force=True), 0)
+        self.assertTrue(stale.exists(), "toggle off did not stop the prune")
+
+        (self.target / "FEATURES.md").write_text(
+            "| `prune-on-force` | on | |\n", encoding="utf-8")
+        self.assertEqual(self.install(force=True), 0)
+        self.assertFalse(stale.exists(), "toggle on did not allow the prune")
+
+    def test_claude_md_imports_features(self):
+        """Read once per session is the whole point; without the import the
+        agent never sees the toggles at all."""
+        self.assertEqual(self.install(), 0)
+        claude_md = (self.target / "CLAUDE.md").read_text("utf-8")
+        self.assertIn("@FEATURES.md", claude_md)
+
     def test_force_prunes_corpus_files_deleted_upstream(self):
         """The installer used to only COPY, so a role deleted from the doctrine
         survived forever in every consumer - garagebox kept offering

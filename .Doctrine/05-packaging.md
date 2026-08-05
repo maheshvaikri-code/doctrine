@@ -46,11 +46,21 @@ is compatible with either.
 ## Reinstall preservation contract
 
 A reinstall, including `--force`, overwrites only Doctrine-managed corpus,
-tools, companion tests/contracts, and selected adapter files. It never removes
-target-only files and never writes repository-owned runtime or planning data
-under `.doctrine-state/`, `memory/`, `sessions/`, `docs/plans/`,
-`docs/briefs/`, `docs/adr/`, `docs/reviews/`, `docs/qa/`, `docs/releases/`, or
-`docs/retro/`. The sole project-brief mutation is append-only: missing profile
+tools, companion tests/contracts, and selected adapter files. It never writes
+repository-owned runtime or planning data under `.doctrine-state/`, `memory/`,
+`sessions/`, `docs/plans/`, `docs/briefs/`, `docs/adr/`, `docs/reviews/`,
+`docs/qa/`, `docs/releases/`, or `docs/retro/`.
+
+**Removal is confined to the corpus, and only under `--force`.** `--force`
+deletes files under `.Doctrine/` that no longer exist upstream — otherwise a
+role or skill removed from the doctrine stays installed and selectable forever
+(a consumer went on offering a deleted role after a `--force` upgrade). Every
+pruned file is **copied to `.doctrine-state/local/prune-backup/<UTC stamp>/`
+before deletion** and the location is printed, so the operation is recoverable
+rather than merely careful. A plain install removes nothing. Nothing outside
+`.Doctrine/` is ever pruned — not `.claude/commands/` or `.claude/agents/`
+(a consumer may add its own), not `docs/`, and above all not
+`.doctrine-state/`; each of those is pinned by a test. The sole project-brief mutation is append-only: missing profile
 markers may be added to `docs/brief.md`; its existing bytes are otherwise
 preserved. The fixed dashboard OpenAPI file under `docs/contracts/` is an
 explicit Doctrine-managed companion artifact.

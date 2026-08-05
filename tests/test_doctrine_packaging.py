@@ -145,6 +145,65 @@ class TestInstaller(unittest.TestCase):
         gitignore = (self.target / ".gitignore").read_text("utf-8")
         self.assertIn(".doctrine-state/local/", gitignore)
 
+    def test_force_prunes_corpus_files_deleted_upstream(self):
+        """The installer used to only COPY, so a role deleted from the doctrine
+        survived forever in every consumer - garagebox kept offering
+        `[ROLE: Solo Builder]` after a --force reinstall that had removed it."""
+        self.assertEqual(self.install(), 0)
+        stale = self.target / ".Doctrine" / "roles" / "zz-deleted-upstream.md"
+        stale.write_text("stale role\n", encoding="utf-8")
+
+        self.assertEqual(self.install(force=True), 0)
+        self.assertFalse(stale.exists(), "--force left a deleted role installed")
+
+    def test_prune_is_recoverable_because_it_backs_up_first(self):
+        """Deleting from someone else's repo must be reversible, not merely
+        careful."""
+        self.assertEqual(self.install(), 0)
+        stale = self.target / ".Doctrine" / "skills" / "zz-gone.md"
+        stale.write_text("irreplaceable\n", encoding="utf-8")
+
+        report = di.Report()
+        di.prune_corpus(REPO, self.target, report, True)
+
+        self.assertIn(".Doctrine/skills/zz-gone.md", report.pruned)
+        self.assertIsNotNone(report.prune_backup)
+        saved = report.prune_backup / "skills" / "zz-gone.md"
+        self.assertTrue(saved.exists(), "pruned file was not backed up")
+        self.assertEqual(saved.read_text("utf-8"), "irreplaceable\n")
+
+    def test_a_plain_install_never_deletes_anything(self):
+        """Pruning is destructive, so it is gated on --force. An ordinary
+        upgrade must never remove a file."""
+        self.assertEqual(self.install(), 0)
+        stale = self.target / ".Doctrine" / "roles" / "zz-deleted-upstream.md"
+        stale.write_text("stale role\n", encoding="utf-8")
+
+        self.assertEqual(self.install(), 0)
+        self.assertTrue(stale.exists(),
+                        "a non-force install deleted a file")
+
+    def test_prune_stays_inside_the_corpus(self):
+        """The blast radius that matters. `.Doctrine/` is the installed
+        snapshot the installer owns; everything else belongs to the consumer -
+        its own commands, its docs, and above all its memory."""
+        self.assertEqual(self.install(), 0)
+        mine = {
+            self.target / ".claude" / "commands" / "my-own.md": "mine\n",
+            self.target / "docs" / "my-notes.md": "notes\n",
+            self.target / ".doctrine-state" / "checkpoints" / "1-a.json":
+                '{"seq":1}\n',
+        }
+        for path, body in mine.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+
+        self.assertEqual(self.install(force=True), 0)
+
+        for path, body in mine.items():
+            self.assertTrue(path.exists(), f"prune reached {path.name}")
+            self.assertEqual(path.read_text("utf-8"), body)
+
     def test_force_reinstall_never_touches_the_state_plane(self):
         """INVARIANT: --force refreshes the FRAMEWORK, never the repo's MEMORY.
 

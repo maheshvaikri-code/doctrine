@@ -37,8 +37,10 @@ Publishing/registry distribution stays human-gated (.Doctrine.md section 5).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # tool -> [(source under .Doctrine/adapters/, dest under target root)]
@@ -147,16 +149,67 @@ class Report:
         self.copied: list[str] = []
         self.skipped_same: int = 0
         self.skipped_diff: list[str] = []
+        self.pruned: list[str] = []
+        self.prune_backup: Path | None = None
 
     def show(self) -> None:
         print(f"installed: {len(self.copied)} file(s), "
               f"unchanged: {self.skipped_same}")
+        if self.pruned:
+            print(f"pruned {len(self.pruned)} corpus file(s) removed upstream "
+                  f"(backed up to {self.prune_backup}):")
+            for rel in self.pruned:
+                print(f"  - {rel}")
         if self.skipped_diff:
             print(f"SKIPPED {len(self.skipped_diff)} file(s) that exist "
                   "with different content (rerun with --force to "
                   "overwrite):")
             for rel in self.skipped_diff:
                 print(f"  - {rel}")
+
+
+def prune_corpus(source: Path, target: Path, report: Report,
+                 force: bool) -> None:
+    """Delete installed corpus files that no longer exist upstream.
+
+    The installer used to only ever COPY, so a role or skill deleted from the
+    doctrine survived forever in every consumer: garagebox kept offering
+    `[ROLE: Solo Builder]` after a --force reinstall that had removed it.
+
+    Deliberately narrow, because deleting from someone else's repo is the
+    dangerous direction:
+      * ONLY under --force. A plain install never deletes anything.
+      * ONLY inside `.Doctrine/` - the installed corpus, which the guard
+        already declares a read-only snapshot owned by the installer.
+        `.claude/commands/` and `.claude/agents/` are excluded even though the
+        installer seeds them, because a consumer may legitimately add its own.
+      * NEVER `.doctrine-state/` - that is the repo's memory, and it is not
+        under `.Doctrine/` anyway. A separate test pins that.
+      * Every pruned file is COPIED TO A BACKUP FIRST, so the operation is
+        recoverable rather than merely careful, and the location is printed.
+    """
+    installed_corpus = target / ".Doctrine"
+    if not force or not installed_corpus.is_dir():
+        return
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    backup = target / ".doctrine-state" / "local" / "prune-backup" / stamp
+    for path in sorted(installed_corpus.rglob("*")):
+        if path.is_dir() or "__pycache__" in path.parts:
+            continue
+        rel = path.relative_to(installed_corpus)
+        if (source / ".Doctrine" / rel).exists():
+            continue
+        dest = backup / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(path.read_bytes())     # back up BEFORE deleting
+        path.unlink()
+        report.pruned.append((Path(".Doctrine") / rel).as_posix())
+        report.prune_backup = backup
+    # leave no empty directories behind
+    for d in sorted((p for p in installed_corpus.rglob("*") if p.is_dir()),
+                    key=lambda p: len(p.parts), reverse=True):
+        with contextlib.suppress(OSError):
+            d.rmdir()
 
 
 def copy_file(src: Path, dest: Path, target: Path, report: Report,
@@ -300,6 +353,10 @@ def install(source: Path, target: Path, tools: list[str],
               report, force)
     copy_tree(source / ".Doctrine", target / ".Doctrine", target, report,
               force)
+    # ...and, under --force only, remove corpus files deleted upstream, after
+    # backing each one up. Copy-only upgrades left deleted roles installed and
+    # selectable forever.
+    prune_corpus(source, target, report, force)
     # the enforcement suite + its tests
     for name in TOOL_FILES:
         copy_file(source / "tools" / name, target / "tools" / name,
@@ -442,7 +499,9 @@ def main(argv: list[str] | None = None) -> int:
                              "command ends verified")
     parser.add_argument("--force", action="store_true",
                         help="overwrite files that exist with different "
-                             "content")
+                             "content, and prune .Doctrine/ files deleted "
+                             "upstream (each is backed up to "
+                             ".doctrine-state/local/prune-backup/ first)")
     parser.add_argument("--local", action="store_true",
                         help="keep the WHOLE framework out of git: the managed "
                              ".gitignore block lists every installed framework "

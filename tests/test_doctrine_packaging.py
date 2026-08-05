@@ -145,6 +145,28 @@ class TestInstaller(unittest.TestCase):
         gitignore = (self.target / ".gitignore").read_text("utf-8")
         self.assertIn(".doctrine-state/local/", gitignore)
 
+    def test_agents_boot_is_refreshed_under_force(self):
+        """Regression: AGENTS.md was guarded by `if not agents.exists()`, so it
+        was exempt from --force. The ignition file for every non-Claude agent
+        went stale after the first install - still naming roles the corpus had
+        deleted - and the installer reported nothing."""
+        self.assertEqual(self.install(), 0)
+        boot = self.target / "AGENTS.md"
+        boot.write_text("stale boot\n", encoding="utf-8")
+
+        # without --force: skipped, but REPORTED rather than silently ignored
+        report = di.Report()
+        di.copy_file(REPO / ".Doctrine" / "adapters" / "AGENTS.md", boot,
+                     self.target, report, False)
+        self.assertIn("AGENTS.md", report.skipped_diff)
+        self.assertEqual(boot.read_text("utf-8"), "stale boot\n")
+
+        # with --force: actually refreshed
+        self.assertEqual(self.install(force=True), 0)
+        self.assertEqual(
+            boot.read_bytes(),
+            (REPO / ".Doctrine" / "adapters" / "AGENTS.md").read_bytes())
+
     def test_maple_flag_remains_an_idempotent_compatibility_alias(self):
         self.assertEqual(
             di.install(REPO, self.target, ["claude"], False, False, False,

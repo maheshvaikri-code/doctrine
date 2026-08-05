@@ -315,11 +315,15 @@ def install(source: Path, target: Path, tools: list[str],
         src_rel, dest_rel = CI_PROVIDERS[ci_provider]
         copy_file(source / src_rel, target / dest_rel, target, report, force)
 
-    # AGENTS.md universal boot (never overwrite an existing one)
-    agents = target / "AGENTS.md"
-    if not agents.exists():
-        copy_file(source / ".Doctrine" / "adapters" / "AGENTS.md", agents,
-                  target, report, force)
+    # AGENTS.md universal boot. Seeded when absent; when it exists and differs,
+    # copy_file SKIPS it and reports it in skipped_diff unless --force. It used
+    # to be `if not agents.exists()`, which exempted it from --force entirely -
+    # so the boot file governing every non-Claude agent went permanently stale
+    # after the first install, still prescribing roles the corpus had removed,
+    # and said nothing about it. Silent staleness in the ignition file is worse
+    # than a reported skip.
+    copy_file(source / ".Doctrine" / "adapters" / "AGENTS.md",
+              target / "AGENTS.md", target, report, force)
 
     # .mcp.json local MCP registration (never overwrite - the consumer may run
     # its own MCP servers). Registers the doctrineos server so any MCP-capable

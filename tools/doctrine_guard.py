@@ -898,7 +898,61 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
         verdict = check_test_weakening(rel_path, text)
         if verdict.decision:
             return verdict
+
+    # Nothing objected. For a WRITE, say so explicitly rather than abstaining.
+    #
+    # Silence is not approval: it leaves the host's own permission flow to ask.
+    # Registering a PreToolUse hook and then having no opinion is how a repo
+    # that installed Doctrine ended up prompting on ordinary edits that an
+    # ungoverned repo waves through - the doctrine made routine work heavier
+    # while adding no safety, which is the opposite of the point.
+    #
+    # WRITE_TOOLS ONLY. Bash never gets `allow` here, deliberately: section 7
+    # calls the guard's shell analysis "a tripwire, not a boundary - no static
+    # analysis of a Turing-complete shell is complete". Granting approval off
+    # an analysis the doctrine itself declares incomplete would be exactly the
+    # overreach it warns about, and it would suppress the host's independent
+    # check too, leaving nothing. On Write/Edit the surface IS sound: one
+    # field names one file.
+    #
+    # Reached only after every deny/ask check above has declined to fire, so
+    # secrets, protected paths, control surface, immutable evidence and
+    # test-weakening are all already refused.
+    if tool_name in WRITE_TOOLS and autonomy_enabled(root):
+        return Decision("allow",
+                        "Doctrine: ordinary file, no secret, not protected "
+                        "and not a test being weakened - approved under "
+                        "FEATURES.md `autonomous-verification`.")
     return Decision()
+
+
+def autonomy_enabled(root: Path) -> bool:
+    """Is `autonomous-verification` explicitly ON in this repo's FEATURES.md?
+
+    OPT-IN, unlike every other toggle. `doctrine_features.is_on` defaults to
+    ON so that narrowing switches keep working on repos installed before they
+    existed - but this one WIDENS what happens without asking, and absence of
+    the file is absence of consent, not agreement. A repo that never saw
+    FEATURES.md must not silently start auto-approving writes.
+
+    Any failure - no module, no file, unreadable - answers False. A guard that
+    grants approval when its own config cannot be read is the failure mode
+    this project keeps finding in other people's gates.
+    """
+    try:
+        # The hook runs from an arbitrary cwd, so locate the sibling by this
+        # file's own path rather than trusting sys.path.
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import doctrine_features
+    except Exception:  # noqa: BLE001 - a hook must never crash on an import
+        return False
+    try:
+        return doctrine_features.is_on(root, "autonomous-verification",
+                                       default=False)
+    except Exception:  # noqa: BLE001 - unreadable config is not consent
+        return False
 
 
 def governed_root(payload: object) -> Path | None:

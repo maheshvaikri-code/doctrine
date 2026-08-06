@@ -897,5 +897,81 @@ class TestPosture(GuardTestCase):
         self.assertEqual(decision["permissionDecision"], "deny")
 
 
+class TestAutonomousVerification(GuardTestCase):
+    """`autonomous-verification` makes the guard say `allow` on an ordinary
+    write instead of abstaining.
+
+    Silence is NOT approval: it leaves the host's own permission flow to ask.
+    Registering a PreToolUse hook and then having no opinion is how installing
+    Doctrine made a repo prompt on edits an ungoverned repo waves through -
+    heavier routine work, no added safety.
+    """
+
+    def _on(self, *, state: str = "on") -> None:
+        (self.repo / "FEATURES.md").write_text(
+            f"| Feature | State | What |\n|---|---|---|\n"
+            f"| `autonomous-verification` | {state} | x |\n", encoding="utf-8")
+
+    def test_ordinary_write_is_explicitly_allowed(self):
+        _make_repo(self.repo)
+        self._on()
+        decision = _run(self.repo, _write(self.repo, "src/main.rs", "fn x(){}"))
+        self.assertEqual(decision.get("permissionDecision"), "allow")
+
+    def test_absent_features_file_is_not_consent(self):
+        """OPT-IN. A repo that never saw FEATURES.md must not silently start
+        auto-approving writes - absence of the file is absence of consent."""
+        _make_repo(self.repo)
+        self.assertEqual(_run(self.repo, _write(self.repo, "a.py", "x = 1")),
+                         {})
+
+    def test_toggle_off_restores_abstention(self):
+        _make_repo(self.repo)
+        self._on(state="off")
+        self.assertEqual(_run(self.repo, _write(self.repo, "a.py", "x = 1")),
+                         {})
+
+    def test_unreadable_features_file_fails_safe(self):
+        """A guard that grants approval when its own config cannot be read is
+        the failure mode this project keeps finding in other people's gates."""
+        _make_repo(self.repo)
+        (self.repo / "FEATURES.md").write_bytes(b"\xff\xfe not markdown")
+        self.assertEqual(_run(self.repo, _write(self.repo, "a.py", "x = 1")),
+                         {})
+
+    def test_bash_is_never_allowed_even_with_the_toggle_on(self):
+        """Section 7 calls the shell analysis "a tripwire, not a boundary".
+        Granting approval off an analysis the doctrine itself declares
+        incomplete would be the overreach it warns about - and it would
+        suppress the host's independent check too, leaving nothing."""
+        _make_repo(self.repo)
+        self._on()
+        for command in ("ls -la", "cargo test", "python -m pytest"):
+            with self.subTest(command=command):
+                decision = _run(self.repo, _bash(self.repo, command))
+                self.assertNotEqual(decision.get("permissionDecision"),
+                                    "allow", command)
+
+    def test_protected_paths_still_refused_with_the_toggle_on(self):
+        """THE assertion that matters: the widening must not outrank the
+        refusals. Every deny/ask check runs before the allow can be reached."""
+        _make_repo(self.repo)          # consumer repo: corpus is read-only
+        self._on()
+        for rel, expected in ((".Doctrine/README.md", "deny"),
+                              (".claude/settings.json", "ask"),
+                              ("tools/doctrine_guard.py", "ask")):
+            with self.subTest(path=rel):
+                decision = _run(self.repo, _write(self.repo, rel, "x"))
+                self.assertEqual(decision.get("permissionDecision"), expected,
+                                 f"{rel} was not refused with the toggle on")
+
+    def test_a_secret_is_still_denied_with_the_toggle_on(self):
+        _make_repo(self.repo)
+        self._on()
+        secret = "AWS" + "_SECRET_ACCESS_KEY = " + '"' + "A" * 40 + '"'
+        decision = _run(self.repo, _write(self.repo, "config.py", secret))
+        self.assertEqual(decision.get("permissionDecision"), "deny")
+
+
 if __name__ == "__main__":
     unittest.main()

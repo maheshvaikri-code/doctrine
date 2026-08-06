@@ -12,7 +12,7 @@ about what it does.
 
 | Feature | State | What it changes |
 |---|---|---|
-| `autonomous-verification` | **on** | Run this repo's own fmt/lint/type/test/build without pausing for per-command approval, and paste the real output. |
+| `autonomous-verification` | **on** | The guard answers **`allow`** on an ordinary file write instead of abstaining, so routine edits stop prompting. Run this repo's own fmt/lint/type/test/build and paste the real output. |
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
@@ -46,3 +46,9 @@ Machine-readable form, if a tool needs it: a feature is **on** unless this
 table says `off`. Tools that honour a toggle read it through
 `tools/doctrine_features.py`; everything else here is read by the agent, like
 the rest of the corpus.
+
+**One exception, and it runs the other way.** `autonomous-verification` is the
+only toggle that *widens* what happens without asking, so it is **opt-in**: if
+this file is missing or unreadable, it is treated as **off**, not on. Absence
+of the file is absence of consent. Every other toggle defaults **on**, so a
+repo installed before that toggle existed keeps behaving exactly as it did.

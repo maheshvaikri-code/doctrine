@@ -123,6 +123,54 @@ class TestCorpusDrift(unittest.TestCase):
             self._corpus(root)
             self.assertEqual(eng.drift_notice(root, "s1"), "")
 
+    def test_a_restart_clears_the_banner_on_the_same_session_id(self):
+        """Regression: the banner used to LATCH ON permanently.
+
+        A restart or /clear resumes the SAME session_id, and the baseline was
+        only ever recorded on a session's first USER TURN - so the stale
+        baseline survived the very reload that fixed the staleness. The
+        warning could never clear, which trains the reader to ignore it.
+        SessionStart is the only reliable signal that context was re-read.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.record_baseline(root, "sticky")          # SessionStart
+            (root / ".Doctrine" / "roles" / "backend-engineer.md").unlink()
+            self.assertIn("STALE", eng.drift_notice(root, "sticky"))
+
+            eng.record_baseline(root, "sticky")          # restart, SAME id
+            self.assertEqual(eng.drift_notice(root, "sticky"), "",
+                             "banner survived a reload that made it current")
+
+    def test_drift_after_a_restart_still_warns(self):
+        """Clearing on restart must not disarm it: edit again, warn again."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            eng.record_baseline(root, "s1")
+            (root / ".Doctrine.md").write_text("# v2\n", "utf-8")
+            self.assertIn("STALE", eng.drift_notice(root, "s1"))
+
+    def test_session_start_mode_records_and_prints_nothing(self):
+        """A SessionStart hook's stdout lands in context every session, so
+        this mode must be silent."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            self.assertTrue(eng.record_baseline(root, "s1"))
+            marker = (root / ".doctrine-state" / "local" / "sessions"
+                      / "s1.corpus")
+            self.assertTrue(marker.exists())
+            self.assertEqual(marker.read_text("utf-8").strip(),
+                             eng.corpus_fingerprint(root))
+
+    def test_record_baseline_without_a_session_id_is_a_no_op(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            self.assertFalse(eng.record_baseline(root, None))
+
     def test_unchanged_corpus_never_warns(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

@@ -97,39 +97,92 @@ def _session_id(raw: bytes) -> str | None:
     return keep[:64] or None
 
 
+def _marker(root: Path, session_id: str) -> Path:
+    return (root / ".doctrine-state" / "local" / "sessions"
+            / f"{session_id}.corpus")
+
+
+def record_baseline(root: Path, session_id: str | None) -> bool:
+    """Stamp the corpus fingerprint as 'what this session has loaded'.
+
+    Called from SessionStart, which is the ONLY reliable signal that the
+    context was just (re)read from disk. Recording on the first USER TURN
+    instead - the original design - latched the banner on forever: a restart
+    or /clear resumes the SAME session_id, so the stale baseline survived the
+    very reload that fixed the staleness, and the warning became noise. A
+    warning that cannot clear trains the reader to ignore it.
+    """
+    if session_id is None:
+        return False
+    current = corpus_fingerprint(root)
+    if current is None:
+        return False
+    try:
+        marker = _marker(root, session_id)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(current + "\n", encoding="utf-8")
+    except OSError:
+        return False   # bookkeeping must never break a hook
+    return True
+
+
 def drift_notice(root: Path, session_id: str | None) -> str:
     """"" normally; the STALE banner once the corpus moves under a session.
 
-    The first turn of a session records the fingerprint; later turns compare.
-    It keeps warning until the session is restarted, because until then the
-    session really is still stale.
+    Compares against the baseline SessionStart recorded. Keeps warning until
+    the next SessionStart, because until the context is reloaded the session
+    really is still acting on a stale copy.
     """
     if session_id is None:
         return ""
     current = corpus_fingerprint(root)
     if current is None:
         return ""
-    marker = (root / ".doctrine-state" / "local" / "sessions"
-              / f"{session_id}.corpus")
     try:
+        marker = _marker(root, session_id)
         if marker.exists():
             return "" if marker.read_text("utf-8").strip() == current \
                 else STALE_BANNER + "\n\n"
-        marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.write_text(current + "\n", encoding="utf-8")
+        # No baseline (SessionStart never ran, or an older install): record it
+        # now and stay silent rather than warn about a session we never saw
+        # start.
+        record_baseline(root, session_id)
     except OSError:
         return ""      # never let bookkeeping break the turn
     return ""
 
 
 def main(argv: list[str] | None = None) -> int:
-    # No arguments are needed; tolerate any (hook robustness).
+    # --session-start: wired as a SessionStart hook. Stamps the fingerprint of
+    # the corpus this session has just loaded and prints NOTHING (a
+    # SessionStart hook's stdout would land in the agent's context every
+    # session for no reason). Any other invocation is the per-turn reminder.
+    argv = list(argv or [])
     root = find_root(Path.cwd())
     if root is None:
         return 0  # not a doctrine repo -> silent no-op
-    notice = ""
     try:
         raw = sys.stdin.buffer.read() if not sys.stdin.isatty() else b""
+    except Exception:  # noqa: BLE001 - a hook must never crash on stdin
+        raw = b""
+
+    if "--session-start" in argv:
+        # Reports on STDERR, never stdout: a SessionStart hook's stdout lands
+        # in the agent's context every single session. stderr still proves the
+        # hook resolved and ran - rc == 0 alone is exactly what a silently-off
+        # hook also returns - which is the convention doctrine_metrics already
+        # follows and the activation test asserts.
+        try:
+            ok = record_baseline(root, _session_id(raw))
+            sys.stderr.write(
+                f"doctrine_engage: corpus baseline "
+                f"{'recorded' if ok else 'not recorded (no session id)'}\n")
+        except Exception:  # noqa: BLE001 - bookkeeping never blocks a session
+            sys.stderr.write("doctrine_engage: baseline skipped\n")
+        return 0
+
+    notice = ""
+    try:
         notice = drift_notice(root, _session_id(raw))
     except Exception:  # noqa: BLE001 - the reminder must print regardless
         notice = ""

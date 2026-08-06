@@ -3,6 +3,7 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [
       "G0",
       "G1",
@@ -11,18 +12,14 @@
       "G4"
     ],
     "phase": "g5-degraded",
-    "ponytail_mode": "full",
     "role": "project-reviewer"
   },
   "created_at": "2026-07-25T19:46:33Z",
-  "prev_sha256": "5127a7d938b561c4c59dd7c2a2599698b5305cbc99e0de6ed0dd92fe66c437f5",
+  "prev_sha256": "fa8d6189d14a06f5e2c68bf8333f0b5ebacc5ba0f6aeaf45d9e204c288fc2ea6",
   "seq": 24,
   "session_id": "s-2026-07-25-doctrine-ui-wiring",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "ed8dc2fa72fdaa5e94f3b7d0fb8f2cc51e30df59ababab7dc3957c7d9ab45ac8",
     "unresolved_effects": 0

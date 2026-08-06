@@ -32,7 +32,6 @@ Everything except `local/` is committed. State that doesn't survive a clone isn'
 | Kind | Lives in | Writer | Lifetime | Staleness rule |
 |---|---|---|---|---|
 | Intent | `intent/` | intent validator | until task closed | flagged if it references paths absent at HEAD |
-| Structure | `graphify-out/graph.json` | graphify hook | per commit | stale when `built_at_commit != HEAD` |
 | Decisions | `decisions/` | checkpoint protocol, append-only | permanent | never — it's history |
 | Effects | `effects/` | effects logger | until confirmed/compensated | unresolved entries surface at hydration |
 | Distillate | `distillates/` | checkpoint protocol | last N (default 5) | superseded by newer; dead-ends merge forward |
@@ -104,6 +103,6 @@ distinct boundaries:
 
 ## Epistemics
 
-Distillate claims carry `confidence: verified | inferred` — same discipline as
-graphify's `EXTRACTED | INFERRED` edges and the parity ledger's fidelity classes.
+Distillate claims carry `confidence: verified | inferred` — the same discipline
+the parity ledger applies with its fidelity classes.
 Derived claims are labeled derived, everywhere, with one vocabulary per artifact.

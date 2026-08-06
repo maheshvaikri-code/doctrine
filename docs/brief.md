@@ -20,8 +20,8 @@ is only checked by hand.
 
 ## Non-goals
 A separate binary serialization format (sibling pack not shipped — markdown bundle
-only, per the HYDRATION.md fallback); graphify integration beyond detecting its outputs;
-external effect and intent writers (the CLI reads those dirs if present).
+only, per the HYDRATION.md fallback); external effect and intent writers (the CLI
+reads those dirs if present).
 
 ## Acceptance criteria
 - `doctrine_state` round-trip on a fresh temp repo: init → checkpoint →

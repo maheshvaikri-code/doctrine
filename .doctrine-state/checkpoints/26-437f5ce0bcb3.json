@@ -3,24 +3,21 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [
       "G2",
       "G3",
       "G4"
     ],
     "phase": "g5-degraded",
-    "ponytail_mode": "full",
     "role": "security-reviewer"
   },
   "created_at": "2026-07-25T23:30:29Z",
-  "prev_sha256": "bb6385fd20eb43dafc20ce115aea4c25902e52c85a98fd7fd303ca01136097c4",
+  "prev_sha256": "19f2b763ec602814479a5b2eed5fd9dd75282c99d7a52348daa58d76f472b03b",
   "seq": 26,
   "session_id": "s-2026-07-25-dashboard-ci",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "d5546c278b2efb32d4f28386797394efcef5e4f392835309f9fa6a61c23d9bcb",
     "unresolved_effects": 0

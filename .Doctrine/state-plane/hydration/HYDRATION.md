@@ -22,18 +22,17 @@ total: 6,000 tokens; per-adapter override in the repo charter.
 | 3 | Active intents | intent/ scoped to session target | 1,200 | titles + acceptance criteria only |
 | 4 | Distillate | latest, + dead_ends merged from last K | 1,600 | dead_ends + open_threads only |
 | 5 | Decisions slice | entries tagged to active intents only | 800 | decision ids + one-line titles |
-| 6 | Graph slice | `graphify explain` on intent-named symbols | 1,000 | god nodes + EXTRACTED edges only |
-| 7 | Unresolved effects | effects/ where status != confirmed | 400 | count + most-recent entry |
+| 6 | Unresolved effects | effects/ where status != confirmed | 400 | count + most-recent entry |
 
 Every trim is recorded in the bundle header (`trimmed: [section...]`) — the agent knows
-what it doesn't know. The whole decision log, full graph, and transcript are NEVER
+what it doesn't know. The whole decision log and transcript are NEVER
 bundle candidates; they are query targets, not context.
 
 ## Bundle header
 
 `{at_commit, checkpoint_seq, bundle_sha256, generated_at, trimmed[], stale[]}`.
 Any source artifact behind HEAD enters content prefixed `STALE@<commit>` and is listed
-in `stale[]`; a stale graph triggers rebuild-first when the graphify hook is installed.
+in `stale[]`.
 
 ## Determinism gate
 
@@ -59,7 +58,6 @@ The bundle is plain text, so statefulness becomes an emit target like everything
 - **Claude Code:** SessionStart hook runs `doctrine state hydrate`; `CLAUDE.md` carries
   one line — `@.doctrine-state/local/hydration.bundle.md`. A `/checkpoint` command file
   wraps the checkpoint protocol; optional Stop hook auto-checkpoints session end.
-  (Same lifecycle-hook pattern ponytail already proved out.)
 - **Codex:** hydrate via lifecycle hook; bundle referenced from `AGENTS.md`;
   `/checkpoint` as a plugin command.
 - **Cursor:** `.cursor/rules/doctrine-state.mdc` with `alwaysApply`, body = bundle

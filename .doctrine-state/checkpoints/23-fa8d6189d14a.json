@@ -3,20 +3,17 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [],
     "phase": "g0",
-    "ponytail_mode": "full",
     "role": "product-owner"
   },
   "created_at": "2026-07-25T18:59:42Z",
-  "prev_sha256": "5921c933ab33da8a45e59b0865bc35999c527cc9a5f7acee0f924ec0c640a590",
+  "prev_sha256": "393dc09c75b3c83d867f9a55279fc4a82a1b1b6459e656ee132c7fad1b34d235",
   "seq": 23,
   "session_id": "s-2026-07-25-doctrine-ui-wiring",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "e8b0367d265c539f2f69bf386dfb7e920aea8bae8cd187251ec95dffc54afc01",
     "unresolved_effects": 0

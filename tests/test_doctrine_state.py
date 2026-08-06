@@ -30,7 +30,7 @@ def proposal(dead_ends=None, learned=None, active_intents=None):
     return {
         "session_id": "s-test-1",
         "control": {"role": "backend-engineer", "phase": "g3",
-                    "ponytail_mode": "off",
+                    "brevity_mode": "off",
                     "active_intents": active_intents or [],
                     "gates_passed": []},
         "distillate": {
@@ -184,7 +184,7 @@ class TestCheckpointVerify(TempRepo):
         bad = proposal(learned=[
             {"claim": "phantom decision", "kind": "decision_ref",
              "evidence": "decisions:D-2", "confidence": "verified"}])
-        bad["control"]["ponytail_mode"] = "invalid-mode"
+        bad["control"]["brevity_mode"] = "invalid-mode"
         p = self.root / "bad.json"
         p.write_text(json.dumps(bad), encoding="utf-8")
         with self.assertRaises(ds.SchemaError):
@@ -215,29 +215,6 @@ class TestCheckpointVerify(TempRepo):
         (self.plane.checkpoints / "evil.json").write_text("{}")
         self.assertEqual(ds.cmd_verify(self.plane), 1)
 
-    def test_graph_tamper_detected(self):
-        """Regression: review MAJOR #3 — graph is re-hashed."""
-        gdir = self.root / "graphify-out"
-        gdir.mkdir()
-        (gdir / "graph.json").write_text(
-            json.dumps({"built_at_commit": "f3a9c21", "nodes": []}),
-            encoding="utf-8")
-        self.checkpoint()
-        self.assertEqual(ds.cmd_verify(self.plane), 0)
-        (gdir / "graph.json").write_text(
-            json.dumps({"built_at_commit": "f3a9c21", "nodes": ["x"]}),
-            encoding="utf-8")
-        self.assertEqual(ds.cmd_verify(self.plane), 1)
-
-    def test_graph_freshness_not_fabricated(self):
-        """Regression: review MAJOR #8 — no built_at_commit means null."""
-        gdir = self.root / "graphify-out"
-        gdir.mkdir()
-        (gdir / "graph.json").write_text(json.dumps({"nodes": []}),
-                                         encoding="utf-8")
-        self.checkpoint()
-        cp = json.loads(self.plane.checkpoint.read_text("utf-8"))
-        self.assertIsNone(cp["state_index"]["graph"]["built_at_commit"])
 
     def test_secretlike_claim_rejected(self):
         """Regression: security S-1 — fail closed on secret-like state."""

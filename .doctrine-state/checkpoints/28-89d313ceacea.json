@@ -3,6 +3,7 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [
       "G0",
       "G1",
@@ -14,18 +15,14 @@
       "G7"
     ],
     "phase": "g7",
-    "ponytail_mode": "full",
     "role": "project-reviewer"
   },
   "created_at": "2026-07-26T07:01:26Z",
-  "prev_sha256": "a96b491b53d1316427416dc459f7321c9fc9001a923ab5792ac7079dc4f38976",
+  "prev_sha256": "db30869734fcd0a9fd25c0747c250452f65b8ea444b2d960b588176cef0e0be3",
   "seq": 28,
   "session_id": "s-2026-07-26-workhawk-execution",
   "state_index": {
     "decisions_sha256": "053e1608bf0092ffd7ffa34ad02d951ea67d72e42e6976d6304103340939bdb0",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "56dfbf2e9284b93d38625aa27847f50d9eac6c2424c44fce642ea93db92f4e1d",
     "unresolved_effects": 0

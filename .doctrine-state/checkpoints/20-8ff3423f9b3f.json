@@ -3,23 +3,20 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [
       "G1",
       "G6"
     ],
     "phase": "g6",
-    "ponytail_mode": "full",
     "role": "chief-architect"
   },
   "created_at": "2026-07-14T21:33:31Z",
-  "prev_sha256": "f77cc798387340b8de4abfb2488e0312e3c13ba0da4907beff6739619692ae07",
+  "prev_sha256": "49c65bc8a202d3a92c854c43bd28942a1d789f8e49e3217c53e8dc39ce562c66",
   "seq": 20,
   "session_id": "s-2026-07-13-a",
   "state_index": {
     "decisions_sha256": "a59e603074ef73568ea894048f968afc9453a2b211015f10bb4d46c596c4dca8",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "a00c64e289a6e2973a70e6b58c86abe3b424547387e0b46076b4cfb9302582ab",
     "unresolved_effects": 0

@@ -3,6 +3,7 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [
       "G0",
       "G1",
@@ -10,18 +11,14 @@
       "G6"
     ],
     "phase": "g6",
-    "ponytail_mode": "full",
     "role": "release-manager"
   },
   "created_at": "2026-07-14T01:39:33Z",
-  "prev_sha256": "6426145f2d409af32723a62e731bdb9ffe296a8fe440246f96fa82bcf9979df5",
+  "prev_sha256": "cce72861a5ca7ca5ff4c5050b466e0c86edb5b3debb3150a800dfd9430695043",
   "seq": 15,
   "session_id": "s-2026-07-13-a",
   "state_index": {
     "decisions_sha256": "6c24492920aa46f820ac789fd4420587e7a102cb2bcbbebc85c102908a9e3157",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "bf31a6c42089961ca7c6a2c261151d4fb297b9a79e0ecc597fdf952013109d08",
     "unresolved_effects": 0

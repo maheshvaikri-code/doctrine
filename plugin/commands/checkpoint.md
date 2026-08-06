@@ -10,7 +10,7 @@ protocol exactly (`.Doctrine/state-plane/STATE.md`):
    - `session_id`: `s-<date>-<letter>` (reuse this session's id if one
      exists in `.doctrine-state/checkpoint.json`).
    - `control`: your current `role`, `phase`, `gates_passed`,
-     `ponytail_mode`, `active_intents` (≤8, filesystem-safe ids only).
+     `brevity_mode`, `active_intents` (≤8, filesystem-safe ids only).
    - `distillate`: what THIS session learned that is not expressed in
      code. Hard caps: ≤12 `learned` (claim ≤280 chars, evidence ≤160 —
      a file:line, a command, or a decision id, NEVER a dialogue quote;

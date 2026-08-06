@@ -3,6 +3,7 @@
   "checkpoint_version": "1",
   "control": {
     "active_intents": [],
+    "brevity_mode": "full",
     "gates_passed": [
       "G0",
       "G1",
@@ -13,18 +14,14 @@
       "G7"
     ],
     "phase": "verification-arc-closed",
-    "ponytail_mode": "full",
     "role": "project-reviewer"
   },
   "created_at": "2026-08-04T22:03:40Z",
-  "prev_sha256": "0a4a8891d5e4cc71b9fbd773ed686fdc1f7b5dcc011503236a8b3c3d9ac8d0fb",
+  "prev_sha256": "fe7a9e1413e79db0f645f05b517f112c9a3b54a003bc2c0352d0930adedaf57d",
   "seq": 30,
   "session_id": "s-2026-08-04-enterprise-control-plane-r5",
   "state_index": {
     "decisions_sha256": "0ff2e5713e0a9353a0a9d92bde877bfd534119dcb43b2b945ea8e347a8f19392",
-    "graph": {
-      "built_at_commit": null
-    },
     "intents": {},
     "latest_distillate_sha256": "63af9e8ab9b3a1d29edd3c60986c2be828906bf5334ce268700af3c8b1c9c146",
     "unresolved_effects": 0

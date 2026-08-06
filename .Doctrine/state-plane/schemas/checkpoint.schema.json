@@ -20,19 +20,19 @@
     "control": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["role", "phase", "ponytail_mode", "active_intents"],
+      "required": ["role", "phase", "brevity_mode", "active_intents"],
       "properties": {
         "role": { "type": "string", "minLength": 1 },
         "phase": { "type": "string", "minLength": 1, "description": "e.g. fde:P4, or repo-defined." },
         "gates_passed": { "type": "array", "items": { "type": "string" } },
-        "ponytail_mode": { "enum": ["off", "lite", "full", "ultra"] },
+        "brevity_mode": { "enum": ["off", "lite", "full", "ultra"], "description": "How aggressively this session favours the smallest solution that works." },
         "active_intents": { "type": "array", "items": { "$ref": "#/$defs/intent_id" }, "maxItems": 8 }
       }
     },
     "state_index": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["decisions_sha256", "latest_distillate_sha256", "graph", "unresolved_effects"],
+      "required": ["decisions_sha256", "latest_distillate_sha256", "unresolved_effects"],
       "properties": {
         "intents": {
           "type": "object",
@@ -42,15 +42,6 @@
         },
         "decisions_sha256": { "$ref": "#/$defs/sha256" },
         "latest_distillate_sha256": { "anyOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
-        "graph": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["built_at_commit"],
-          "properties": {
-            "sha256": { "$ref": "#/$defs/sha256" },
-            "built_at_commit": { "anyOf": [{ "$ref": "#/$defs/gitsha" }, { "type": "null" }], "description": "null when no graph exists yet." }
-          }
-        },
         "unresolved_effects": { "type": "integer", "minimum": 0 }
       }
     }

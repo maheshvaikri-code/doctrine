@@ -11,7 +11,7 @@ Commands:
                           old distillates pruned (dead_ends merge forward)
   verify                  walk the checkpoint chain (prev_sha256 links,
                           monotonic seq, canonical bytes) and re-hash every
-                          state_index target, including the graph
+                          state_index target
   hydrate [--check]       verify first, then compile the bounded bundle
                           (markdown) with per-section degrade-to forms;
                           --check compiles twice and asserts identical
@@ -78,7 +78,7 @@ MARKER_RES = [
 ]
 BUDGETS = {  # section -> tokens (HYDRATION.md); invariants+control never trim
     "invariants": 800, "control": 200, "intents": 1200,
-    "distillate": 1600, "decisions": 800, "graph": 1000, "effects": 400,
+    "distillate": 1600, "decisions": 800, "effects": 400,
 }
 
 
@@ -385,22 +385,6 @@ def _unresolved_effect_entries(plane: Plane) -> list[dict]:
     return entries
 
 
-def _graph_index(plane: Plane) -> dict:
-    """Index graphify-out/graph.json. Never fabricates freshness: if the
-    graph does not carry built_at_commit, it stays null (stale-as-fresh is
-    the failure mode STATE.md defends against)."""
-    graph = plane.repo / "graphify-out" / "graph.json"
-    if not graph.exists():
-        return {"built_at_commit": None}
-    entry: dict = {"sha256": sha256_file(graph)}
-    try:
-        built = load_json(graph, "graph").get("built_at_commit")
-    except StateError as exc:
-        print(f"warning: graph.json unreadable, freshness unknown ({exc})",
-              file=sys.stderr)
-        built = None
-    entry["built_at_commit"] = built if isinstance(built, str) else None
-    return entry
 
 
 def _merge_dead_ends(new_ends: list, pruned_files: list[Path],
@@ -527,7 +511,6 @@ def cmd_checkpoint(plane: Plane, proposal_path: Path,
             "intents": intents_index,
             "decisions_sha256": sha256_bytes(prospective_decisions),
             "latest_distillate_sha256": dist_sha,
-            "graph": _graph_index(plane),
             "unresolved_effects": len(_unresolved_effect_entries(plane)),
         },
     }
@@ -651,15 +634,6 @@ def verify_findings(plane: Plane) -> list[str]:
             findings.append(f"intent '{intent}' indexed but missing")
         elif sha256_file(p) != sha:
             findings.append(f"intent '{intent}' hash desync")
-    graph_idx = idx.get("graph", {})
-    if "sha256" in graph_idx:
-        graph = plane.repo / "graphify-out" / "graph.json"
-        if not graph.exists():
-            findings.append("state_index.graph.sha256 set but graph.json "
-                            "missing")
-        elif sha256_file(graph) != graph_idx["sha256"]:
-            findings.append("state_index.graph hash desync (graph.json "
-                            "changed since checkpoint)")
     return findings
 
 
@@ -745,7 +719,7 @@ def build_bundle_body(plane: Plane) -> tuple[str, list[str], list[str]]:
         "## Control\n"
         f"{prefix}seq={cp['seq']} at_commit={cp['at_commit'][:12]} "
         f"worktree={cp['worktree']} role={control['role']} "
-        f"phase={control['phase']} ponytail={control['ponytail_mode']} "
+        f"phase={control['phase']} brevity={control['brevity_mode']} "
         f"gates={','.join(control.get('gates_passed', [])) or '-'}")
 
     # 3 active intents — degrade: titles + acceptance criteria only
@@ -829,22 +803,7 @@ def build_bundle_body(plane: Plane) -> tuple[str, list[str], list[str]]:
         "decisions", "\n".join(full_lines) or empty,
         "\n".join(deg_lines) or empty, trimmed))
 
-    # 6 graph — degrade: god nodes + EXTRACTED lines only
-    report = plane.repo / "graphify-out" / "GRAPH_REPORT.md"
-    if report.exists():
-        built = cp["state_index"]["graph"].get("built_at_commit")
-        prefix = _stale_prefix(built, head, stale, "graph")
-        text = report.read_text("utf-8")
-        key_lines = [ln for ln in text.splitlines()
-                     if "god" in ln.lower() or "EXTRACTED" in ln]
-        parts.append("## Graph\n" + _fit(
-            "graph", prefix + text,
-            prefix + ("\n".join(key_lines) or text.split("\n\n")[0]),
-            trimmed))
-    else:
-        parts.append("## Graph\n(no graph built)")
-
-    # 7 unresolved effects — degrade: count + most recent entry
+    # 6 unresolved effects — degrade: count + most recent entry
     entries = _unresolved_effect_entries(plane)
     if entries:
         full = [f"unresolved effects: {len(entries)}"]

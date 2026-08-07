@@ -1,9 +1,9 @@
 # Doctrine gate suite - GitLab CI
-# Parity with .github/workflows/doctrine.yml: corpus lint -> ruff -> suite.
+# Parity with .github/workflows/doctrine.yml: one scope-aware entrypoint.
 # Install with: python tools/doctrine_install.py --target . --ci
 #               --ci-provider gitlab
 #
-# The gates are the same commands you run locally (one-command truth,
+# The gates are the same command you run locally (one-command truth,
 # skills/repo-devops.md); nothing here is CI-only.
 
 stages:
@@ -15,16 +15,14 @@ stages:
   before_script:
     - python --version
   script:
-    # 1. the corpus must be internally consistent
-    - python tools/doctrine_lint.py
-    # 2. the Python profile lint (pinned: a moving linter is a moving gate)
+    # Ruff isn't pre-installed on the image; doctrine_verify.py checks
+    # availability but does not install it. Pinned, not floating.
     - pip install --quiet ruff==0.15.15
-    - python -m ruff check tools tests
-    # 3. the tooling suite
-    - python -m unittest discover -s tests -v
-    # 4. evidence integrity by hash - the gate that holds however a record
-    #    was modified (the PreToolUse guard is only a tripwire)
-    - python tools/doctrine_gold.py gate
+    # Scope-aware (ADR-002 / ADR-012): full suite (lint -> ruff -> tests ->
+    # gold -> state) in the Doctrine source repo; lint + gold + state only
+    # in a consumer repo (a host's own tools/tests are its own tooling's
+    # job, never Doctrine's ruff config or test runner).
+    - python tools/doctrine_verify.py
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH

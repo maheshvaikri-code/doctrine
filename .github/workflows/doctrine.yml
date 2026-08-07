@@ -22,14 +22,22 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
-      - name: Corpus lint (doctrine self-consistency gate)
-        run: python tools/doctrine_lint.py
-      - name: Ruff (python profile lint)
-        run: pip install --quiet ruff==0.15.15 && python -m ruff check tools tests
-      - name: State-plane + lint test suite
-        run: python -m unittest discover -s tests -v
-      # Evidence integrity by hash, not by intercepting the writer: the
-      # PreToolUse guard is a best-effort tripwire on shell commands, so the
-      # gate that actually holds runs here, on every push.
-      - name: Gold-record integrity gate
-        run: python tools/doctrine_gold.py gate
+      # Ruff isn't pre-installed on the runner; doctrine_verify.py checks
+      # availability but does not install it (installing packages is not
+      # its job). Pinned here, not floating, so a moving linter never moves
+      # the gate under us.
+      - name: Install ruff (pinned; a moving linter is a moving gate)
+        run: pip install --quiet ruff==0.15.15
+      # One entrypoint, not four re-implemented steps: doctrine_verify.py is
+      # scope-aware (ADR-002) - full suite (lint -> ruff -> tests -> gold ->
+      # state) here in the source repo, lint+gold+state only in a consumer.
+      # This used to be four separate steps that ran ruff and unittest
+      # unconditionally against tools/tests, duplicating (and drifting from)
+      # doctrine_verify.py's scoping logic - so a consumer repo that
+      # installed this same file via --ci inherited the exact defect
+      # ADR-002 already fixed elsewhere: Doctrine's ruff config flooding the
+      # host's own code with findings, and Doctrine's own test suite
+      # running (and hanging) inside the host's. See
+      # docs/adr/012-ci-templates-scope-aware-verify.md.
+      - name: "Doctrine verify (scope-aware: source repo runs the full suite)"
+        run: python tools/doctrine_verify.py

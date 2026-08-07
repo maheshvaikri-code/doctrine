@@ -6,6 +6,25 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Fixed — the CI templates carried a bug ADR-002 already fixed one layer down
+
+`doctrine_verify.py` is scope-aware since ADR-002: it runs the full gate suite
+(lint → ruff → tests → gold → state) only in Doctrine's own source repo, and
+lint + gold + state only in a consumer repo, because ADR-002's own MAPLE
+incident showed the unconditional form linting a host's code under Doctrine's
+ruff config and hanging on the host's own test suite. That fix was never
+carried into the three CI templates the installer ships under `--ci`
+(`.github/workflows/doctrine.yml`, `.Doctrine/templates/ci/gitlab-ci.yml`,
+`.Doctrine/templates/ci/azure-pipelines.yml`) — each had independently
+re-implemented the same four raw steps, predating ADR-002, and still ran
+`ruff check tools tests` / `unittest discover -s tests -v` unconditionally.
+`doctrine.yml` installs byte-identical into a consumer repo, so any team that
+opted into `--ci` inherited the exact defect ADR-002 already diagnosed and
+fixed elsewhere. All three templates now call `python tools/doctrine_verify.py`
+directly instead of shadowing its logic — one scope-aware entrypoint, not
+three drifting copies. See `docs/adr/012-ci-templates-scope-aware-verify.md`.
+Caught during a CI-reinforcement review, not from a live consumer report.
+
 ### Fixed — MAPLE positioning: Doctrine needs no agent runtime, and AGPL was never a gate
 
 Three corrections from the framework owner, two of which the corpus had been

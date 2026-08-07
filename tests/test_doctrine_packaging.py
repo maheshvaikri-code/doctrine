@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -17,6 +18,42 @@ sys.path.insert(0, str(REPO / "tools"))
 
 import doctrine_install as di  # noqa: E402
 import doctrine_lint as dl  # noqa: E402
+
+
+_YAML_TITLE_KEY_RE = re.compile(r"^\s*-?\s*(?:name|displayName)\s*:\s*(.*)$")
+
+
+def yaml_title_colon_violations(text):
+    """Lines whose `name:`/`displayName:` value is an unquoted plain scalar
+    containing a bare `: ` (or ending in `:`) - invalid YAML: a colon-space
+    inside a plain scalar starts a mapping, per spec, so the parser (and
+    GitHub/GitLab/Azure's own) rejects the whole file. This is the exact
+    defect this project's own CI templates hit once already: a hand-written,
+    prose step title with a colon in it, unquoted.
+
+    Deliberately not a full YAML grammar check - this project takes on no
+    YAML-parsing dependency (stdlib-first, dependency-policy.md's "write the
+    10 lines" preference over a first-ever third-party dependency for one
+    test). It targets the demonstrated failure class, not general
+    well-formedness; a template that grows more elaborate syntax would
+    warrant a real parser instead.
+    """
+    violations = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = _YAML_TITLE_KEY_RE.match(line)
+        if not match:
+            continue
+        value = match.group(1).strip()
+        if not value:
+            continue
+        if (value[0] == value[-1] == '"') or (value[0] == value[-1] == "'"):
+            continue  # fully quoted - safe regardless of what's inside
+        if ": " in value or value.endswith(":"):
+            violations.append(f"line {lineno}: {line}")
+    return violations
 
 
 class TestInstaller(unittest.TestCase):
@@ -46,8 +83,32 @@ class TestInstaller(unittest.TestCase):
                     self.install(ci=True, ci_provider=provider), 0)
                 installed = self.target / rel
                 self.assertTrue(installed.is_file(), rel)
-                self.assertIn("doctrine_lint.py",
-                              installed.read_text("utf-8"))
+                # The CI templates wire in the scope-aware entrypoint, not a
+                # re-implementation of its steps (ADR-012) - a consumer repo
+                # that installs this file must get doctrine_verify.py's
+                # is_source_repo() gating, not a copy of the raw ruff/
+                # unittest commands that gating exists to skip for them.
+                text = installed.read_text("utf-8")
+                self.assertIn("doctrine_verify.py", text)
+                # Regression guard for the exact defect ADR-012 fixed: a
+                # re-implemented, unconditional ruff/unittest step in the
+                # template would flood a consumer's own code with Doctrine's
+                # ruff findings and run/hang on the consumer's own test
+                # suite (ADR-002's observed MAPLE incident, reintroduced at
+                # the CI layer instead of the local-verify layer).
+                self.assertNotIn("ruff check tools tests", text)
+                self.assertNotIn("unittest discover -s tests -v", text)
+                # This exact template shipped once with an unquoted colon in
+                # a step name - invalid YAML that silently disables the
+                # whole workflow (no gate ever runs, no error surfaced
+                # anywhere but a parser). Caught in review, not by this
+                # test, because this assertion didn't exist yet.
+                violations = yaml_title_colon_violations(text)
+                self.assertFalse(
+                    violations,
+                    f"{rel}: unquoted colon in a name/displayName value is "
+                    f"invalid YAML (silently disables the whole workflow): "
+                    f"{violations}")
 
     def test_the_guard_hook_resolves_from_the_project_not_the_cwd(self):
         """Regression: the hook invoked `tools/doctrine_guard.py` relatively.

@@ -1,9 +1,9 @@
 # Doctrine gate suite - Azure DevOps
-# Parity with .github/workflows/doctrine.yml: corpus lint -> ruff -> suite.
+# Parity with .github/workflows/doctrine.yml: one scope-aware entrypoint.
 # Install with: python tools/doctrine_install.py --target . --ci
 #               --ci-provider azure
 #
-# The gates are the same commands you run locally (one-command truth,
+# The gate is the same command you run locally (one-command truth,
 # skills/repo-devops.md); nothing here is CI-only.
 
 trigger:
@@ -35,17 +35,13 @@ steps:
       versionSpec: "$(pythonVersion)"
     displayName: "Use Python $(pythonVersion)"
 
-  - script: python tools/doctrine_lint.py
-    displayName: "Corpus lint (doctrine self-consistency gate)"
+  # Ruff isn't pre-installed on the image; doctrine_verify.py checks
+  # availability but does not install it. Pinned, not floating.
+  - script: pip install --quiet ruff==0.15.15
+    displayName: "Install ruff (pinned; a moving linter is a moving gate)"
 
-  - script: |
-      pip install --quiet ruff==0.15.15
-      python -m ruff check tools tests
-    displayName: "Ruff (python profile lint)"
-
-  - script: python -m unittest discover -s tests -v
-    displayName: "State-plane + lint test suite"
-
-  # Evidence integrity by hash - holds however a record was modified.
-  - script: python tools/doctrine_gold.py gate
-    displayName: "Gold-record integrity gate"
+  # Scope-aware (ADR-002 / ADR-012): full suite (lint -> ruff -> tests ->
+  # gold -> state) in the Doctrine source repo; lint + gold + state only in
+  # a consumer repo (a host's own tools/tests are its own tooling's job).
+  - script: python tools/doctrine_verify.py
+    displayName: "Doctrine verify (scope-aware)"

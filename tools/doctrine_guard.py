@@ -720,6 +720,23 @@ def command_is_read_only(command: str) -> bool:
     return True
 
 
+def command_has_write_redirect(command: str) -> bool:
+    """True if the command contains a shell output-redirect operator
+    (``>``, ``>>``, ``<>``) with a target - however that target resolves.
+
+    ``command_is_read_only`` only judges VERBS, so a read-only verb can still
+    be made to write by a bare shell redirect: ``echo hi > file`` and
+    ``git log > out.txt`` both pass every verb check (echo, git-log are
+    read-only) while plainly writing a file. That gap is harmless for
+    ``redirect_paths``' existing job - it separately re-checks any redirected
+    path against the protected-path rules regardless of this function - but
+    it would be a real hole if a read-only verdict alone were ever used to
+    grant approval. This check is unconditional and root-independent on
+    purpose: a command that writes ANYWHERE, in-repo or not, is not read-only.
+    """
+    return bool(REDIRECT_TARGET.search(command))
+
+
 def redirect_paths(command: str, root: Path) -> set[str]:
     """Repo-relative paths this command redirects OUTPUT into.
 
@@ -899,7 +916,7 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
         if verdict.decision:
             return verdict
 
-    # Nothing objected. For a WRITE, say so explicitly rather than abstaining.
+    # Nothing objected. Say so explicitly rather than abstaining.
     #
     # Silence is not approval: it leaves the host's own permission flow to ask.
     # Registering a PreToolUse hook and then having no opinion is how a repo
@@ -907,22 +924,38 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
     # ungoverned repo waves through - the doctrine made routine work heavier
     # while adding no safety, which is the opposite of the point.
     #
-    # WRITE_TOOLS ONLY. Bash never gets `allow` here, deliberately: section 7
-    # calls the guard's shell analysis "a tripwire, not a boundary - no static
-    # analysis of a Turing-complete shell is complete". Granting approval off
-    # an analysis the doctrine itself declares incomplete would be exactly the
-    # overreach it warns about, and it would suppress the host's independent
-    # check too, leaving nothing. On Write/Edit the surface IS sound: one
-    # field names one file.
-    #
     # Reached only after every deny/ask check above has declined to fire, so
-    # secrets, protected paths, control surface, immutable evidence and
-    # test-weakening are all already refused.
+    # secrets, protected paths, control surface, irreversible actions,
+    # control-surface commands and test-weakening are all already refused.
     if tool_name in WRITE_TOOLS and autonomy_enabled(root):
         return Decision("allow",
                         "Doctrine: ordinary file, no secret, not protected "
                         "and not a test being weakened - approved under "
                         "FEATURES.md `autonomous-verification`.")
+    # BASH gets `allow` ONLY for the narrow slice section 7's own limit does
+    # not touch: a command whose EVERY segment is a verb this guard can prove
+    # reads and never writes, AND that carries no shell output-redirect at
+    # all. Section 7 is exactly right that the guard's general shell analysis
+    # is "a tripwire, not a boundary - no static analysis of a Turing-complete
+    # shell is complete"; that stays true and this does not contradict it.
+    # What changes is the SHAPE of the claim: this is not "this command is
+    # safe" (undecidable), it is "every verb in this command is drawn from a
+    # closed, explicit allowlist of readers, and no write channel this guard
+    # knows how to look for is present" (decidable, and checked). Anything
+    # unrecognised - a verb not on the list, a pipe into `tee`, `curl`, `sed
+    # -i`, a nested shell, a redirect however spelled - fails CLOSED to no
+    # opinion, same as always, and falls through to the host's own judgment.
+    if tool_name in COMMAND_TOOLS and autonomy_enabled(root):
+        cleaned = strip_shell_noise(text)
+        if (command_is_read_only(cleaned)
+                and not command_has_write_redirect(cleaned)):
+            return Decision(
+                "allow",
+                "Doctrine: every segment of this command is a known "
+                "read-only verb, with no output redirect - approved under "
+                "FEATURES.md `autonomous-verification`. Anything this cannot "
+                "positively classify as read-only still falls through to "
+                "your own judgment.")
     return Decision()
 
 

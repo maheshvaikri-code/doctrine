@@ -199,6 +199,25 @@ Use the tripwire for what a tripwire is good at — catching the accident and
 the careless, early, with a readable reason. Do not present it as a
 containment boundary for a determined adversary inside the repo.
 
+**One narrow, additive exception, opt-in via `FEATURES.md`
+`autonomous-verification`.** The guard also grants `allow` for a Bash command
+when *every* segment is a verb drawn from a closed read-only allowlist
+(`ls`, `cat`, `grep`, `git log`, …) **and** no shell output-redirect appears
+anywhere in it. This is not a stronger claim about the shell — it is a
+narrower one: not "this command is safe" (still undecidable), but "every
+literal verb token here is a known reader, and no write channel this guard
+checks for is present." An unrecognised verb, a pipe into a writer, `sed -i`,
+a nested shell, or a bare `>` anywhere still falls straight through with no
+opinion, exactly as before this existed. It runs only after every deny/ask
+rule above has already declined to fire, so it can only widen what the
+tripwire stays silent about, never override a refusal. Undisclosed
+residual, stated plainly rather than glossed over: this reads command
+*text*, so a shell alias or function redefined by an earlier command in the
+same persistent session (`alias ls='rm -rf /'`) is invisible to it — exactly
+as it is invisible to every deny/ask rule above. The fix for that class is
+still the same one this whole section argues for: a boundary underneath the
+text, not a smarter parser of it (`skills/sandboxing.md`).
+
 **Where the containment boundary does come from.** Since no parser of a
 Turing-complete shell can be complete, a stronger parser is the wrong
 investment; the boundary belongs one layer down, on **effects** rather than

@@ -12,7 +12,7 @@ about what it does.
 
 | Feature | State | What it changes |
 |---|---|---|
-| `autonomous-verification` | **on** | The guard answers **`allow`** on an ordinary file write instead of abstaining, so routine edits stop prompting. Run this repo's own fmt/lint/type/test/build and paste the real output. |
+| `autonomous-verification` | **on** | The guard answers **`allow`** instead of abstaining on: an ordinary file write, and a Bash command **every segment of which is a provably read-only verb with no output redirect** (`ls`, `cat`, `grep`, `git status`, `git log`, a pipeline of those…). Run this repo's own fmt/lint/type/test/build and paste the real output. |
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
@@ -31,6 +31,13 @@ does not touch the permanent floor:
   toggle or no toggle.
 - **Verification only.** "Run the gates" is not "run anything". A command that
   mutates the world outside this repo is not verification.
+- **The Bash allow is narrow on purpose, and stays narrow.** It is not "this
+  command is safe" — shell is Turing-complete and no static analysis of it
+  ever will be complete (§7). It is the decidable claim "every verb here is
+  drawn from a closed allowlist of readers, and no write redirect is
+  present." An unrecognised verb, a pipe into a writer, `sed -i`, a nested
+  shell, or a bare `>` anywhere still falls straight through to your own
+  judgment — same as before this toggle existed.
 
 Everything else in a gate's output is fine as it comes — full test output,
 stack traces, compiler errors, timings. Truncating real evidence to look tidy

@@ -939,14 +939,20 @@ class TestAutonomousVerification(GuardTestCase):
         self.assertEqual(_run(self.repo, _write(self.repo, "a.py", "x = 1")),
                          {})
 
-    def test_bash_is_never_allowed_even_with_the_toggle_on(self):
+    def test_bash_is_not_allowed_for_anything_this_cannot_prove_read_only(self):
         """Section 7 calls the shell analysis "a tripwire, not a boundary".
         Granting approval off an analysis the doctrine itself declares
         incomplete would be the overreach it warns about - and it would
-        suppress the host's independent check too, leaving nothing."""
+        suppress the host's independent check too, leaving nothing. That
+        holds for everything OUTSIDE the narrow, closed, provable slice
+        `TestBashReadOnlyAllow` exercises below: unrecognised verbs, verbs
+        that write conditionally, and anything piping into a writer."""
         _make_repo(self.repo)
         self._on()
-        for command in ("ls -la", "cargo test", "python -m pytest"):
+        for command in ("cargo test", "python -m pytest", "npm test",
+                        "curl https://example.com", "rm -rf node_modules",
+                        "sed -i 's/a/b/' file.txt", "tee out.txt",
+                        "find . -delete"):
             with self.subTest(command=command):
                 decision = _run(self.repo, _bash(self.repo, command))
                 self.assertNotEqual(decision.get("permissionDecision"),
@@ -970,6 +976,85 @@ class TestAutonomousVerification(GuardTestCase):
         self._on()
         secret = "AWS" + "_SECRET_ACCESS_KEY = " + '"' + "A" * 40 + '"'
         decision = _run(self.repo, _write(self.repo, "config.py", secret))
+        self.assertEqual(decision.get("permissionDecision"), "deny")
+
+
+class TestBashReadOnlyAllow(GuardTestCase):
+    """The narrow slice of `autonomous-verification` that DOES cover Bash:
+    a command every one of whose segments is a verb this guard can prove
+    reads and never writes, with no output redirect anywhere in it.
+
+    This is not "this command is safe" (undecidable for a Turing-complete
+    shell, per section 7). It is the decidable, checked claim "every verb
+    here is drawn from a closed allowlist of readers, and no write channel
+    this guard knows how to look for is present". Anything it cannot make
+    that claim about falls through unchanged to the host's own judgment.
+    """
+
+    def _on(self) -> None:
+        (self.repo / "FEATURES.md").write_text(
+            "| Feature | State | What |\n|---|---|---|\n"
+            "| `autonomous-verification` | on | x |\n", encoding="utf-8")
+
+    def test_ordinary_reads_are_allowed(self):
+        _make_repo(self.repo, source=True)
+        self._on()
+        for command in ("ls -la", "git status", "git log --oneline -5",
+                        "cat file.txt | grep foo | wc -l", "pwd && whoami",
+                        "find . -name '*.py'"):
+            with self.subTest(command=command):
+                decision = _run(self.repo, _bash(self.repo, command))
+                self.assertEqual(decision.get("permissionDecision"), "allow",
+                                 command)
+
+    def test_a_descriptor_dup_does_not_defeat_the_allow(self):
+        """`2>&1` is a descriptor dup, not a write - it must not cost an
+        otherwise read-only command its approval (mirror of the silent-path
+        regression `TestOrdinaryCommandsStaySilent` already pins)."""
+        _make_repo(self.repo)
+        self._on()
+        decision = _run(self.repo, _bash(
+            self.repo, "ls -la docs/releases/gold 2>&1"))
+        self.assertEqual(decision.get("permissionDecision"), "allow")
+
+    def test_a_bare_redirect_defeats_an_otherwise_read_only_verb(self):
+        """THE near-miss this design exists to catch: `command_is_read_only`
+        judges VERBS only, so a read-only verb piped into a plain shell
+        redirect (no write-shaped verb in sight) would sail through a
+        verb-only check while plainly writing a file. Caught separately by
+        `command_has_write_redirect`, checked unconditionally alongside it."""
+        _make_repo(self.repo)
+        self._on()
+        for command in ("echo hi > file.txt", "git log > out.txt",
+                        "ls >> out.txt", "cat file.txt > /tmp/copy.txt"):
+            with self.subTest(command=command):
+                decision = _run(self.repo, _bash(self.repo, command))
+                self.assertNotEqual(decision.get("permissionDecision"),
+                                    "allow", command)
+
+    def test_toggle_off_restores_abstention(self):
+        _make_repo(self.repo)
+        (self.repo / "FEATURES.md").write_text(
+            "| `autonomous-verification` | off | x |\n", encoding="utf-8")
+        self.assertEqual(_run(self.repo, _bash(self.repo, "ls -la")), {})
+
+    def test_absent_features_file_is_not_consent(self):
+        _make_repo(self.repo)
+        self.assertEqual(_run(self.repo, _bash(self.repo, "ls -la")), {})
+
+    def test_irreversible_actions_still_ask_with_the_toggle_on(self):
+        """THE assertion that matters most: the widening must not outrank
+        section 5. Every deny/ask check runs before this allow is reached."""
+        _make_repo(self.repo)
+        self._on()
+        decision = _run(self.repo, _bash(self.repo, "git push --force"))
+        self.assertEqual(decision.get("permissionDecision"), "ask")
+
+    def test_a_redirect_into_a_protected_path_still_denies(self):
+        _make_repo(self.repo)          # consumer repo: corpus is read-only
+        self._on()
+        decision = _run(self.repo, _bash(
+            self.repo, "echo x > .Doctrine/README.md"))
         self.assertEqual(decision.get("permissionDecision"), "deny")
 
 

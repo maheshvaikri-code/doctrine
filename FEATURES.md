@@ -12,7 +12,7 @@ about what it does.
 
 | Feature | State | What it changes |
 |---|---|---|
-| `autonomous-verification` | **on** | The guard answers **`allow`** instead of abstaining on: an ordinary file write, and a Bash command **every segment of which is a provably read-only verb with no output redirect** (`ls`, `cat`, `grep`, `git status`, `git log`, a pipeline of those…). Run this repo's own fmt/lint/type/test/build and paste the real output. |
+| `autonomous-verification` | **on** | The guard answers **`allow`** instead of abstaining on: an ordinary file write, and a Bash command **every segment of which is a provably read-only verb with no output redirect** (`ls`, `cat`, `grep`, `git status`, `git log`, a pipeline of those…). On a repo whose brief declares `Delivery profile: solobuilder`, the Bash grant is instead **unconditional** — any command, not only provably read-only ones (see below). Run this repo's own fmt/lint/type/test/build and paste the real output. |
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
@@ -31,13 +31,28 @@ does not touch the permanent floor:
   toggle or no toggle.
 - **Verification only.** "Run the gates" is not "run anything". A command that
   mutates the world outside this repo is not verification.
-- **The Bash allow is narrow on purpose, and stays narrow.** It is not "this
-  command is safe" — shell is Turing-complete and no static analysis of it
-  ever will be complete (§7). It is the decidable claim "every verb here is
-  drawn from a closed allowlist of readers, and no write redirect is
-  present." An unrecognised verb, a pipe into a writer, `sed -i`, a nested
-  shell, or a bare `>` anywhere still falls straight through to your own
-  judgment — same as before this toggle existed.
+- **The Bash allow is narrow on purpose, on every profile except one.** It is
+  not "this command is safe" — shell is Turing-complete and no static
+  analysis of it ever will be complete (§7). It is the decidable claim "every
+  verb here is drawn from a closed allowlist of readers, and no write
+  redirect is present." An unrecognised verb, a pipe into a writer, `sed -i`,
+  a nested shell, or a bare `>` anywhere still falls straight through to your
+  own judgment — same as before this toggle existed.
+- **Solo Builder is the one deliberate exception, chosen with the tradeoff
+  shown, not inferred.** On a repo whose brief declares
+  `Delivery profile: solobuilder` (or the legacy `personal`), this toggle
+  grants **every** Bash command — including the ones this guard cannot
+  classify at all — once every rule above it has already declined. That IS
+  the "this command is safe" claim the previous bullet says is undecidable;
+  it is granted anyway, scoped to this one profile, because a solo builder
+  owns the whole blast radius of their own repo. It does **not** reach
+  further than that: secrets, protected paths, control surface, §5, and
+  test-weakening are unconditional and already ran by the time this fires —
+  a solo-builder repo cannot force-push, publish, or leak a credential any
+  more than any other profile can. What it loses is the tripwire itself: an
+  unrecognised or disguised command now runs with no check of any kind. Every
+  other profile — enterprise, startup, no profile at all — keeps the narrow
+  grant above, unchanged.
 
 Everything else in a gate's output is fine as it comes — full test output,
 stack traces, compiler errors, timings. Truncating real evidence to look tidy

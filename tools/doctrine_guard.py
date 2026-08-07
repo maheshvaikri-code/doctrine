@@ -946,6 +946,26 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
     # -i`, a nested shell, a redirect however spelled - fails CLOSED to no
     # opinion, same as always, and falls through to the host's own judgment.
     if tool_name in COMMAND_TOOLS and autonomy_enabled(root):
+        # SOLO BUILDER gets a WIDER grant here, by explicit human decision -
+        # not inferred. On a repo whose brief declares the solo-builder
+        # delivery profile, EVERY Bash command is approved once every
+        # deny/ask rule above has already declined. This is not "provably
+        # read-only" - it IS the "this command is safe" claim section 7 calls
+        # undecidable, and it is granted anyway because the human weighing a
+        # solo repo's own risk chose it knowingly, with the tradeoff shown: an
+        # unrecognised or disguised command now sails through with no human
+        # check at all. What it does NOT do is touch anything above this
+        # point - secrets, protected paths, control surface, section 5
+        # irreversible/external actions, and test-weakening are unconditional
+        # and already ran; this is reached only once all of them declined.
+        if solobuilder_profile(root):
+            return Decision(
+                "allow",
+                "Doctrine: Delivery profile: solobuilder + FEATURES.md "
+                "`autonomous-verification` - approved. Secrets, protected "
+                "paths, control surface, section 5 and test-weakening all "
+                "ran first and would have stopped this if triggered; nothing "
+                "past that point is re-checked for a solo-builder repo.")
         cleaned = strip_shell_noise(text)
         if (command_is_read_only(cleaned)
                 and not command_has_write_redirect(cleaned)):
@@ -957,6 +977,29 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
                 "positively classify as read-only still falls through to "
                 "your own judgment.")
     return Decision()
+
+
+# Mirrors doctrine_install.py's DELIVERY_MARKERS. "personal" is the legacy
+# spelling, still carried by repos installed before the --solobuilder rename;
+# both must be recognised here or those repos silently get a different answer
+# than a freshly installed one.
+SOLOBUILDER_MARKERS: Final = ("Delivery profile: solobuilder",
+                             "Delivery profile: personal")
+
+
+def solobuilder_profile(root: Path) -> bool:
+    """Whether docs/brief.md declares the solo-builder delivery profile.
+
+    Fails to FALSE on any I/O trouble - unreadable, absent, wrong encoding.
+    This check only WIDENS what a Bash command is granted, so a failure to
+    positively confirm the profile must fail toward the narrower grant
+    (`autonomy_enabled` alone, if that is even on), never the wider one.
+    """
+    try:
+        text = (root / "docs" / "brief.md").read_text("utf-8", "replace")
+    except OSError:
+        return False
+    return any(marker in text for marker in SOLOBUILDER_MARKERS)
 
 
 def autonomy_enabled(root: Path) -> bool:

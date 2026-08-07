@@ -218,6 +218,24 @@ as it is invisible to every deny/ask rule above. The fix for that class is
 still the same one this whole section argues for: a boundary underneath the
 text, not a smarter parser of it (`skills/sandboxing.md`).
 
+**One further, DELIBERATELY UNDECIDABLE exception, scoped to one profile and
+chosen with eyes open.** On a repo whose brief declares `Delivery profile:
+solobuilder` (or the legacy `personal`), the same toggle grants `allow` to
+*every* Bash command, not only the provably-read-only ones above — the "this
+command is safe" claim the previous paragraph calls undecidable, granted
+anyway. This was a named decision, not an inferred one: offered as three
+concrete options with a preview of each, and the maximal one was chosen
+explicitly, with the exfiltration/`rm -rf` tradeoff shown in the same message.
+It reaches no further than the profile it names — every other profile keeps
+the narrow grant above, unchanged — and it reaches no *higher*: secrets,
+protected paths, control surface, §5, and test-weakening are unconditional
+and already ran by the time this can fire, so a solo-builder repo still
+cannot force-push, publish, or leak a credential through this path. What it
+genuinely gives up, for that one profile, is the tripwire itself — an
+unrecognised or hostile-looking command now runs with no check at all. A solo
+builder who wants the tripwire back sets `autonomous-verification` to `off`,
+or drops the `solobuilder` profile marker from `docs/brief.md`.
+
 **Where the containment boundary does come from.** Since no parser of a
 Turing-complete shell can be complete, a stronger parser is the wrong
 investment; the boundary belongs one layer down, on **effects** rather than

@@ -93,6 +93,17 @@ session ends mid-loop, append a **loop-journal** line — the resume point:
 Token values come from the harness usage fields, never self-estimated. A resumed
 loop that repeats a dead end is a doctrine failure, not bad luck.
 
+## Ceremony toggle vs. the execution caps
+
+None of this skill is code-enforced — no hook counts iterations or edits.
+It is prose the agent follows because the doctrine says to. `FEATURES.md`'s
+`orchestration-ceremony` toggle (`off`) drops the loop-journal line and the
+metrics filed to QA reports/retros — paperwork. It does **not** touch
+**Execution caps** above (iteration budget, thrash detector, token-jam rule,
+flaky-test rule): those stop a loop from burning unbounded time and tokens
+on a hypothesis that already failed, a risk identical whether or not anyone
+later reads a journal about it. Full boundary: `FEATURES.md`.
+
 ## Metrics (filed in QA reports / retros; G7 reads them)
 
 Iterations-to-green per criterion; churn ratio (lines rewritten vs surviving to

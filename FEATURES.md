@@ -16,6 +16,7 @@ about what it does.
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
+| `orchestration-ceremony` | **on** | Multi-agent dispatch (`03-parallel-execution.md`) and multi-iteration loops (`skills/loop-engineering.md`) produce their full paperwork: the mandatory G4/G5 fresh-context verifier panel, work-package brief docs, loop-journal lines, formal `docs/` review/QA artifacts. `off` = self-review instead of a dispatched panel, skip the paperwork — the same relaxation `Delivery profile: solobuilder` already gets, available here on any repo or profile. Does not touch the collision guard or the loop stop-rules — see below. |
 
 ## The one condition on autonomy
 
@@ -57,6 +58,51 @@ does not touch the permanent floor:
 Everything else in a gate's output is fine as it comes — full test output,
 stack traces, compiler errors, timings. Truncating real evidence to look tidy
 is the fabrication §7 #1 forbids.
+
+## What `orchestration-ceremony` moves, and what never does
+
+Swarm dispatch, verifier councils, and disciplined looping are Doctrine's job
+(`03-parallel-execution.md`, `skills/loop-engineering.md`) — but unlike the
+`PreToolUse` guard's Write/Edit/Bash decisions, none of that is code-enforced.
+There is no hook that can intercept "how many subagents got dispatched" or
+"how many loop iterations ran" the way the guard intercepts a tool call. Every
+rule in those two files is prose the agent follows because the doctrine says
+to — which means this toggle does not relax a code gate; it changes which
+parts of that prose are binding.
+
+**`off` removes — paperwork, not protection:**
+
+- The **mandatory** G4/G5 fresh-context verifier panel becomes optional;
+  self-review is allowed instead (same relaxation `Delivery profile:
+  solobuilder` already carries, here available to any profile) — but the
+  artifact **must open by disclosing it's a self-review**, per
+  `02-role-protocol.md`. Skipping the panel is granted; presenting the
+  result as a passed panel is not — that's a fabricated verdict under §7 #1
+  whether or not this toggle is involved.
+- Work-package brief documents before a fan-out.
+- Loop-journal lines (`skills/loop-engineering.md`'s resume-point format).
+- Formal `docs/reviews/`, `docs/qa/` artifact filing.
+
+**Stays on regardless of the toggle — these are safety rules, not ceremony,
+because they exist to stop file corruption and unbounded burn, not to
+produce an artifact:**
+
+- `03-parallel-execution.md` §1's fan-out limits: width ≤ 4 concurrent
+  agents, no two packages editing the same file, contracts frozen before
+  parallel work starts. This is what keeps concurrent workers from
+  corrupting each other's output — it has nothing to do with who reads the
+  result afterward.
+- `skills/loop-engineering.md`'s execution caps: the iteration budget, the
+  thrash detector, the token-jam rule, the flaky-test rule. These stop a
+  loop from burning unbounded time and tokens on a hypothesis that already
+  failed — that risk is identical whether or not anyone later reads a
+  journal about it.
+- Non-Negotiables §7 and the §5 escalation list, as always: no toggle in this
+  file has ever reached those, and this one is no different.
+- The Merge Council (`standards/merge-and-promotion.md`), where that
+  standard applies. It is a stricter, separate mechanism layered on top of
+  ordinary G4/G5, not a variant of it — this toggle's reach stops at
+  `03-parallel-execution.md` and `skills/loop-engineering.md`.
 
 ## Turning one off
 

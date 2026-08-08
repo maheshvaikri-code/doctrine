@@ -6,6 +6,24 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Added — `orchestration-ceremony` toggle: swarm/loop paperwork is togglable, the safety rails are not
+
+Multi-agent dispatch (`03-parallel-execution.md`) and disciplined looping
+(`skills/loop-engineering.md`) are Doctrine's job, same as G3-G7 gating — but
+neither was toggle-controlled the way the `PreToolUse` guard already is via
+`autonomous-verification`. Asked directly whether "off" should mean no
+Doctrine opinion at all, the answer drawn out explicitly was narrower:
+`off` drops the mandatory G4/G5 verifier panel (self-review instead, the
+same relaxation `Delivery profile: solobuilder` already gets, now available
+on any profile), work-package brief docs, loop-journal lines, and formal
+`docs/reviews`/`docs/qa` filing. It does **not** touch
+`03-parallel-execution.md`'s fan-out limits (width ≤ 4, no two packages on
+the same file) or `skills/loop-engineering.md`'s execution caps (iteration
+budget, thrash detector, token-jam rule) — those stop file corruption and
+unbounded token burn, not paperwork, and stay on regardless of the toggle.
+New default-on `FEATURES.md` row; both playbooks now name the boundary in
+their own text. See `docs/adr/013-orchestration-ceremony-toggle.md`.
+
 ### Fixed — the CI templates carried a bug ADR-002 already fixed one layer down
 
 `doctrine_verify.py` is scope-aware since ADR-002: it runs the full gate suite

@@ -79,8 +79,12 @@ class TestShippedFile(unittest.TestCase):
         parsed = df.read_features(REPO)
         self.assertTrue(parsed, "the repo's own FEATURES.md did not parse")
         for name in ("autonomous-verification", "prune-on-force",
-                     "drift-banner", "state-plane"):
+                     "drift-banner", "state-plane", "orchestration-ceremony"):
             self.assertIn(name, parsed)
+        # orchestration-ceremony narrows required PAPERWORK, not permission
+        # (nothing here reaches the guard) - so unlike autonomous-verification
+        # it belongs with the backward-compatible defaults: on.
+        self.assertTrue(parsed["orchestration-ceremony"])
 
     def test_find_root_locates_the_repo_from_a_subdir(self):
         self.assertEqual(df.find_root(REPO / "tools"), REPO)

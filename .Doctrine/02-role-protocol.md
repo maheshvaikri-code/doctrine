@@ -55,11 +55,16 @@ accident and porous against the intent — a strong default, not a sandbox.
 Closing it needs a role-aware runtime signal or a Bash-free verifier grant;
 until then, do not describe a reviewer as unable to edit.
 
-Where subagents are unavailable (a runtime without them, or a session the
-human restricted), verification degrades to an in-session pass — and the
-artifact **must open with that disclosure**, naming it an author's self-review.
+Self-review instead of a dispatched panel has three legitimate doors, no
+others: subagents are technically unavailable (a runtime without them, or a
+session the human restricted); the repo declares `Delivery profile:
+solobuilder`; or `FEATURES.md`'s `orchestration-ceremony` toggle is `off`
+(any profile — `03-parallel-execution.md` §7). Whichever door, the artifact
+**must open with that disclosure**, naming it an author's self-review.
 Undisclosed self-review presented as a passed gate is a fabricated verdict
-under §7 #1; the honest form is a real, respectable status.
+under §7 #1; the honest form is a real, respectable status. A toggle that
+skips the *panel* never skips the *disclosure* — the two are not the same
+relaxation, and only the first one is what any door above grants.
 
 ## Authority & arbitration
 

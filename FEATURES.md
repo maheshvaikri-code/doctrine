@@ -16,7 +16,7 @@ about what it does.
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
-| `orchestration-ceremony` | **on** | Multi-agent dispatch (`03-parallel-execution.md`) and multi-iteration loops (`skills/loop-engineering.md`) produce their full paperwork: the mandatory G4/G5 fresh-context verifier panel, work-package brief docs, loop-journal lines, formal `docs/` review/QA artifacts. `off` = self-review instead of a dispatched panel, skip the paperwork — the same relaxation `Delivery profile: solobuilder` already gets, available here on any repo or profile. Does not touch the collision guard or the loop stop-rules — see below. |
+| `orchestration-ceremony` | **off** | Multi-agent dispatch (`03-parallel-execution.md`) and multi-iteration loops (`skills/loop-engineering.md`) produce their full paperwork: the mandatory G4/G5 fresh-context verifier panel, work-package brief docs, loop-journal lines, formal `docs/` review/QA artifacts. `off` = self-review instead of a dispatched panel, skip the paperwork — the same relaxation `Delivery profile: solobuilder` already gets, available here on any repo or profile. Does not touch the collision guard or the loop stop-rules — see below. |
 
 ## The one condition on autonomy
 

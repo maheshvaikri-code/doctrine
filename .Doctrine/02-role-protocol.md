@@ -55,16 +55,20 @@ accident and porous against the intent — a strong default, not a sandbox.
 Closing it needs a role-aware runtime signal or a Bash-free verifier grant;
 until then, do not describe a reviewer as unable to edit.
 
-Self-review instead of a dispatched panel has three legitimate doors, no
+Self-review instead of a dispatched panel has two legitimate doors, no
 others: subagents are technically unavailable (a runtime without them, or a
-session the human restricted); the repo declares `Delivery profile:
-solobuilder`; or `FEATURES.md`'s `orchestration-ceremony` toggle is `off`
-(any profile — `03-parallel-execution.md` §7). Whichever door, the artifact
-**must open with that disclosure**, naming it an author's self-review.
-Undisclosed self-review presented as a passed gate is a fabricated verdict
-under §7 #1; the honest form is a real, respectable status. A toggle that
-skips the *panel* never skips the *disclosure* — the two are not the same
-relaxation, and only the first one is what any door above grants.
+session the human restricted); or the repo declares `Delivery profile:
+solobuilder`. Whichever door, the artifact **must open with that
+disclosure**, naming it an author's self-review. Undisclosed self-review
+presented as a passed gate is a fabricated verdict under §7 #1; the honest
+form is a real, respectable status.
+
+`FEATURES.md`'s `orchestration-ceremony` toggle is **not** a third door —
+this was tried and corrected. Dispatching a fresh-context verifier costs no
+human friction (an autonomous tool call, not an approval the agent has to
+ask for), so relaxing it buys no autonomy back and only costs the thing this
+section exists to protect. `off` relaxes the panel's *paperwork* (brief,
+report) — never whether the panel runs.
 
 ## Authority & arbitration
 

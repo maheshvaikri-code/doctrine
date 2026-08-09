@@ -16,7 +16,7 @@ about what it does.
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
-| `orchestration-ceremony` | **off** | Multi-agent dispatch (`03-parallel-execution.md`) and multi-iteration loops (`skills/loop-engineering.md`) produce their full paperwork: the mandatory G4/G5 fresh-context verifier panel, work-package brief docs, loop-journal lines, formal `docs/` review/QA artifacts. `off` = self-review instead of a dispatched panel, skip the paperwork — the same relaxation `Delivery profile: solobuilder` already gets, available here on any repo or profile. Does not touch the collision guard or the loop stop-rules — see below. |
+| `orchestration-ceremony` | **off** | Multi-agent dispatch (`03-parallel-execution.md`) and multi-iteration loops (`skills/loop-engineering.md`) produce their full paperwork: work-package brief docs, loop-journal lines, formal `docs/` review/QA artifacts. `off` = skip the paperwork. Does **not** make the G4/G5 verifier panel optional — dispatching fresh-context `code-reviewer`/`security-reviewer`/`qa-engineer` costs no human friction (autonomous, no approval needed) and stays mandatory regardless; only its formal write-up is skippable. Does not touch the collision guard or the loop stop-rules either — see below. |
 
 ## The one condition on autonomy
 
@@ -70,23 +70,27 @@ rule in those two files is prose the agent follows because the doctrine says
 to — which means this toggle does not relax a code gate; it changes which
 parts of that prose are binding.
 
-**`off` removes — paperwork, not protection:**
+**`off` removes — paperwork, not the review itself:**
 
-- The **mandatory** G4/G5 fresh-context verifier panel becomes optional;
-  self-review is allowed instead (same relaxation `Delivery profile:
-  solobuilder` already carries, here available to any profile) — but the
-  artifact **must open by disclosing it's a self-review**, per
-  `02-role-protocol.md`. Skipping the panel is granted; presenting the
-  result as a passed panel is not — that's a fabricated verdict under §7 #1
-  whether or not this toggle is involved.
 - Work-package brief documents before a fan-out.
 - Loop-journal lines (`skills/loop-engineering.md`'s resume-point format).
-- Formal `docs/reviews/`, `docs/qa/` artifact filing.
+- Formal `docs/reviews/`, `docs/qa/` artifact filing — the panel's findings
+  still get read and acted on; they just aren't written to a permanent file.
 
-**Stays on regardless of the toggle — these are safety rules, not ceremony,
-because they exist to stop file corruption and unbounded burn, not to
-produce an artifact:**
+**Stays on regardless of the toggle:**
 
+- **The G4/G5 fresh-context verifier panel dispatch itself**
+  (`03-parallel-execution.md` §4). This was the toggle's first draft's
+  actual mistake, corrected directly: dispatching `code-reviewer` /
+  `security-reviewer` / `qa-engineer` to fresh context costs nothing in
+  human friction — it's a tool call the agent makes without asking anyone,
+  the definition of autonomous — so relaxing it bought no autonomy back and
+  only cost the one thing `02-role-protocol.md` §"Switching hats is not
+  separation of duties" exists to prevent: an author judging its own work.
+  This toggle is **not** a door to self-review. The only two doors remain
+  what `02-role-protocol.md` has always named — subagents technically
+  unavailable, or a declared `Delivery profile: solobuilder` — and both
+  still require the artifact to open with that disclosure.
 - `03-parallel-execution.md` §1's fan-out limits: width ≤ 4 concurrent
   agents, no two packages editing the same file, contracts frozen before
   parallel work starts. This is what keeps concurrent workers from

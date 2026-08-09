@@ -1,8 +1,8 @@
-# ADR-013: `orchestration-ceremony` toggle — paperwork is togglable, the safety rules are not
+# ADR-013: `orchestration-ceremony` toggle — paperwork is togglable, the panel and safety rails are not
 
 <!-- G1 artifact. File as docs/adr/NNN-slug.md. One decision per ADR. -->
 
-**Date:** 2026-08-08 · **Status:** accepted
+**Date:** 2026-08-08 · **Status:** accepted (revised same-day — see "Correction" below)
 **Deciders:** Chief Architect (direction from the framework owner: swarm dispatch, verifier
 councils, and disciplined looping are Doctrine's job, not only Write/Edit/Bash gating —
 and like every other restriction in this repo, they should be toggle-controlled, with
@@ -26,13 +26,26 @@ cap and no-shared-files rule exist so two concurrent workers cannot corrupt the 
 `skills/loop-engineering.md`'s thrash detector and token-jam rule exist so a loop cannot
 burn unbounded time and tokens chasing a hypothesis that already failed. Neither is about
 who reads the output afterward — turning them off does not remove paperwork, it removes
-the thing that stops real damage. The mandatory G4/G5 verifier panel, work-package brief
-docs, and loop-journal entries are a different kind of rule: they produce artifacts, and
-skipping them is exactly what `Delivery profile: solobuilder` already does today ("fewer
-artifacts, self-review instead of a dispatched panel") without incident.
+the thing that stops real damage.
 
-Presented with this split, explicitly, the decision was: **ceremony only, safety rails
-stay** — matching how solobuilder itself already relaxes gating without touching §7.
+## Correction (same day, before this shipped past local commits)
+
+The first implementation bucketed the **G4/G5 verifier panel dispatch itself** as ceremony
+— `off` made self-review a legitimate substitute for dispatching `code-reviewer` /
+`security-reviewer` / `qa-engineer`, reasoning it was "the same relaxation `Delivery
+profile: solobuilder` already gets." Told directly this was wrong, and it was: dispatching
+a fresh-context subagent is a tool call the Orchestrator makes without asking anyone —
+autonomous by definition, costing no human friction. Relaxing it bought no autonomy back
+and only cost the one thing `02-role-protocol.md`'s "Switching hats is not separation of
+duties" section exists to prevent — an author judging its own work under a different hat.
+Recorded here rather than quietly rewritten, per this repo's own practice: a wrong first
+answer, caught and corrected, is a more honest record than one where the mistake never
+happened to be visible (charter: negative findings are wins, not embarrassments).
+
+The actual ceremony — the thing that costs real overhead and produces no safety of its
+own — is the **paperwork**: a written work-package brief before dispatch, a loop-journal
+line, a formal artifact filed to `docs/reviews/` or `docs/qa/`. None of that is the review;
+it's the record of the review. That is what this toggle relaxes.
 
 ## Decision
 
@@ -41,45 +54,40 @@ stay** — matching how solobuilder itself already relaxes gating without touchi
 nothing here reaches the `PreToolUse` guard, so it belongs with the backward-compatible
 defaults, not the opt-in-only exception).
 
-**`off` removes:** the mandatory G4/G5 fresh-context verifier panel (self-review allowed
-instead, on any profile, not only solobuilder), work-package brief documents, loop-journal
-lines, and formal `docs/reviews/` / `docs/qa/` artifact filing.
+**`off` removes:** work-package brief documents before a fan-out, loop-journal lines, and
+formal `docs/reviews/` / `docs/qa/` artifact filing. The panel's findings are still
+obtained and acted on — they're just not written to a permanent file.
 
-**`off` does not touch:** `03-parallel-execution.md` §1's fan-out limits (width ≤ 4, no
-two packages on the same file, contracts frozen first) and `skills/loop-engineering.md`'s
-execution caps (iteration budget, thrash detector, token-jam rule, flaky-test rule) — both
-files now say so explicitly, cross-referencing `FEATURES.md`. Non-Negotiables §7 and the §5
-escalation list are unaffected, as they are by every toggle in this file — concretely, the
-`02-role-protocol.md` disclosure duty ("the artifact must open with that disclosure, naming
-it an author's self-review… undisclosed self-review presented as a passed gate is a
-fabricated verdict under §7 #1") travels with this relaxation exactly as it already does for
-the solobuilder and subagents-unavailable doors. `orchestration-ceremony: off` is a third
-door to the same rule, not an exemption from it: the toggle grants skipping the panel, never
-grants presenting the result as one. `02-role-protocol.md` names all three doors explicitly.
-The Merge Council (`standards/merge-and-promotion.md`) is a separate, stricter mechanism
-this toggle does not reach.
+**`off` does not touch:** the G4/G5 fresh-context verifier panel dispatch itself — self-
+review remains gated to exactly the two doors `02-role-protocol.md` has always named
+(subagents technically unavailable; declared `Delivery profile: solobuilder`), both still
+requiring the artifact to open with that disclosure. Also unchanged:
+`03-parallel-execution.md` §1's fan-out limits (width ≤ 4, no two packages on the same
+file, contracts frozen first), `skills/loop-engineering.md`'s execution caps (iteration
+budget, thrash detector, token-jam rule, flaky-test rule), Non-Negotiables §7, the §5
+escalation list, and the Merge Council (`standards/merge-and-promotion.md`) where that
+standard applies.
 
 ## Alternatives considered
 
 | Option | Pros | Cons | Why not |
 |---|---|---|---|
-| A (chosen): ceremony-only toggle, safety rails fixed | matches solobuilder's existing, already-proven relaxation shape; nothing here can corrupt a file or burn unbounded budget | doesn't grant the literal "no restrictions enforced" reading | the literal reading was offered explicitly and not the one chosen — see Context |
-| B: one toggle, everything off including safety rails | matches the instruction's literal wording | removes the only thing standing between two parallel workers and a corrupted shared file, or between a stuck loop and unbounded token burn | rejected — the instruction's intent, confirmed directly, was ceremony, not the collision/burn protections |
-| C: split into two toggles (dispatch ceremony vs. loop ceremony) | finer-grained control | no live need for independently loosening one without the other yet; a second toggle is a second thing to keep in sync (echoes ADR-002/ADR-012's drift lesson) | deferred — split later if a real need for independent control shows up |
+| A (chosen): paperwork-only toggle, panel dispatch + safety rails fixed | dispatching a subagent costs no autonomy to keep, so nothing is bought by relaxing it; only genuine overhead (briefs, journal, formal filing) is removed | doesn't grant the literal "no restrictions enforced" reading | the literal reading was offered explicitly, tried, and corrected — see Correction above |
+| B (tried, corrected — this ADR's own first-shipped design): ceremony includes the panel itself, self-review allowed | matched the instruction's literal wording most closely | turns an autonomous, zero-friction tool call into an optional step, buying nothing while reintroducing "author reviews own work" | corrected same-day on direct instruction: dispatching doesn't "dishonor autonomy" — skipping it isn't required to have any |
+| C: one toggle, everything off including the collision guard and loop caps | matches the instruction's literal wording even more completely than B | removes the only thing standing between two parallel workers and a corrupted shared file, or between a stuck loop and unbounded token burn | rejected from the start (present in this ADR's very first version) and still rejected here, unchanged: the instruction's intent, confirmed directly, was never the collision/burn protections |
+| D: split into two toggles (dispatch-paperwork ceremony vs. loop-paperwork ceremony) | finer-grained control | no live need for independently loosening one without the other yet; a second toggle is a second thing to keep in sync (echoes ADR-002/ADR-012's drift lesson) | deferred — split later if a real need for independent control shows up |
 
 ## Consequences
 
-- **Positive:** the relaxation solobuilder already gets ("fewer artifacts, self-review
-  instead of a dispatched panel") is now available to any repo or profile via one
-  documented switch, consistent with the rest of `FEATURES.md`'s toggle philosophy. The
-  two files that actually carry the rules now name, in their own text, exactly what a
-  reader can and cannot skip — no separate document to fall out of sync with them (the
-  ADR-012 lesson: don't let a decision live only in a place nobody re-reads).
+- **Positive:** the toggle now does exactly what it claims — removes overhead, not
+  oversight. The two files that carry the rules name, in their own text, exactly what's
+  optional (briefs, journal, formal filing) versus fixed (the panel, the collision guard,
+  the execution caps) — no separate document to fall out of sync with them.
 - **Negative / debt accepted:** like every rule in `03-parallel-execution.md` and
   `skills/loop-engineering.md`, this toggle is consulted by the agent reading prose, not
   enforced by any hook — an agent (or a session) that simply doesn't read `FEATURES.md`
   gets no signal either way, same as every toggle before it that isn't guard-enforced.
-- **Invalidation triggers:** a real need emerges to loosen dispatch discipline
-  independently of loop discipline (→ Option C, split the toggle) or to code-enforce any
+- **Invalidation triggers:** a real need emerges to loosen dispatch-paperwork
+  independently of loop-paperwork (→ Option C, split the toggle) or to code-enforce any
   part of `03-parallel-execution.md`/`skills/loop-engineering.md` (→ that new gate gets
   its own toggle-and-floor design, not folded into this one).

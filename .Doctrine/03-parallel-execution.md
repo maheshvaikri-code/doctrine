@@ -85,18 +85,20 @@ qa-engineer, project-reviewer, tech-writer, compliance-officer). Each is a
 thin shell that Reads its `.Doctrine/roles/` card — the doctrine stays the
 single source of truth.
 
-## 7. Ceremony toggle vs. the collision guard
+## 7. Ceremony toggle vs. the collision guard vs. the panel itself
 
 None of the above is code-enforced — no hook can intercept how many agents
 get dispatched. It is prose the Orchestrator follows. `FEATURES.md`'s
-`orchestration-ceremony` toggle controls how much of it is binding:
-`off` makes the §4 verifier panel optional (self-review instead, same
-relaxation `Delivery profile: solobuilder` already gets — and the same
-condition: the artifact must open by disclosing it's a self-review, per
-`02-role-protocol.md`; skipping the panel is granted, presenting it as one
-is not) and drops the work-package brief/report paperwork. §1's fan-out
-limits — width ≤ 4, no
-two packages on the same file, contracts frozen first — are **not** part of
-that toggle and apply regardless: they exist to stop concurrent workers from
+`orchestration-ceremony` toggle controls how much of it is binding — but
+narrowly: `off` drops the work-package brief and the formal written report,
+nothing more. It does **not** make the §4 verifier panel optional. Dispatching
+`code-reviewer`/`security-reviewer`/`qa-engineer` to fresh context is a tool
+call the Orchestrator makes without asking anyone — it costs no autonomy to
+keep doing it, and skipping it is exactly the failure `02-role-protocol.md`
+names: an author judging its own work. Self-review still has only the two
+doors that file has always named (subagents unavailable; declared
+`Delivery profile: solobuilder`), unchanged by this toggle. §1's fan-out
+limits — width ≤ 4, no two packages on the same file, contracts frozen first
+— are likewise fixed regardless: they exist to stop concurrent workers from
 corrupting each other's output, not to produce a document. Full boundary:
 `FEATURES.md`.

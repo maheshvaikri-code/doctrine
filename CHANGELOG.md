@@ -6,23 +6,29 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
-### Added — `orchestration-ceremony` toggle: swarm/loop paperwork is togglable, the safety rails are not
+### Added — `orchestration-ceremony` toggle: swarm/loop paperwork is togglable, the panel and safety rails are not
 
 Multi-agent dispatch (`03-parallel-execution.md`) and disciplined looping
 (`skills/loop-engineering.md`) are Doctrine's job, same as G3-G7 gating — but
 neither was toggle-controlled the way the `PreToolUse` guard already is via
-`autonomous-verification`. Asked directly whether "off" should mean no
-Doctrine opinion at all, the answer drawn out explicitly was narrower:
-`off` drops the mandatory G4/G5 verifier panel (self-review instead, the
-same relaxation `Delivery profile: solobuilder` already gets, now available
-on any profile), work-package brief docs, loop-journal lines, and formal
-`docs/reviews`/`docs/qa` filing. It does **not** touch
-`03-parallel-execution.md`'s fan-out limits (width ≤ 4, no two packages on
-the same file) or `skills/loop-engineering.md`'s execution caps (iteration
-budget, thrash detector, token-jam rule) — those stop file corruption and
-unbounded token burn, not paperwork, and stay on regardless of the toggle.
-New default-on `FEATURES.md` row; both playbooks now name the boundary in
-their own text. See `docs/adr/013-orchestration-ceremony-toggle.md`.
+`autonomous-verification`. `off` drops work-package brief docs, loop-journal
+lines, and formal `docs/reviews`/`docs/qa` filing — the panel's findings are
+still obtained and acted on, just not written to a permanent file. It does
+**not** touch the G4/G5 fresh-context verifier panel dispatch itself: a first
+draft made that optional too (self-review allowed instead), corrected
+same-day on direct instruction — dispatching a subagent is an autonomous tool
+call, not something that costs friction to keep doing, so relaxing it bought
+nothing and only reintroduced an author judging its own work. Self-review
+still has exactly the two doors `02-role-protocol.md` has always named
+(subagents unavailable; declared `Delivery profile: solobuilder`), both
+still requiring disclosure. Also unchanged: `03-parallel-execution.md`'s
+fan-out limits (width ≤ 4, no two packages on the same file) and
+`skills/loop-engineering.md`'s execution caps (iteration budget, thrash
+detector, token-jam rule) — those stop file corruption and unbounded token
+burn, not paperwork. New default-on `FEATURES.md` row; both playbooks name
+the boundary in their own text. See
+`docs/adr/013-orchestration-ceremony-toggle.md` (records the correction
+directly rather than silently rewriting it).
 
 ### Fixed — the CI templates carried a bug ADR-002 already fixed one layer down
 

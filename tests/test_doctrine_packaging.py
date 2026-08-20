@@ -23,6 +23,23 @@ import doctrine_lint as dl  # noqa: E402
 _YAML_TITLE_KEY_RE = re.compile(r"^\s*-?\s*(?:name|displayName)\s*:\s*(.*)$")
 
 
+def hook_configs():
+    """Every hook config present in THIS tree, skipping what isn't shipped.
+
+    `plugin/hooks/hooks.json` exists only in Doctrine's own source repo - the
+    installer ships `tests/` into every consumer but deliberately does not
+    ship `plugin/`, which is the Claude Code plugin's own packaging. Reading
+    it unconditionally made two guard-hook tests fail with FileNotFoundError
+    in EVERY consumer repo, permanently, for a file that was never supposed
+    to be there. Present-in-source is asserted separately (see
+    `TestInstaller.test_the_source_repo_ships_both_hook_configs`) so this
+    tolerance cannot silently degrade into "no configs checked at all".
+    """
+    return [path for path in (REPO / ".claude" / "settings.json",
+                              REPO / "plugin" / "hooks" / "hooks.json")
+            if path.is_file()]
+
+
 def yaml_title_colon_violations(text):
     """Lines whose `name:`/`displayName:` value is an unquoted plain scalar
     containing a bare `: ` (or ending in `:`) - invalid YAML: a colon-space
@@ -110,6 +127,104 @@ class TestInstaller(unittest.TestCase):
                     f"invalid YAML (silently disables the whole workflow): "
                     f"{violations}")
 
+    def test_ci_install_works_when_the_source_is_itself_an_install(self):
+        """Regression: every CI template must live INSIDE the corpus.
+
+        `github` used to be sourced from the source repo's own live
+        `.github/workflows/doctrine.yml`, which the installer does not ship.
+        Installing from the source repo worked, so nothing caught it; a
+        CHAINED install - target A installed from source, then target B
+        installed with A as `--source` - crashed with FileNotFoundError,
+        because A never received the file github's entry points at. gitlab
+        and azure were unaffected: their templates ship under
+        `.Doctrine/templates/ci/`. This asserts the whole set is symmetric.
+        """
+        first = Path(self._tmp.name) / "first"
+        self.assertEqual(
+            di.install(REPO, first, ["claude"], False, False, False), 0)
+        for provider in sorted(di.CI_PROVIDERS):
+            with self.subTest(provider=provider):
+                source_rel = di.CI_PROVIDERS[provider][0]
+                self.assertTrue(
+                    (first / source_rel).is_file(),
+                    f"{provider}: template {source_rel} was not installed, so "
+                    f"a consumer can never act as an install source for it")
+                second = Path(self._tmp.name) / f"second-{provider}"
+                self.assertEqual(
+                    di.install(first, second, ["claude"], False, True, False,
+                               ci_provider=provider), 0,
+                    f"{provider}: chained install failed")
+                self.assertTrue(
+                    (second / di.CI_PROVIDERS[provider][1]).is_file())
+
+    @unittest.skipUnless(dl.is_source_repo(REPO),
+                         "source-repo invariant: a consumer has no "
+                         ".github/workflows/doctrine.yml to compare against")
+    def test_the_github_template_and_the_live_workflow_do_not_drift(self):
+        """The corpus template and this repo's own live workflow are twins.
+
+        GitHub only reads workflows from `.github/workflows/`, and the
+        installer can only source from inside the corpus, so the same content
+        must exist in both places. Two copies is exactly the setup that let
+        ADR-012's defect sit unnoticed for months, so the parity is asserted
+        rather than trusted to whoever edits one of them next.
+        """
+        template = REPO / di.CI_PROVIDERS["github"][0]
+        live = REPO / ".github" / "workflows" / "doctrine.yml"
+        self.assertEqual(
+            template.read_text("utf-8").replace("\r\n", "\n"),
+            live.read_text("utf-8").replace("\r\n", "\n"),
+            f"{template.relative_to(REPO)} and "
+            f"{live.relative_to(REPO)} have drifted apart; edit one, copy "
+            f"it to the other")
+
+    def test_the_pretooluse_matcher_is_the_write_tools_and_not_bash(self):
+        """The matcher IS the security boundary now (ADR-014).
+
+        Before, the guard's own rules were the boundary and the matcher was
+        plumbing. Since Bash was removed from the matcher, the matcher string
+        alone decides whether a write is checked at all - and nothing tested
+        it. Both existing hook tests drive the hook with a Write payload and
+        assert exit code + output, so `Bash` silently reappearing (undoing a
+        deliberate decision) or `Write` silently disappearing (turning the
+        whole gate off while every other test still passes) would both go
+        unnoticed. Flagged by the verifier that retired the Bash tests.
+        """
+        expected = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
+        for config in hook_configs():
+            with self.subTest(config=config.name):
+                groups = json.loads(
+                    config.read_text("utf-8"))["hooks"]["PreToolUse"]
+                matchers = [g.get("matcher", "") for g in groups]
+                tools = {t for m in matchers for t in m.split("|") if t}
+                self.assertEqual(
+                    tools, expected,
+                    f"{config.name}: PreToolUse matcher is {matchers}. "
+                    f"Bash must NOT be present (ADR-014 removed the shell "
+                    f"arm; the path-analysis code it needs is deleted), and "
+                    f"every write tool MUST be, or the guard silently stops "
+                    f"seeing writes it is the only check for.")
+
+    @unittest.skipUnless(dl.is_source_repo(REPO),
+                         "source-repo invariant: the installer deliberately "
+                         "does not ship plugin/ into a consumer")
+    def test_the_source_repo_ships_both_hook_configs(self):
+        """`hook_configs()` skips a missing config so consumer repos can run
+        this suite; that tolerance must not hide a config going missing HERE,
+        where both are supposed to exist.
+
+        Skipped outside the source repo for the same reason `hook_configs()`
+        tolerates the absence: `plugin/` is the Claude Code plugin's own
+        packaging and is never installed. Asserting it unconditionally is the
+        very defect this test exists alongside - a permanently-red suite in
+        every consumer is how a real regression gets waved through.
+        """
+        self.assertEqual(
+            len(hook_configs()), 2,
+            "the source repo must have BOTH .claude/settings.json and "
+            "plugin/hooks/hooks.json; hook_configs() found "
+            f"{[str(p.relative_to(REPO)) for p in hook_configs()]}")
+
     def test_the_guard_hook_resolves_from_the_project_not_the_cwd(self):
         """Regression: the hook invoked `tools/doctrine_guard.py` relatively.
 
@@ -119,8 +234,7 @@ class TestInstaller(unittest.TestCase):
         failed the other way: its `os.path.exists` check missed, so the gate
         silently turned OFF. Both are executed here from a subdirectory.
         """
-        for config in (REPO / ".claude" / "settings.json",
-                       REPO / "plugin" / "hooks" / "hooks.json"):
+        for config in hook_configs():
             hooks = json.loads(config.read_text("utf-8"))["hooks"]
             self.assertTrue(hooks.get("PreToolUse"),
                             f"{config.name}: no PreToolUse hook")
@@ -165,8 +279,7 @@ class TestInstaller(unittest.TestCase):
                                     "nothing and silently did not run")
 
     def test_the_guard_hook_still_decides_from_a_subdirectory(self):
-        for config in (REPO / ".claude" / "settings.json",
-                       REPO / "plugin" / "hooks" / "hooks.json"):
+        for config in hook_configs():
             entry = json.loads(config.read_text("utf-8"))[
                 "hooks"]["PreToolUse"][0]["hooks"][0]
             argv = shlex.split(entry["command"], posix=False)
@@ -227,6 +340,10 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(self.install(force=True), 0)
         self.assertFalse(leaked.exists())
 
+    @unittest.skipUnless(dl.is_source_repo(REPO),
+                         "source-repo invariant: a consumer is not a git "
+                         "checkout of Doctrine, so it has no source manifest "
+                         "to check itself against")
     def test_only_git_tracked_files_are_installed(self):
         """The PRIMARY rule, and why it is an allowlist.
 

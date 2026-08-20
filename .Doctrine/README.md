@@ -34,7 +34,7 @@ workflow produces.
 │                       + security operations: detection engineering, threat
 │                       hunting, forensics, threat intel
 │                       + sandboxing: the isolation tier that IS the boundary
-│                       the PreToolUse tripwire deliberately is not
+│                       — the only shell control since ADR-014
 │                       + startup craft: marketing→fundraising)
 ├── domains/            Vertical overlays: regime + canonical entities + domain
 │                       sign-offs, composed onto the horizontal core (healthcare pilot)

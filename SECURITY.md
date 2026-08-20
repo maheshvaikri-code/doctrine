@@ -76,11 +76,17 @@ hand-editing an installed corpus.
 These are **documented, deliberate, and already public**. Reporting them again
 is not a finding, though a way to make one materially *worse* is.
 
-- **The Bash guard is a tripwire, not a boundary.** Shell is Turing-complete,
+- **There is no Bash guard.** As of ADR-014 the `PreToolUse` hook is wired to
+  `Write|Edit|MultiEdit|NotebookEdit` only, and the shell path-analysis code is
+  deleted. Doctrine does not inspect, restrict, or prompt on shell commands.
+  It was previously a *tripwire, not a boundary* — shell is Turing-complete,
   the path need not appear in the command, and no static text analysis of it
-  can be complete. Novel shell spellings that reach a protected file are
-  *expected*, not vulnerabilities. The real boundary is an isolation tier —
-  see [`skills/sandboxing.md`](.Doctrine/skills/sandboxing.md).
+  can be complete — so novel shell spellings reaching a protected file were
+  *expected*, not vulnerabilities. They are now simply out of scope: a shell
+  command doing anything at all is the documented behaviour. The real boundary
+  is an isolation tier — see
+  [`skills/sandboxing.md`](.Doctrine/skills/sandboxing.md) — plus your own
+  runtime `permissions.deny`/`ask` lists, which outrank any hook decision.
 - **Gold records are tamper-evident, not tamper-proof.** A record forged and
   committed in the **same single commit** has no prior state to diff against
   and passes the gate. CI does not help — it checks out the same HEAD. That

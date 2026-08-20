@@ -128,9 +128,10 @@ def main(argv: list[str] | None = None) -> int:
               'python -m unittest discover -s tests -p "test_doctrine_*.py"\n')
 
     # Evidence integrity, checked by hash rather than by intercepting whoever
-    # wrote it. The PreToolUse guard is a best-effort tripwire on shell
-    # commands; THIS is the gate that holds, because a tampered record fails
-    # here regardless of which primitive modified it.
+    # wrote it. The PreToolUse guard does not see shell commands at all any
+    # more (ADR-014), so THIS is the only gate standing between a shell
+    # rewrite of a gold record and a release - and it holds, because a
+    # tampered record fails here regardless of which primitive modified it.
     # Run whenever the directory exists, its manifest exists, or git's
     # HISTORY has ever held a record. Gating on the directory alone meant
     # `mv docs/releases lib` deleted every record and the gate vanished from

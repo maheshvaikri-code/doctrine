@@ -78,11 +78,19 @@ TOOL_FILES = ["doctrine_state.py", "doctrine_lint.py", "doctrine_gold.py",
 COMPANION_FILES = [
     "docs/contracts/doctrine-control-room.openapi.json",
 ]
-# CI wiring per provider: (source file, dest under the target root). GitHub
-# ships as a live workflow; the others ship as templates under .Doctrine/ so
-# they land at each provider's canonical path.
+# CI wiring per provider: (source file, dest under the target root). EVERY
+# provider's template lives inside the corpus, under .Doctrine/templates/ci/,
+# and lands at that provider's canonical path in the target.
+#
+# GitHub used to be sourced from `.github/workflows/doctrine.yml` - the source
+# repo's own LIVE workflow, which is outside the corpus and therefore is not
+# installed into a consumer. That asymmetry crashed `--ci --ci-provider github`
+# with FileNotFoundError whenever the source was itself a consumer install
+# (a chained install, or anyone re-running the installer from an installed
+# repo): gitlab and azure worked because their templates ship, github did not
+# because its source did not exist there. Templates belong in the corpus.
 CI_PROVIDERS: dict[str, tuple[str, str]] = {
-    "github": (".github/workflows/doctrine.yml",
+    "github": (".Doctrine/templates/ci/github-actions.yml",
                ".github/workflows/doctrine.yml"),
     "gitlab": (".Doctrine/templates/ci/gitlab-ci.yml", ".gitlab-ci.yml"),
     "azure": (".Doctrine/templates/ci/azure-pipelines.yml",

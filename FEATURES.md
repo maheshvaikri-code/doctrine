@@ -12,7 +12,7 @@ about what it does.
 
 | Feature | State | What it changes |
 |---|---|---|
-| `autonomous-verification` | **on** | The guard answers **`allow`** instead of abstaining on: an ordinary file write, and a Bash command **every segment of which is a provably read-only verb with no output redirect** (`ls`, `cat`, `grep`, `git status`, `git log`, a pipeline of those…). On a repo whose brief declares `Delivery profile: solobuilder`, the Bash grant is instead **unconditional** — any command, not only provably read-only ones (see below). Run this repo's own fmt/lint/type/test/build and paste the real output. |
+| `autonomous-verification` | **on** | The guard answers **`allow`** instead of abstaining on an ordinary file write (Write/Edit only — the guard no longer runs on Bash at all; see ADR-014). Run this repo's own fmt/lint/type/test/build and paste the real output. |
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
 | `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
@@ -32,28 +32,45 @@ does not touch the permanent floor:
   toggle or no toggle.
 - **Verification only.** "Run the gates" is not "run anything". A command that
   mutates the world outside this repo is not verification.
-- **The Bash allow is narrow on purpose, on every profile except one.** It is
-  not "this command is safe" — shell is Turing-complete and no static
-  analysis of it ever will be complete (§7). It is the decidable claim "every
-  verb here is drawn from a closed allowlist of readers, and no write
-  redirect is present." An unrecognised verb, a pipe into a writer, `sed -i`,
-  a nested shell, or a bare `>` anywhere still falls straight through to your
-  own judgment — same as before this toggle existed.
-- **Solo Builder is the one deliberate exception, chosen with the tradeoff
-  shown, not inferred.** On a repo whose brief declares
-  `Delivery profile: solobuilder` (or the legacy `personal`), this toggle
-  grants **every** Bash command — including the ones this guard cannot
-  classify at all — once every rule above it has already declined. That IS
-  the "this command is safe" claim the previous bullet says is undecidable;
-  it is granted anyway, scoped to this one profile, because a solo builder
-  owns the whole blast radius of their own repo. It does **not** reach
-  further than that: secrets, protected paths, control surface, §5, and
-  test-weakening are unconditional and already ran by the time this fires —
-  a solo-builder repo cannot force-push, publish, or leak a credential any
-  more than any other profile can. What it loses is the tripwire itself: an
-  unrecognised or disguised command now runs with no check of any kind. Every
-  other profile — enterprise, startup, no profile at all — keeps the narrow
-  grant above, unchanged.
+- **Shell commands are not governed by this guard at all** (ADR-014). `Bash`
+  was removed from the `PreToolUse` matcher, so the hook does not fire on it:
+  no inspection, no prompt from Doctrine, no latency. That is a deliberate
+  retirement of the arm §7 already called "a tripwire, not a boundary" —
+  four independent review rounds each found a new bypass spelling, and it
+  produced false positives that denied ordinary reads. **What governs your
+  shell is now your own tooling**: the harness's `permissions.deny`/`ask`
+  lists (which a hook could never override anyway), and — for anything whose
+  blast radius warrants it — a real boundary one layer down, per
+  `skills/sandboxing.md`. Doctrine's remaining claim over Bash is prose:
+  §5 and §7 still bind the agent; nothing mechanically enforces them there.
+- **Do not "get the old behaviour back" by re-adding `Bash` to the matcher.**
+  It does not restore the old behaviour — it is *strictly weaker than either*
+  the old wiring or the current one, and a G5 audit proved it by execution.
+  With `Bash` matched and this toggle on, the guard returns `allow` for
+  anything outside its ~30 literal patterns, and a hook `allow` **suppresses
+  the host's own permission prompt** — so `rm -rf docs/releases/gold`,
+  `echo '' > tools/doctrine_guard.py` and `echo '{}' > .claude/settings.json`
+  all run with no prompt from anyone. Today, with `Bash` unmatched, the host
+  prompts for those according to your own settings. Re-adding `Bash` is only
+  sensible together with `autonomous-verification: off`, and even then it
+  buys you four literal-pattern rules, not path protection.
+- **One consequence to know, because it reaches back into the sound arm.** A
+  shell command is unchecked, and one thing a shell command can write is this
+  guard's own policy. `.doctrine-state/guard.json` holding a non-blanket
+  `allow` (say `tools/*`) exempts those paths from the path **and** secret
+  rules — so the Write/Edit arm holds only until something rewrites its
+  policy, with no prompt in that chain. Doctrine cannot close this from
+  inside a repo the agent can write to. **And the obvious fix is mostly
+  theatre, so know what you are getting:** permission rules match per tool,
+  and `Bash(...)` patterns match command TEXT, not paths — no rule means
+  "any command that writes this path". `Edit(...)` rules do reach the file
+  tools plus a recognised subset of file commands (`cat`, `sed`, `head`,
+  `tail`), which is why this repo ships them as `permissions.ask`, but they
+  do nothing about `echo x > path` or a subprocess write. The only complete
+  control is an isolation tier (`skills/sandboxing.md`), whose
+  `filesystem.denyWrite` is kernel-enforced — **and which is unavailable on
+  native Windows**, where closing this means running under WSL2 or a
+  container, not editing a config. Full chain: `05-packaging.md`.
 
 Everything else in a gate's output is fine as it comes — full test output,
 stack traces, compiler errors, timings. Truncating real evidence to look tidy

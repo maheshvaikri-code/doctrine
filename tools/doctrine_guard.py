@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 """doctrine_guard - the PreToolUse gate.
 
-Sound on Write/Edit, where a path is data. A TRIPWIRE on Bash, where a
-command is a Turing-complete language and no static analysis of it is
-complete (four independent security passes each found new spellings).
-Evidence integrity rests on `doctrine_gold gate`, not on this file.
+GOVERNS FILE WRITES ONLY. Sound on Write/Edit, where a path is data.
+**It does not run on Bash** - ADR-014 removed `Bash` from the PreToolUse
+matcher and deleted the shell path-analysis with it, because a command is a
+Turing-complete language and no static analysis of it is complete (four
+independent security passes each found new spellings) while it denied
+ordinary reads in the meantime. Nothing here inspects a shell command's
+paths. Evidence integrity rests on `doctrine_gold gate`, not on this file.
+
+Consequence to know before trusting the Write/Edit arm: a shell command is
+now unchecked, and one of the things a shell command can write is this
+guard's own policy file. `.doctrine-state/guard.json` with a non-blanket
+`allow` (say `tools/*`) exempts those paths from the path AND secret rules,
+so the sound arm holds only until something rewrites its policy. The runtime's
+own `permissions` rules help but do not close it - they match per tool, and
+`Bash(...)` patterns match command TEXT, not paths, so `echo x > policy` is
+outside every rule form. Only an isolation tier closes it (kernel-enforced),
+and that is unavailable on native Windows. Full chain: `05-packaging.md`.
 
 The doctrine's Non-Negotiables have always been prose the agent chooses to
 obey. This is the L3 gate ADR-004 left on the roadmap: it runs BEFORE a tool
@@ -55,7 +68,6 @@ from __future__ import annotations
 import fnmatch
 import json
 import re
-import shlex
 import sys
 import tomllib
 from pathlib import Path
@@ -211,80 +223,6 @@ PROTECTED_CONSUMER: Final[tuple[tuple[str, str], ...]] = (
                     "(section 12); update it with doctrine_install.py"),
 )
 
-# A shell redirect reaches the same files a Write tool does, so the path rule
-# has to see commands too or it is trivially bypassed. Only MUTATING commands
-# are judged: reading a protected file is always fine.
-#
-# The first version of this probed for the pattern as a raw SUBSTRING of the
-# command, which failed in both directions at once: `python -c "open(...)"`,
-# `touch`, `git checkout --`, backslash paths and shell quoting all slipped
-# through, while `.git` matched `.gitignore`/`.github`, `.env` matched
-# `os.environ`, and a path in a comment or in ANOTHER repo triggered a denial.
-# Verifiers measured 11 of 13 ordinary commands denied. Now the command is
-# tokenized, path-like candidates are resolved against the repo root, and the
-# result is matched with the SAME matcher the Write rule uses.
-#
-# Which way this list points is the whole design. It began as an allowlist of
-# WRITE verbs, and a security re-verification walked straight past it:
-# `shutil.copy`, `os.open`, `os.remove`, `curl -o`, `wget -O`, `tar -xf`,
-# `unzip`, `node -e`, `sponge` and `find -exec truncate` all reached protected
-# files in silence, because none of them were on the list. An allowlist of
-# writers is unbounded and fails open; an allowlist of READERS is small,
-# enumerable, and fails closed. So: a verb this file does not recognise as
-# read-only is treated as capable of writing.
-# Verbs that run their ARGUMENTS. `env` and `time` were on the read-only list
-# and are not readers at all: `env rm -rf <gold dir>` inherited `env`'s verdict
-# and deleted every immutable record in silence. They are transparent - step
-# through them to the real verb rather than trusting the wrapper.
-PREFIX_VERBS: Final[frozenset[str]] = frozenset({
-    "env", "time", "nohup", "nice", "ionice", "stdbuf", "setsid", "timeout",
-    "sudo", "doas", "command", "builtin", "exec", "xargs", "watch",
-})
-# Verbs whose PAYLOAD is another shell command; re-analyse the payload.
-NESTED_SHELLS: Final[frozenset[str]] = frozenset({
-    "bash", "sh", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", "cmd",
-})
-# Interpreters whose program text writes without any recognisable flag:
-# `awk 'BEGIN{print "x" > "gold/v1.json"}'` names the file inside the program.
-PROGRAM_TEXT_WRITERS: Final[frozenset[str]] = frozenset({
-    "awk", "gawk", "mawk", "perl", "python", "python3", "ruby", "node",
-    "deno", "bun", "php", "lua", "tclsh",
-})
-READ_ONLY_VERBS: Final[frozenset[str]] = frozenset({
-    "cat", "bat", "less", "more", "head", "tail", "nl", "od", "xxd", "strings",
-    "ls", "dir", "tree", "stat", "file", "du", "df", "wc", "basename",
-    "dirname", "realpath", "readlink", "pwd", "which", "type", "whereis",
-    "grep", "egrep", "fgrep", "rg", "ag", "ack", "awk", "cut", "sort", "uniq",
-    "comm", "join", "diff", "cmp", "colordiff", "jq", "yq", "column",
-    "md5sum", "sha1sum", "sha256sum", "cksum", "date", "printenv", "env",
-    "echo", "printf", "true", "false", "sleep", "time", "hostname", "whoami",
-})
-# `git` decides by subcommand, not by name.
-GIT_READ_SUBCOMMANDS: Final[frozenset[str]] = frozenset({
-    "log", "show", "diff", "status", "blame", "cat-file", "rev-parse",
-    "rev-list", "describe", "ls-files", "ls-tree", "ls-remote", "for-each-ref",
-    "shortlog", "grep", "verify-tag", "verify-commit", "count-objects",
-    "check-ignore", "symbolic-ref", "whatchanged", "reflog", "annotate",
-})
-# ...and a few readers turn into writers with a flag.
-CONDITIONAL_WRITERS: Final[dict[str, tuple[str, ...]]] = {
-    "sed": ("-i",), "perl": ("-i",), "ruby": ("-i",),
-    "find": ("-exec", "-execdir", "-delete", "-ok", "-fprint", "-fprintf"),
-    "sort": ("-o", "--output"), "awk": ("-i",),
-}
-REDIRECT_TARGET: Final = re.compile(
-    r"(?:\d?>>?|\d?<>)\s*\(?\s*([^\s;&|<>()]+)")
-# Newlines separate commands as surely as `;` does. Without `\n` here a
-# leading `ls` made an entire multi-line script inherit a read-only verdict -
-# and multi-line Bash calls are the common case, not an exotic one.
-SEGMENT_SPLIT: Final = re.compile(
-    r"[;&|\n\r]+|\breval\b|\$\(|`"
-    r"|[<>]\(")          # process substitution: >(tee FILE) runs `tee`
-ENV_ASSIGNMENT: Final = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-# Path-like runs inside a token, so an embedded literal (as in a `python -c`
-# one-liner) is still seen. Deliberately excludes the shell metacharacters
-# that would glue unrelated words into a fake path.
-PATHISH: Final = re.compile(r"[A-Za-z0-9_.\-/\\]{2,}")
 
 # --- rule 3: irreversible / external actions (section 5) -----------------
 IRREVERSIBLE: Final[tuple[tuple[str, str], ...]] = (
@@ -475,76 +413,6 @@ def matches(rel_path: str, pattern: str) -> bool:
                 and fnmatch.fnmatch(rel.rsplit("/", 1)[-1], pat[3:]))
 
 
-FD_DUP: Final = re.compile(r"\d?>&\d?")
-HEREDOC: Final = re.compile(
-    r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n(.*?)\n\1", re.DOTALL)
-#                             ^^^^^^ the rest of the line: a heredoc marker
-# is routinely followed by more command (`<<'PY' 2>&1 | tail -20`), and
-# requiring a newline immediately after the delimiter meant those bodies were
-# never stripped - which is how this guard denied its own author's diagnostic
-# script for prose inside the heredoc.
-
-
-def strip_shell_noise(command: str) -> str:
-    """Remove constructs that are not paths and not commands.
-
-    `2>&1` is a descriptor dup, but `&` is a segment separator, so it split
-    into a segment whose "verb" was `1` - unrecognised, therefore assumed to
-    write - and an innocent `ls` got denied. A heredoc BODY is data being
-    written, not command text, so path-like prose inside it (documentation
-    about `.git/hooks/`, say) is not a target either.
-    """
-    return HEREDOC.sub("", FD_DUP.sub(" ", command))
-
-
-def command_targets(command: str, root: Path) -> list[str]:
-    """Repo-relative paths a command names, however it spells them.
-
-    Tokenizing first (rather than substring-probing the raw text) is what
-    makes `.gitignore` stop matching `.git/*` and `docs/releases/'gold'/x`
-    stop hiding from it. Paths outside the repo resolve to None and are
-    dropped - another repo's files are not this repo's business.
-    """
-    # An interpreter's SCRIPT argument is being executed, not written.
-    # Judging it as a target made `python tools/doctrine_verify.py` - the
-    # command this project's own README, QUICKSTART, installer and three CI
-    # templates print - prompt the human, because tools/* is control surface.
-    # Running a gate is not editing it.
-    executed: set[str] = set()
-    for segment in SEGMENT_SPLIT.split(command):
-        verb, arguments = segment_verb(segment)
-        if verb in PROGRAM_TEXT_WRITERS and not any(
-                a.startswith("-") and len(a) <= 3 for a in arguments):
-            operands = [a for a in arguments if not a.startswith("-")]
-            if operands:
-                rel = relative_to_root(operands[0], root)
-                if rel:
-                    executed.add(rel)
-
-    tokens: list[str] = []
-    # Two passes on purpose. posix=True resolves quoting (so `.e''nv` becomes
-    # `.env`) but consumes backslashes as escapes, erasing Windows paths;
-    # posix=False preserves them. comments=True drops a trailing `# ...`, which
-    # otherwise smuggled an allowlisted or exempt word into the match.
-    for posix in (True, False):
-        try:
-            tokens += shlex.split(command, comments=True, posix=posix)
-        except ValueError:                   # unbalanced quotes: fall back
-            tokens += command.split()
-    seen: list[str] = []
-    for token in tokens:
-        # De-quoted twin as well as the raw token: quoting SURVIVES shlex
-        # inside a nested shell string (`bash -c "rm docs/relea''ses/gold"`),
-        # and PATHISH then split the path at the quote into two harmless
-        # fragments. Rejoining first is what makes the whole path visible.
-        variants = {token, token.replace("'", "").replace('"', "")}
-        for candidate in {c for v in variants for c in PATHISH.findall(v)}:
-            rel = relative_to_root(candidate, root)
-            if rel and rel not in seen and rel not in executed:
-                seen.append(rel)
-    return seen
-
-
 def typed_field(tool_input: dict[str, Any], name: str) -> str | None:
     """A field that MUST be a string, or None when it is the wrong shape.
 
@@ -641,122 +509,6 @@ def check_protected(rel_path: str, root: Path,
     return Decision()
 
 
-def segment_verb(segment: str) -> tuple[str, list[str]]:
-    """The command word of one shell segment, plus its arguments.
-
-    Leading environment assignments (``FOO=bar cmd``) and a path prefix
-    (``/usr/bin/rm``) are stripped, so the verb is what actually runs.
-    """
-    tokens = segment.split()
-    while tokens and ENV_ASSIGNMENT.match(tokens[0]):
-        tokens = tokens[1:]
-    if not tokens:
-        return "", []
-    verb = tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
-    if verb.endswith(".exe"):
-        verb = verb[:-4]
-    return verb, tokens[1:]
-
-
-def _carries_flag(argument: str, flag: str) -> bool:
-    """Whether an argument carries a flag, including inside a cluster.
-
-    `perl -pi -e` and `sed -Ei` both edit in place, and a plain prefix test
-    misses them because the `i` is not first: the in-place edit walked past
-    the guard as a read.
-    """
-    if argument == flag or argument.startswith(f"{flag}="):
-        return True
-    if len(flag) == 2 and flag.startswith("-") and \
-            argument.startswith("-") and not argument.startswith("--"):
-        return flag[1] in argument[1:]
-    return argument.startswith(flag)
-
-
-def command_is_read_only(command: str) -> bool:
-    """True only when EVERY segment is a verb known to read and not write.
-
-    Fails closed by construction: an unrecognised verb is assumed to write,
-    because the set of things that can write a file is unbounded and the set
-    of things that only read is not.
-    """
-    for segment in SEGMENT_SPLIT.split(command):
-        verb, arguments = segment_verb(segment)
-        # Step through wrappers to the verb that actually runs. `sudo -u x`
-        # and `timeout 5` take their own arguments first, so skip flags and
-        # the bare operand that follows them.
-        seen = 0
-        while verb in PREFIX_VERBS and arguments and seen < 4:
-            arguments = [a for a in arguments if not a.startswith("-")]
-            if verb in {"timeout", "nice", "ionice"} and arguments:
-                arguments = arguments[1:]        # the duration / priority
-            if not arguments:
-                return False                     # a wrapper with no payload
-            verb, arguments = segment_verb(" ".join(arguments))
-            seen += 1
-        if not verb:
-            continue
-        if verb in NESTED_SHELLS:
-            # The payload is another command: judge THAT, not the shell.
-            return False
-        if verb in PROGRAM_TEXT_WRITERS:
-            # The program text is the write channel; no flag announces it.
-            return False
-        if verb == "git":
-            subcommands = [a for a in arguments if not a.startswith("-")]
-            # skip the argument consumed by -C/-c before the subcommand
-            if "-C" in arguments or "-c" in arguments:
-                subcommands = subcommands[1:]
-            if not subcommands or subcommands[0] not in GIT_READ_SUBCOMMANDS:
-                return False
-            continue
-        flags = CONDITIONAL_WRITERS.get(verb)
-        if flags is not None:
-            if any(_carries_flag(a, f) for a in arguments for f in flags):
-                return False
-            continue
-        if verb not in READ_ONLY_VERBS:
-            return False
-    return True
-
-
-def command_has_write_redirect(command: str) -> bool:
-    """True if the command contains a shell output-redirect operator
-    (``>``, ``>>``, ``<>``) with a target - however that target resolves.
-
-    ``command_is_read_only`` only judges VERBS, so a read-only verb can still
-    be made to write by a bare shell redirect: ``echo hi > file`` and
-    ``git log > out.txt`` both pass every verb check (echo, git-log are
-    read-only) while plainly writing a file. That gap is harmless for
-    ``redirect_paths``' existing job - it separately re-checks any redirected
-    path against the protected-path rules regardless of this function - but
-    it would be a real hole if a read-only verdict alone were ever used to
-    grant approval. This check is unconditional and root-independent on
-    purpose: a command that writes ANYWHERE, in-repo or not, is not read-only.
-    """
-    return bool(REDIRECT_TARGET.search(command))
-
-
-def redirect_paths(command: str, root: Path) -> set[str]:
-    """Repo-relative paths this command redirects OUTPUT into.
-
-    Targets are trimmed of trailing shell punctuation before resolving: an
-    `awk` program ends `> "file"}'`, and the ragged capture never compared
-    equal to the clean path `command_targets` produced, so the write slipped
-    between the two.
-    """
-    found = set()
-    for target in REDIRECT_TARGET.findall(command):
-        # The whole target first (normalize_target strips quoting, so
-        # `docs/'gold'/x` resolves), then its path-like fragments, which is
-        # what rescues a target glued to trailing program punctuation.
-        for candidate in [target, *PATHISH.findall(target)]:
-            rel = relative_to_root(candidate, root)
-            if rel:
-                found.add(rel)
-    return found
-
-
 def check_control_commands(command: str) -> Decision:
     """Commands that rewrite the repo's own trust settings without naming
     the file they write."""
@@ -768,53 +520,6 @@ def check_control_commands(command: str) -> Decision:
                 f"configuration - {why}. Approve only if you meant to change "
                 "how your own gates behave.",
             )
-    return Decision()
-
-
-def check_protected_in_command(command: str, root: Path,
-                               config: dict[str, list[str]]) -> Decision:
-    """The path rule, applied to shell commands that would MUTATE a file.
-
-    Each path the command names is judged on its own, by the same matcher
-    the Write rule uses. The previous substring probe judged the whole
-    command text, so an allowlisted word or an exempt filename ANYWHERE in
-    it - a trailing comment sufficed - disabled every rule for that call.
-    """
-    rules = protected_rules(root, config)
-    allowed = config.get("allow", [])
-    # Only the PATH analysis works on cleaned text; the secret rules still
-    # scan the raw command, so a credential inside a heredoc is still caught.
-    command = strip_shell_noise(command)
-    read_only = command_is_read_only(command)
-    redirected = redirect_paths(command, root)
-    for rel_path in command_targets(command, root):
-        # A read-only verb may name a protected path freely - `cat` a gold
-        # record, `git log` the checkpoint - unless the path is where its
-        # output is being redirected, which is a write however benign the
-        # verb looks (`echo x > gold/v1.json`).
-        if read_only and rel_path not in redirected:
-            continue
-        if any(matches(rel_path, pattern) for pattern in PROTECTED_EXEMPT):
-            continue
-        if any(matches(rel_path, pattern) for pattern in allowed):
-            continue
-        for pattern, why in rules:
-            if matches(rel_path, pattern):
-                return Decision(
-                    "deny",
-                    f"Doctrine: this command would modify '{rel_path}' - "
-                    f"{why}. A shell redirect is still a write. Use the "
-                    f"owning tool, or record the exception in {CONFIG_REL} "
-                    "under 'allow'.",
-                )
-        for pattern, why in CONTROL_SURFACE:
-            if matches(rel_path, pattern):
-                return Decision(
-                    "ask",
-                    f"Doctrine: this command would modify '{rel_path}', part "
-                    f"of this repo's ENFORCEMENT surface - {why}. Approve "
-                    "only if you meant to change how your own gates behave.",
-                )
     return Decision()
 
 
@@ -899,9 +604,22 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
         if verdict.decision:
             return verdict
     if tool_name in COMMAND_TOOLS:
-        verdict = check_protected_in_command(text, root, config)
-        if verdict.decision:
-            return verdict
+        # NO PATH ANALYSIS ON SHELL COMMANDS (ADR-014). `check_protected_in_
+        # command` used to run here, deciding whether a command would write a
+        # protected path by reading the command's text. That was the arm §7
+        # already called "a tripwire, not a boundary": independent review
+        # broke it in four separate rounds, each with a new spelling, because
+        # no static analysis of a Turing-complete shell is complete. It also
+        # produced the false positives that made ordinary reads prompt - a
+        # command that merely MENTIONED a gold path, inside a `python -c` or a
+        # loop the verb classifier could not read, was denied as a write.
+        # Removed deliberately, not overlooked: low assurance, high friction,
+        # and the real anchor for evidence integrity is `doctrine_gold gate`
+        # in CI, which catches a tampered record however it was written.
+        #
+        # What stays are the literal-pattern rules that fire almost never and
+        # guard genuinely irreversible harm. They cost no measurable friction
+        # because an ordinary build command matches none of them.
         verdict = check_control_commands(text)
         if verdict.decision:
             return verdict
@@ -932,74 +650,40 @@ def evaluate(payload: dict[str, Any], root: Path) -> Decision:
                         "Doctrine: ordinary file, no secret, not protected "
                         "and not a test being weakened - approved under "
                         "FEATURES.md `autonomous-verification`.")
-    # BASH gets `allow` ONLY for the narrow slice section 7's own limit does
-    # not touch: a command whose EVERY segment is a verb this guard can prove
-    # reads and never writes, AND that carries no shell output-redirect at
-    # all. Section 7 is exactly right that the guard's general shell analysis
-    # is "a tripwire, not a boundary - no static analysis of a Turing-complete
-    # shell is complete"; that stays true and this does not contradict it.
-    # What changes is the SHAPE of the claim: this is not "this command is
-    # safe" (undecidable), it is "every verb in this command is drawn from a
-    # closed, explicit allowlist of readers, and no write channel this guard
-    # knows how to look for is present" (decidable, and checked). Anything
-    # unrecognised - a verb not on the list, a pipe into `tee`, `curl`, `sed
-    # -i`, a nested shell, a redirect however spelled - fails CLOSED to no
-    # opinion, same as always, and falls through to the host's own judgment.
+    # BASH IS APPROVED ON EVERY PROFILE (ADR-014), not only solo-builder, and
+    # with no attempt to classify the command first. This used to be two
+    # tiers: a narrow "every verb is a proven reader with no redirect" grant
+    # for most repos, widened to a blanket grant only where the brief declared
+    # `Delivery profile: solobuilder`. Both tiers are gone, replaced by one
+    # rule, because the narrow tier's classifier was where the friction lived:
+    # anything it could not positively recognise - a loop, a `python -c`, an
+    # unlisted verb - fell through to a prompt, so the common case for a
+    # working agent was still "ask", and Doctrine-governed repos felt heavier
+    # than ungoverned ones for no safety gained.
+    #
+    # This IS the "this command is safe" claim §7 calls undecidable, granted
+    # anyway, knowingly, for the reason §7 itself gives: the answer to an
+    # incomplete text analysis is not a better parser, it is a boundary one
+    # layer down (`skills/sandboxing.md` - a read-only mount refuses every
+    # spelling, including the ones nobody has invented yet). Doctrine now
+    # says that plainly instead of charging friction for a tripwire.
+    #
+    # Still gated on the `autonomous-verification` toggle, which is opt-in: a
+    # repo with no readable FEATURES.md gets no grant here, because absence of
+    # the file is absence of consent. And reached only after the checks above
+    # declined - a literal credential in the command, a §5 irreversible or
+    # external action, a change to this repo's own enforcement config, or a
+    # test being weakened all still stop here on every profile.
     if tool_name in COMMAND_TOOLS and autonomy_enabled(root):
-        # SOLO BUILDER gets a WIDER grant here, by explicit human decision -
-        # not inferred. On a repo whose brief declares the solo-builder
-        # delivery profile, EVERY Bash command is approved once every
-        # deny/ask rule above has already declined. This is not "provably
-        # read-only" - it IS the "this command is safe" claim section 7 calls
-        # undecidable, and it is granted anyway because the human weighing a
-        # solo repo's own risk chose it knowingly, with the tradeoff shown: an
-        # unrecognised or disguised command now sails through with no human
-        # check at all. What it does NOT do is touch anything above this
-        # point - secrets, protected paths, control surface, section 5
-        # irreversible/external actions, and test-weakening are unconditional
-        # and already ran; this is reached only once all of them declined.
-        if solobuilder_profile(root):
-            return Decision(
-                "allow",
-                "Doctrine: Delivery profile: solobuilder + FEATURES.md "
-                "`autonomous-verification` - approved. Secrets, protected "
-                "paths, control surface, section 5 and test-weakening all "
-                "ran first and would have stopped this if triggered; nothing "
-                "past that point is re-checked for a solo-builder repo.")
-        cleaned = strip_shell_noise(text)
-        if (command_is_read_only(cleaned)
-                and not command_has_write_redirect(cleaned)):
-            return Decision(
-                "allow",
-                "Doctrine: every segment of this command is a known "
-                "read-only verb, with no output redirect - approved under "
-                "FEATURES.md `autonomous-verification`. Anything this cannot "
-                "positively classify as read-only still falls through to "
-                "your own judgment.")
+        return Decision(
+            "allow",
+            "Doctrine: approved under FEATURES.md `autonomous-verification`. "
+            "Secrets, section 5 irreversible/external actions, enforcement-"
+            "config changes and test-weakening all ran first and would have "
+            "stopped this; shell commands are not otherwise inspected - see "
+            "ADR-014 and `skills/sandboxing.md` for where the real boundary "
+            "lives.")
     return Decision()
-
-
-# Mirrors doctrine_install.py's DELIVERY_MARKERS. "personal" is the legacy
-# spelling, still carried by repos installed before the --solobuilder rename;
-# both must be recognised here or those repos silently get a different answer
-# than a freshly installed one.
-SOLOBUILDER_MARKERS: Final = ("Delivery profile: solobuilder",
-                             "Delivery profile: personal")
-
-
-def solobuilder_profile(root: Path) -> bool:
-    """Whether docs/brief.md declares the solo-builder delivery profile.
-
-    Fails to FALSE on any I/O trouble - unreadable, absent, wrong encoding.
-    This check only WIDENS what a Bash command is granted, so a failure to
-    positively confirm the profile must fail toward the narrower grant
-    (`autonomy_enabled` alone, if that is even on), never the wider one.
-    """
-    try:
-        text = (root / "docs" / "brief.md").read_text("utf-8", "replace")
-    except OSError:
-        return False
-    return any(marker in text for marker in SOLOBUILDER_MARKERS)
 
 
 def autonomy_enabled(root: Path) -> bool:

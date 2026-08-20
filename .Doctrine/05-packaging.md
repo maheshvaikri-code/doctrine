@@ -74,12 +74,22 @@ seeded byte to remain identical.
 ## The enforcement gate (`PreToolUse`)
 
 `tools/doctrine_guard.py` turns the law into a decision at the point of
-action - soundly for Write/Edit, as a tripwire for shell commands (see the
-strength table below; the durable guarantee is `doctrine_gold gate`).
-It reads the runtime's pre-execution payload on stdin and answers on stdout;
-the shipped `.claude/settings.json` and `plugin/hooks/hooks.json` wire it for
-`Write|Edit|MultiEdit|NotebookEdit|Bash`. Any runtime with an equivalent
+action, **for file writes only** (see the strength table below; the durable
+guarantee is `doctrine_gold gate`). It reads the runtime's pre-execution
+payload on stdin and answers on stdout; the shipped `.claude/settings.json`
+and `plugin/hooks/hooks.json` wire it for
+`Write|Edit|MultiEdit|NotebookEdit`. Any runtime with an equivalent
 pre-execution contract can call it the same way — JSON in, JSON out.
+
+**`Bash` is deliberately absent from that matcher (ADR-014).** The guard used
+to run on shell commands too, analysing the command text for paths it would
+write. That arm is deleted — not disabled, deleted — because it was known
+incomplete by construction (four review rounds, four new bypass spellings)
+while charging real friction in false positives on ordinary reads. Doctrine
+does not inspect your shell. The `evaluate()` code path for commands still
+exists for a repo that deliberately re-adds `Bash` to the matcher: it runs
+secrets, §5 irreversible/external, enforcement-config and test-weakening
+checks, and then approves. Nothing analyses command paths any more.
 
 | Class | Verdict | Why |
 |---|---|---|
@@ -104,22 +114,71 @@ well-formed file** - tested against canary paths rather than a list of
 spellings, because `?*`, `*.*` and `docs/*` are off switches too. "Allow
 everything" is not a policy.
 
-**The enforcement surface is itself guarded.** This policy file, the hook
-wiring (`.claude/settings.json`, `CLAUDE.md`, `AGENTS.md`), `pyproject.toml`
-(its package name decides whether the installed corpus is protected here),
-`.doctrine-state/fleet.json` and `.github/workflows/` all require an explicit
-human **ask** before an agent may change them. An earlier version protected
-none of these, and three independent verifiers each disabled the entire guard
-from inside the repo it governs with a single write. They **ask** rather than
-deny because widening policy is a legitimate human act; what must never happen
-is the governed party doing it silently.
+**The enforcement surface is guarded against a WRITE, and no longer against a
+shell command.** This policy file, the hook wiring (`.claude/settings.json`,
+`CLAUDE.md`, `AGENTS.md`), `pyproject.toml` (its package name decides whether
+the installed corpus is protected here), `.doctrine-state/fleet.json` and
+`.github/workflows/` all require an explicit human **ask** before an agent may
+change them *with Write/Edit*. An earlier version protected none of these, and
+three independent verifiers each disabled the entire guard from inside the repo
+it governs with a single write. They **ask** rather than deny because widening
+policy is a legitimate human act.
+
+**Read the limit of that sentence, because ADR-014 moved it.** "What must never
+happen is the governed party doing it silently" is no longer true through the
+shell, and the consequence reaches back into the arm this document calls sound.
+A G5 audit demonstrated the full chain, executed end to end:
+
+```text
+shell: echo '{"allow":["tools/*",".claude/*"]}' > .doctrine-state/guard.json
+       -> allow   (was: ask - nothing inspects a command any more)
+Write: tools/doctrine_guard.py        -> allow   (exempted by the policy just written)
+Write: .claude/settings.json          -> allow
+Write: an AWS key into tools/x.py     -> allow   (`allow` exempts the SECRET rules too)
+```
+
+Neither `tools/*` nor `.claude/*` is a blanket pattern, so `is_blanket()`
+correctly does not refuse them. **The Write/Edit arm is therefore enforced only
+until one unchecked shell command rewrites its policy, its wiring, or its own
+source** — no prompt at any point in that chain. This is not the loss ADR-014
+set out to accept (that was "shell commands are unchecked"); it is a second-order
+consequence of it, recorded here rather than discovered later.
+
+**What actually closes it — and be precise, because the obvious answer is
+mostly theatre.** The first draft of this section said "put those paths in
+`permissions.deny`". That is only partly true, and the part that is false is
+the part that matters:
+
+- **Permission rules are matched per tool, and `Bash(...)` patterns match
+  COMMAND TEXT, not paths.** There is no rule form meaning "any command that
+  writes this path". `Read(...)`/`Edit(...)` deny rules do reach a *recognized*
+  subset of file commands in Bash (`cat`, `head`, `tail`, `sed`) — genuinely
+  useful, and worth setting — but they do **not** stop `echo x > path`, a
+  redirect, or any subprocess that opens the file itself. Same undecidability
+  that retired the guard's own arm; the permission layer does not escape it.
+- **The only complete control is the isolation tier**
+  (`skills/sandboxing.md`). `sandbox.filesystem.denyWrite` — into which
+  `Edit(...)` deny rules are merged — is enforced by the kernel (Seatbelt on
+  macOS, bubblewrap on Linux/WSL2), so the write fails however it was spelled.
+- **Platform caveat, stated because it decides the answer for many readers:**
+  sandboxing is **not supported on native Windows**. On Windows the honest
+  position is that this chain is open, and closing it means running Claude Code
+  inside WSL2 or a container. Not "configure a rule" — change where it runs.
+
+Doctrine ships `permissions.ask` entries for these three paths in
+`.claude/settings.json` (ask, not deny, so the surface stays editable by a
+human who means it). Read that for what it is: real coverage of the file tools
+and the recognized file commands, and **no coverage at all** of an arbitrary
+shell write. The remaining gap is the same lesson as "nothing inside a
+repository the agent can write is tamper-proof against that agent", now
+applying to the guard's own policy file.
 
 ### Three in-repo layers, and none of them is a containment boundary
 
 | Layer | What it is | Strength |
 |---|---|---|
 | The guard on **Write/Edit** | structured input: one field names one file | Sound *for the paths it is given*: the path is data, not a language to interpret |
-| The guard on **Bash** | a text analysis of a shell command | **A tripwire, not a boundary.** Best effort, known incomplete |
+| The guard on **Bash** | *nothing — removed in ADR-014* | **No coverage at all, by design.** It was a tripwire; a tripwire that costs friction and stops no determined write is worse than an honest gap |
 | `doctrine_gold gate` | re-checks records against git and a manifest | **Tamper-evident, not tamper-proof** — see below |
 | **The isolation tier** (`skills/sandboxing.md`) | read-only mounts, default-deny egress, no inherited credentials | **The actual boundary** — enforced by the kernel, not by reading text. Not shipped by Doctrine; selected, built, and **proved** by you |
 
@@ -164,13 +223,21 @@ control that catches an in-commit forgery is a **human reading the diff**:
 protection that makes that diff unavoidable before the merge lands. Gate
 locally and in CI for the classes above; review the diff for this one.
 
-The Bash rule is deliberately described as a tripwire, because three
+The Bash rule was for a long time described as a tripwire, because three
 independent security passes each found new spellings that reached a protected
 file — wrapper verbs, newline segmentation, nested shell strings, program text,
 long-form output flags, process substitution. Each round was fixed; each next
 round found more. That is not a run of bad luck: **shell is Turing-complete,
 and no static text analysis of it is complete.** A gate whose guarantee rests
 on enumerating spellings is a gate that will be wrong again.
+
+**ADR-014 finished that argument by removing the rule.** A fourth review round
+found more spellings, and a live session found the other half of the bill: the
+same analysis denied ordinary read-only work whenever it could not classify
+the command (a path named inside a `python -c`, a loop, an unlisted verb).
+Paying friction for a control that is incomplete by construction is the worst
+of both; Doctrine now states the gap instead of dressing it. `Bash` is out of
+the `PreToolUse` matcher and the path-analysis code is deleted.
 
 So the durable guarantee is moved to where it cannot be spelled around:
 
@@ -195,46 +262,28 @@ silently, because git could not spawn it at all. If a local pre-merge check
 is wanted, run the gate against the merge commit in CI instead, where a full
 history is guaranteed to exist.
 
-Use the tripwire for what a tripwire is good at — catching the accident and
-the careless, early, with a readable reason. Do not present it as a
-containment boundary for a determined adversary inside the repo.
+**What replaced it: nothing in-repo, and that is the honest answer.** Doctrine
+no longer inspects shell commands. Two earlier attempts to keep a partial hold
+— a narrow "every verb is a proven reader with no redirect" grant, then a
+blanket grant for `Delivery profile: solobuilder` — are both gone with the
+rest of the arm. They were the right shape for a control worth keeping; the
+control was not worth keeping.
 
-**One narrow, additive exception, opt-in via `FEATURES.md`
-`autonomous-verification`.** The guard also grants `allow` for a Bash command
-when *every* segment is a verb drawn from a closed read-only allowlist
-(`ls`, `cat`, `grep`, `git log`, …) **and** no shell output-redirect appears
-anywhere in it. This is not a stronger claim about the shell — it is a
-narrower one: not "this command is safe" (still undecidable), but "every
-literal verb token here is a known reader, and no write channel this guard
-checks for is present." An unrecognised verb, a pipe into a writer, `sed -i`,
-a nested shell, or a bare `>` anywhere still falls straight through with no
-opinion, exactly as before this existed. It runs only after every deny/ask
-rule above has already declined to fire, so it can only widen what the
-tripwire stays silent about, never override a refusal. Undisclosed
-residual, stated plainly rather than glossed over: this reads command
-*text*, so a shell alias or function redefined by an earlier command in the
-same persistent session (`alias ls='rm -rf /'`) is invisible to it — exactly
-as it is invisible to every deny/ask rule above. The fix for that class is
-still the same one this whole section argues for: a boundary underneath the
-text, not a smarter parser of it (`skills/sandboxing.md`).
+What still governs a shell command, in order:
 
-**One further, DELIBERATELY UNDECIDABLE exception, scoped to one profile and
-chosen with eyes open.** On a repo whose brief declares `Delivery profile:
-solobuilder` (or the legacy `personal`), the same toggle grants `allow` to
-*every* Bash command, not only the provably-read-only ones above — the "this
-command is safe" claim the previous paragraph calls undecidable, granted
-anyway. This was a named decision, not an inferred one: offered as three
-concrete options with a preview of each, and the maximal one was chosen
-explicitly, with the exfiltration/`rm -rf` tradeoff shown in the same message.
-It reaches no further than the profile it names — every other profile keeps
-the narrow grant above, unchanged — and it reaches no *higher*: secrets,
-protected paths, control surface, §5, and test-weakening are unconditional
-and already ran by the time this can fire, so a solo-builder repo still
-cannot force-push, publish, or leak a credential through this path. What it
-genuinely gives up, for that one profile, is the tripwire itself — an
-unrecognised or hostile-looking command now runs with no check at all. A solo
-builder who wants the tripwire back sets `autonomous-verification` to `off`,
-or drops the `solobuilder` profile marker from `docs/brief.md`.
+- **Your own `permissions.deny` / `permissions.ask` lists.** These are the
+  runtime's, not Doctrine's, and they outrank any hook decision — documented
+  behaviour: a matching deny blocks the call and a matching ask still prompts
+  even when a hook returned `allow`. This is where a rule you actually want
+  enforced on shell belongs.
+- **The isolation tier** (`skills/sandboxing.md`) — the only real boundary.
+- **§5 and §7 as prose.** The agent is still bound by them; nothing mechanical
+  checks them for shell. Say so rather than implying otherwise.
+
+A repo that wants the old behaviour back can add `Bash` to the matcher in
+`.claude/settings.json`: the command branch in `evaluate()` still runs
+secrets, §5 irreversible/external, enforcement-config and test-weakening
+checks before approving. What it will not do again is analyse command paths.
 
 **Where the containment boundary does come from.** Since no parser of a
 Turing-complete shell can be complete, a stronger parser is the wrong
@@ -249,8 +298,8 @@ refusal rather than asserting it from a config file**, is `skills/sandboxing.md`
 Doctrine ships no sandbox and provisions none — that is deliberate, since a
 container requirement would stop it installing into any repo on any OS with
 zero dependencies. It carries the playbook; the agent and its operator run it.
-Run both layers: the tripwire for the early readable reason, the mount for the
-guarantee.
+Since ADR-014 there is no second layer to pair it with for shell: the mount
+*is* the guarantee, and there is no tripwire in front of it any more.
 
 Honest limits, measured rather than assumed:
 

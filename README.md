@@ -262,10 +262,13 @@ tests/               324 tests; `make verify` = lint + ruff + tests
 Doctrine's first law is *never fabricate* — which binds its own README. What it
 does **not** do:
 
-- **The Bash guard is a tripwire, not a boundary.** Shell is Turing-complete, so
-  no static analysis of it is complete. The real boundary is one layer down —
-  a read-only mount — which [`skills/sandboxing.md`](.Doctrine/skills/sandboxing.md)
-  tells you how to pick and how to *prove*.
+- **It does not guard your shell.** The `PreToolUse` hook is wired to
+  `Write|Edit|MultiEdit|NotebookEdit` only; Bash was removed and the shell
+  path-analysis code deleted (ADR-014). It had been a tripwire, never a
+  boundary — shell is Turing-complete, so no static analysis of it is
+  complete. The real boundary is one layer down — a read-only mount — which
+  [`skills/sandboxing.md`](.Doctrine/skills/sandboxing.md) tells you how to
+  pick and how to *prove*.
 - **Gold records are tamper-evident, not tamper-proof.** A record forged and
   committed in one step has no prior state to diff against; that class needs a
   human reading the diff.

@@ -17,6 +17,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import doctrine_dashboard as dashboard  # noqa: E402
 
+# Every HTTP call in TestHttpBoundary used a hard 2s timeout. That is not a
+# correctness bound, it is a stopwatch on the machine: these handlers shell
+# out to `git`, and on a slow Windows filesystem (or a box already running
+# the rest of this suite) a perfectly correct response lands after 2s and the
+# test reports TimeoutError. It was the only intermittent failure in the
+# suite for months, which is worse than a slow test - a suite that cries wolf
+# gets its real failures ignored.
+#
+# Raised, not removed: a genuine hang still fails, just not a slow success.
+# NOT a weakened assertion (section 7 #4) - no expectation changed, only the
+# stopwatch. If these ever need to be fast, that is a benchmark, not a
+# boundary test.
+HTTP_TIMEOUT = 30
+
 
 def _run(repo: Path, *arguments: str) -> None:
     subprocess.run(
@@ -298,7 +312,7 @@ class TestHttpBoundary(unittest.TestCase):
 
     def test_health_and_snapshot_allow_the_client_origin(self) -> None:
         for path in ("/api/v1/health", "/api/v1/snapshot"):
-            with urllib.request.urlopen(self._request(path), timeout=2) as response:
+            with urllib.request.urlopen(self._request(path), timeout=HTTP_TIMEOUT) as response:
                 payload = json.load(response)
                 self.assertEqual(response.status, 200)
                 self.assertEqual(
@@ -314,7 +328,7 @@ class TestHttpBoundary(unittest.TestCase):
         )
 
         with self.assertRaises(urllib.error.HTTPError) as raised:
-            urllib.request.urlopen(request, timeout=2)
+            urllib.request.urlopen(request, timeout=HTTP_TIMEOUT)
 
         self.assertEqual(raised.exception.code, 403)
         payload = json.loads(raised.exception.read())
@@ -333,9 +347,9 @@ class TestHttpBoundary(unittest.TestCase):
         )
 
         with self.assertRaises(urllib.error.HTTPError) as wrong_type_error:
-            urllib.request.urlopen(wrong_type, timeout=2)
+            urllib.request.urlopen(wrong_type, timeout=HTTP_TIMEOUT)
         with self.assertRaises(urllib.error.HTTPError) as input_error:
-            urllib.request.urlopen(unexpected_input, timeout=2)
+            urllib.request.urlopen(unexpected_input, timeout=HTTP_TIMEOUT)
 
         self.assertEqual(wrong_type_error.exception.code, 415)
         self.assertEqual(input_error.exception.code, 400)
@@ -457,7 +471,7 @@ class TestHttpBoundary(unittest.TestCase):
         )
 
         with self.assertRaises(urllib.error.HTTPError) as raised:
-            urllib.request.urlopen(request, timeout=2)
+            urllib.request.urlopen(request, timeout=HTTP_TIMEOUT)
 
         self.assertEqual(raised.exception.code, 413)
         payload = json.loads(raised.exception.read())
@@ -475,7 +489,7 @@ class TestHttpBoundary(unittest.TestCase):
         )
 
         with self.assertRaises(urllib.error.HTTPError) as raised:
-            urllib.request.urlopen(request, timeout=2)
+            urllib.request.urlopen(request, timeout=HTTP_TIMEOUT)
 
         self.assertEqual(raised.exception.code, 409)
         payload = json.loads(raised.exception.read())

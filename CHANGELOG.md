@@ -6,6 +6,95 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Fixed — `--ci --ci-provider github` crashed whenever the source was itself an install
+
+Every CI template now lives inside the corpus. `github` was sourced from
+`.github/workflows/doctrine.yml` — the source repo's own **live** workflow,
+outside `.Doctrine/` and therefore never installed into a consumer — while
+`gitlab` and `azure` shipped templates under `.Doctrine/templates/ci/`.
+Installing from Doctrine's own repo worked, so nothing caught it; a **chained**
+install (target A installed from source, then B installed with A as
+`--source`) crashed with `FileNotFoundError`, because A never received the
+file github's entry pointed at. Reproduced, then fixed by adding
+`.Doctrine/templates/ci/github-actions.yml` and sourcing from there. Two
+copies of the same content is exactly the setup that let ADR-012's defect sit
+unnoticed, so a parity test now asserts the template and the live workflow
+have not drifted, and a second test performs a real chained install for every
+provider.
+
+### Fixed — two guard-hook tests failed in every consumer repo, permanently
+
+`test_the_guard_hook_resolves_from_the_project_not_the_cwd` and
+`test_the_guard_hook_still_decides_from_a_subdirectory` read both
+`.claude/settings.json` and `plugin/hooks/hooks.json` unconditionally. The
+installer ships `tests/` into every consumer but deliberately does not ship
+`plugin/` (that is the Claude Code plugin's own packaging), so both tests died
+with `FileNotFoundError` in any installed repo — reproduced in a real fresh
+install. A `hook_configs()` helper now skips a config that isn't present, and
+a new test asserts the **source** repo has both, so the tolerance cannot decay
+into "no configs checked at all".
+
+### Removed — the Bash arm of the `PreToolUse` guard (ADR-014), and a wrong diagnosis with it
+
+`Bash` is out of the `PreToolUse` matcher in `.claude/settings.json` and
+`plugin/hooks/hooks.json`. The guard no longer runs on shell commands at all:
+no inspection, no Doctrine-sourced prompt, no per-command process spawn. The
+shell path-analysis code is **deleted, not disabled** — 370 lines removed
+against 48 added, across 22 symbols (`check_protected_in_command`,
+`command_targets`, `command_is_read_only`, `command_has_write_redirect`,
+`redirect_paths`, `strip_shell_noise`, `segment_verb`, `solobuilder_profile`
+and the constants they served); the guard drops 1107 → 785 lines. Dead code
+that looks like security is worse than an honest gap. Both earlier partial
+holds go with it: the narrow "provably read-only verb" grant and the
+`Delivery profile: solobuilder` blanket grant.
+
+§7 and `05-packaging.md` have called that arm *"a tripwire, not a boundary"*
+for several releases, after three independent security passes each found new
+bypass spellings. Two findings closed the argument. **The cost side was
+larger than recorded:** a live session reproduced the arm denying ordinary
+read-only work — a diagnostic command refused with *"this command would
+modify 'docs/releases/gold/v1.json'"* because the path sat in text the verb
+classifier could not read. **And a load-bearing claim in the corpus was
+simply wrong:** code comments and `FEATURES.md` asserted that registering a
+`PreToolUse` hook removes a tool from the harness's own auto-approve path
+("silence is not approval"). Checked against the runtime's documentation,
+that is false — a hook exiting 0 with empty stdout is ignored and the normal
+permission flow applies unchanged. The prompts blamed on hook registration
+were in substantial part the guard genuinely objecting. Corrected wherever it
+was asserted. The same check established the precedence that actually
+matters: `permissions.deny`/`ask` outrank any hook decision, so a hook
+`allow` can never grant more than the operator already allows themselves.
+
+**Write/Edit is untouched in code** — secrets (§7 #2), protected paths,
+control surface, test-weakening (§7 #4) all still decide, verified by
+execution. **Its guarantee is now conditional, and a G5 audit found the
+reason after the first draft of this entry claimed otherwise:** a shell
+command is unchecked, and one thing a shell command can write is the guard's
+own policy. `.doctrine-state/guard.json` holding a non-blanket `allow` (say
+`tools/*`) is correctly not refused by `is_blanket()`, and `allow` exempts
+those paths from the path *and* secret rules — so shell-write the policy
+(`allow`, was `ask`) → Write the guard's source (`allow`) → Write an AWS key
+(`allow`), with no prompt anywhere. Doctrine cannot close that from inside a
+repo the agent can write to — **and the obvious mitigation is mostly theatre**,
+which this entry states rather than banks: permission rules match per tool and
+`Bash(...)` patterns match command *text*, not paths, so no rule means "any
+command that writes this path". `Edit(...)` rules reach the file tools plus a
+recognised subset of file commands (`cat`, `sed`, `head`, `tail`) — shipped now
+as `permissions.ask` entries in `.claude/settings.json`, real but partial — and
+say nothing about `echo x > path`. The only complete control is an isolation
+tier, whose kernel-enforced `filesystem.denyWrite` **is unsupported on native
+Windows**, so there the honest answer is WSL2 or a container, not a config
+entry. Disclosed in ADR-014's Consequences, `05-packaging.md`, `FEATURES.md`
+and the guard's docstring.
+The command branch in
+`evaluate()` is retained for a repo that deliberately re-adds `Bash` to its
+matcher (secrets, §5, enforcement-config, test-weakening, then approve);
+nothing analyses command paths any more on any profile. Stated plainly in
+`.Doctrine.md` §7, `FEATURES.md` and the `05-packaging.md` strength table:
+**Doctrine's hold on your shell is now prose, not mechanism** — the controls
+that hold are your own `permissions.deny`/`ask` and an isolation tier
+(`skills/sandboxing.md`).
+
 ### Added — `orchestration-ceremony` toggle: swarm/loop paperwork is togglable, the panel and safety rails are not
 
 Multi-agent dispatch (`03-parallel-execution.md`) and disciplined looping

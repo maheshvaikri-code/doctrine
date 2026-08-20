@@ -7,12 +7,17 @@ a paved road, and should be shipped as one), and from `skills/repo-devops.md`
 (one repo's tooling). This skill owns the question *what can this agent reach,
 and how do you know?*
 
-**Why this skill exists.** Doctrine's `PreToolUse` guard reads a shell command
-as **text** and decides. On Write/Edit that is sound — one field names one file.
-On Bash it is a **tripwire, not a boundary**: shell is Turing-complete, the path
-need not appear in the command, and four independent review rounds each found a
-new spelling reaching a protected file (`05-packaging.md`). No static analysis
-of that text will ever be complete.
+**Why this skill exists — and why it is now the ONLY answer for shell.**
+Doctrine's `PreToolUse` guard governs Write/Edit, where it is sound: one field
+names one file. **It no longer runs on Bash at all** (ADR-014). It used to,
+reading the command as text, and that was a **tripwire, not a boundary**:
+shell is Turing-complete, the path need not appear in the command, and four
+independent review rounds each found a new spelling reaching a protected file
+(`05-packaging.md`). No static analysis of that text will ever be complete, so
+the arm was deleted rather than patched a fifth time. Nothing in Doctrine now
+stands between an agent and your filesystem via the shell. If that matters for
+your blast radius, the control is here — there is no longer a second layer in
+front of it.
 
 A boundary that *is* complete works one layer down, on **effects** rather than
 text:
@@ -77,8 +82,9 @@ Naming them separately matters: most real "sandboxes" control one and are
 assumed to control all five.
 
 1. **Filesystem — what is writable.** Mount protected paths **read-only**;
-   grant a single writable workspace. This is the control that makes the Bash
-   tripwire's incompleteness stop mattering for those paths.
+   grant a single writable workspace. Since ADR-014 removed the Bash arm of
+   the guard, this is the ONLY control protecting those paths from a shell
+   command — not a backstop behind a tripwire.
 2. **Network egress — where it can reach.** Default-deny outbound, allowlist
    the package registry and API you actually need. Most exfiltration and most
    "the agent installed something strange" incidents are egress events, and
@@ -174,8 +180,9 @@ approximately none:
 - Don't mount the docker socket, run as root, or bind-mount the host FS rw.
 - Don't leave egress open because "it needs the internet" — name what it needs.
 - Don't let the sandbox inherit your shell environment.
-- Don't treat the `PreToolUse` guard as containment; it is a tripwire by design
-  and says so.
+- Don't expect the `PreToolUse` guard to see a shell command at all — since
+  ADR-014 it is not wired to Bash. Even on Write/Edit, where it is sound, it
+  is a decision at the point of action, not containment.
 - Don't let "it ran in a sandbox" substitute for review, tests, or evidence.
 
 ## Review checklist

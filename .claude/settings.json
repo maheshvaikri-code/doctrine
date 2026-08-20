@@ -1,11 +1,4 @@
 {
-  "permissions": {
-    "ask": [
-      "Edit(.doctrine-state/guard.json)",
-      "Edit(.claude/**)",
-      "Edit(tools/doctrine_*.py)"
-    ]
-  },
   "hooks": {
     "SessionStart": [
       {

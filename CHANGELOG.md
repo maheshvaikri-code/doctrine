@@ -79,9 +79,14 @@ repo the agent can write to — **and the obvious mitigation is mostly theatre**
 which this entry states rather than banks: permission rules match per tool and
 `Bash(...)` patterns match command *text*, not paths, so no rule means "any
 command that writes this path". `Edit(...)` rules reach the file tools plus a
-recognised subset of file commands (`cat`, `sed`, `head`, `tail`) — shipped now
-as `permissions.ask` entries in `.claude/settings.json`, real but partial — and
-say nothing about `echo x > path`. The only complete control is an isolation
+recognised subset of file commands (`cat`, `sed`, `head`, `tail`) — real but
+partial — and say nothing about `echo x > path`. They were briefly shipped as
+`permissions.ask` entries and removed the same day: an `ask` rule always
+prompts (auto mode cannot clear it, no hook can override it), and since those
+rules reach recognised Bash file commands, shipping them reintroduced the
+Bash-level prompting this change existed to remove. Doctrine ships no
+permission rules; add them to your own settings if you want that trade. The
+only complete control is an isolation
 tier, whose kernel-enforced `filesystem.denyWrite` **is unsupported on native
 Windows**, so there the honest answer is WSL2 or a container, not a config
 entry. Disclosed in ADR-014's Consequences, `05-packaging.md`, `FEATURES.md`

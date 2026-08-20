@@ -165,11 +165,21 @@ the part that matters:
   position is that this chain is open, and closing it means running Claude Code
   inside WSL2 or a container. Not "configure a rule" — change where it runs.
 
-Doctrine ships `permissions.ask` entries for these three paths in
-`.claude/settings.json` (ask, not deny, so the surface stays editable by a
-human who means it). Read that for what it is: real coverage of the file tools
-and the recognized file commands, and **no coverage at all** of an arbitrary
-shell write. The remaining gap is the same lesson as "nothing inside a
+**Doctrine ships NO permission rules for these paths, deliberately.** They were
+added and then removed the same day, and the reason is worth keeping: an `ask`
+rule *always* prompts — auto mode cannot clear it and no hook can override it —
+and because `Edit(...)` rules also reach the file commands the runtime
+recognises in Bash (`cat`, `sed`, `head`, `tail`), shipping them reintroduced
+exactly the Bash-level prompting that removing the Bash arm was meant to end.
+Partial protection bought with a prompt on every profile is the same bad trade
+ADR-014 rejected, one layer up.
+
+So the gap stands, unpatched and stated: an unchecked shell command can rewrite
+the guard's policy, and the only thing that closes it is a kernel-enforced
+isolation tier (`skills/sandboxing.md`), unavailable on native Windows. An
+operator who wants the permission-layer partial coverage should add those
+`Edit(...)` rules to **their own** settings knowingly, accepting the prompts. It
+is not Doctrine's call to impose them. Same lesson as "nothing inside a
 repository the agent can write is tamper-proof against that agent", now
 applying to the guard's own policy file.
 

@@ -115,9 +115,14 @@ analyses command paths any more, on any profile.
   bank the reassurance.** Permission rules are matched per tool: `Bash(...)` patterns
   match command TEXT, not paths, so no rule expresses "any command that writes this
   path". `Read(...)`/`Edit(...)` deny rules do reach the file tools and a *recognised*
-  subset of file commands in Bash (`cat`, `head`, `tail`, `sed`) — real, partial, and now
-  shipped as `permissions.ask` entries in `.claude/settings.json` — but they are silent
-  on `echo x > path` and on any subprocess that opens the file itself. The same
+  subset of file commands in Bash (`cat`, `head`, `tail`, `sed`) — real and partial — but
+  they are silent on `echo x > path` and on any subprocess that opens the file itself.
+  They were briefly shipped as `permissions.ask` entries and **removed the same day**: an
+  `ask` rule always prompts (auto mode cannot clear it, no hook can override it), and
+  because those rules reach recognised Bash file commands, shipping them reintroduced the
+  Bash-level prompting this ADR existed to remove. Buying partial protection with a
+  prompt on every profile is the same bad trade, one layer up. An operator may add them
+  to their own settings knowingly; Doctrine does not impose them. The same
   undecidability that retired the guard's arm applies to the permission layer; it does
   not escape it. The only complete control is the isolation tier
   (`skills/sandboxing.md`), where `filesystem.denyWrite` (which `Edit(...)` deny rules

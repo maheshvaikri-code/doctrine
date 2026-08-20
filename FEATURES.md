@@ -65,8 +65,12 @@ does not touch the permanent floor:
   and `Bash(...)` patterns match command TEXT, not paths — no rule means
   "any command that writes this path". `Edit(...)` rules do reach the file
   tools plus a recognised subset of file commands (`cat`, `sed`, `head`,
-  `tail`), which is why this repo ships them as `permissions.ask`, but they
-  do nothing about `echo x > path` or a subprocess write. The only complete
+  `tail`) — but they do nothing about `echo x > path` or a subprocess write,
+  and Doctrine deliberately does **not** ship them: an `ask` rule always
+  prompts (auto mode cannot clear it, no hook can override it), so shipping
+  them reintroduced the Bash-level prompting that removing the Bash arm
+  existed to end. Add them to your own settings if you want that trade; it
+  is not Doctrine's to impose. The only complete
   control is an isolation tier (`skills/sandboxing.md`), whose
   `filesystem.denyWrite` is kernel-enforced — **and which is unavailable on
   native Windows**, where closing this means running under WSL2 or a

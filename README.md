@@ -56,7 +56,7 @@ by tooling, not vibes.**
 - 👥 **41 roles**, and verifiers are *dispatched, not worn* — a fresh-context
   subagent reviews the work, because a builder reviewing its own build is a
   changed narration, not a changed mind
-- 📚 **62 skill playbooks** — backend to mobile, ML, data, privacy, incident
+- 📚 **69 skill playbooks** — backend to mobile, ML, data, privacy, incident
   response, security operations, and sandboxing
 - 🧠 **Hash-chained session state** — the repo remembers so the model doesn't
   have to (`checkpoint` → `hydrate`)
@@ -164,7 +164,7 @@ Full install matrix: [.Doctrine/05-packaging.md](.Doctrine/05-packaging.md).
 | | Count | |
 |---|---:|---|
 | **Roles** | 41 | engineering · governance heads · founder-ops · domain specialists |
-| **Skill playbooks** | 62 | full SDLC + security operations + sandboxing |
+| **Skill playbooks** | 69 | full SDLC + security operations + sandboxing + marketing/content |
 | **Hard standards** | 8 | coding, API design, errors, deps, git, governance, merge |
 | **Language profiles** | 10 | per-language conventions |
 | **Domain overlays** | 15 | healthcare, finance, quant, aerospace, agentic-AI… |

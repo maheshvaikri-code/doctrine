@@ -6,6 +6,48 @@ Versioning: [SemVer](https://semver.org/) (0.x — doctrine under active develop
 
 ## [Unreleased]
 
+### Added — the marketing/content discipline, at every level (7 skills, 62 → 69)
+
+Doctrine had `skills/marketing.md`, `content.md` and `sales.md` — and **none
+of them appeared in the `.Doctrine.md` §6 routing table.** They were reachable
+only by opening a role card first, while engineering skills are named directly
+("business logic → `skills/backend.md`"). An agent following the routing table
+as written never found the marketing playbooks at all. That omission was the
+larger half of this change.
+
+Seven new skills fill the ladder from the widest frame to the sentence:
+`brand.md` (identity, voice, narrative, category — the frame above
+positioning), `content-strategy.md` (journey, pillars, calendar, pruning —
+the system above one piece), `copywriting.md` (headline, hook, compression),
+`community.md` (owned audience, moderation, advocacy),
+`public-relations.md` (earned attention, embargoes, crisis wording),
+`demand-generation.md` (funnel, lifecycle, attribution) and
+`localization.md` (per-market transcreation; `skills/i18n.md` keeps the
+machinery). All ten now have first-class §6 rows with explicit
+"this-not-that" disambiguation.
+
+Written by four parallel workers against the `marketing.md` exemplar, then
+G4-reviewed by a dispatched fresh-context reviewer, which returned
+REQUEST-CHANGES on two MAJORs, both fixed: **the seven files were untracked**,
+and `copy_tree` ships only git-tracked files — so a consumer install would
+have received 62 skills while the shipped README claimed 69 and §6 pointed at
+seven files that were never installed; and **"voice" had two owners** with
+rival schemas and no cross-reference (`brand.md` now owns the spec,
+`copywriting.md` applies it). Also fixed from that review: four unsourced
+quantitative claims ("buys about one quarter of silence", "for two years")
+in files that themselves legislate against unmeasured superlatives; three
+rules restated from `marketing.md`/`content.md`/`customer-support.md` now
+cite their owner instead; a routing row advertising "social" that
+`community.md` does not cover.
+
+Counts corrected in four surfaces, two of which `doctrine_lint` structurally
+could not see: `README.md`'s table cell, and prose in `.Doctrine/README.md`
+and `02-role-protocol.md` that spelled counts out in words
+("thirty-nine roles", "fifty-eight skill playbooks") and so evaded
+`check_counts` — both were already stale by 2 roles and 11 skills before this
+change. Converted to numerals so they are machine-enforced from now on, with
+a comment saying why.
+
 ### Fixed — `--ci --ci-provider github` crashed whenever the source was itself an install
 
 Every CI template now lives inside the corpus. `github` was sourced from

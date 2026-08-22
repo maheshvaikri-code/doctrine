@@ -1,7 +1,7 @@
 # 02 — Role Protocol
 
-One AI, thirty-nine hats (twenty-five engineering + seven startup-profile +
-four governance heads + three domain specialists). The value of the hats comes from keeping them
+One AI, 41 hats (27 engineering + 7 startup-profile + 4 governance heads
++ 3 domain specialists). The value of the hats comes from keeping them
 genuinely distinct. These mechanics make that real.
 
 ## Adoption

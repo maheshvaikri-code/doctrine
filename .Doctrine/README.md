@@ -1,12 +1,17 @@
 # .Doctrine/ — The Company Behind the Code
 
 This folder turns Claude Code into a full software company for this
-repository—or a low-ceremony Solo Builder in personal mode: thirty-nine roles
-(twenty-five engineering + seven startup-profile
-founder-ops + four governance heads + three domain specialists), fifty-eight skill
-playbooks, eight standards plus ten language profiles, a gated workflow, domain
-overlays, integrations, a state plane, and templates for every artifact the
-workflow produces.
+repository—or the same company at solo-builder ceremony: 41 roles
+(27 engineering + 7 startup-profile founder-ops + 4 governance heads
++ 3 domain specialists), 69 skill playbooks, 8 standards plus 10 language
+profiles, a gated workflow, domain overlays, integrations, a state plane, and
+templates for every artifact the workflow produces.
+
+<!-- Counts are NUMERALS on purpose. Spelled out ("thirty-nine roles",
+"fifty-eight skill playbooks") they evade doctrine_lint's check_counts, which
+matches "<n> roles" / "<n> skill playbooks" against the filesystem - which is
+exactly how this paragraph drifted two roles and eleven skills out of date
+before anyone noticed. Numerals keep it machine-enforced. -->
 
 ## Layout
 
@@ -28,7 +33,7 @@ workflow produces.
 │                       ciso, risk-officer — policy above the gates
 │                       + 3 domain specialists: clinical-safety, regulatory-affairs,
 │                       quant-researcher)
-├── skills/             62 discipline playbooks (G0 requirements → G1
+├── skills/             69 discipline playbooks (G0 requirements → G1
 │                       architecture → full SDLC: backend→mobile, ML, data,
 │                       incident response, privacy, i18n, a11y, IaC, metrics…
 │                       + security operations: detection engineering, threat

@@ -2,11 +2,11 @@
   <img src="images/doctrine_logo.png" alt="Doctrine">
 </h1>
 
-<h1 align="center">A gated engineering operating layer for AI coding agents for Enterprise/Startup/SoloBuilder Profiles. (Beta)</h1>
+<h1 align="center">A gated engineering operating layer for AI coding agents for Enterprise/Startup/SoloBuilder Profiles. (Developer Preview)</h1>
 
 <p align="center">
-  <a href="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/aroora-ai-labs/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
-  <a href="https://github.com/aroora-ai-labs/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.7.0-1a2b5e" alt="version v0.7.0"></a>
+  <a href="https://github.com/maheshvaikri-code/doctrine/actions/workflows/doctrine.yml"><img src="https://github.com/maheshvaikri-code/doctrine/actions/workflows/doctrine.yml/badge.svg" alt="doctrine CI"></a>
+  <a href="https://github.com/maheshvaikri-code/doctrine/tags"><img src="https://img.shields.io/badge/version-v0.7.0-1a2b5e" alt="version v0.7.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1a2b5e" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-1a2b5e" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/dependencies-zero-1a2b5e" alt="zero dependencies">
@@ -106,7 +106,7 @@ still a write. Use the owning tool, or record the exception in
 **Any repo (installer)** — works today, no marketplace, no publish:
 
 ```bash
-git clone https://github.com/aroora-ai-labs/doctrine
+git clone https://github.com/maheshvaikri-code/doctrine
 python doctrine/tools/doctrine_install.py --target <your-repo> \
     --tool claude,cursor,codex   # add --solobuilder, --startup, or --enterprise
 cd <your-repo> && python tools/doctrine_state.py init && make verify
@@ -124,7 +124,7 @@ Pick the profile that matches how you actually work:
 private repos:
 
 ```text
-/plugin marketplace add aroora-ai-labs/doctrine
+/plugin marketplace add maheshvaikri-code/doctrine
 /plugin install doctrine@doctrine-marketplace
 /doctrine-init
 ```

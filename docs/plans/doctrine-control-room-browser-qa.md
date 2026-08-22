@@ -64,7 +64,7 @@ sign-off remains open until an appropriate interactive environment exists.
 ## Result
 
 Implemented in `d682301`, repaired in `6f87761` and `55cee5d`, and verified by
-[dashboard run 30185799191](https://github.com/aroora-ai-labs/doctrine/actions/runs/30185799191).
+[dashboard run 30185799191](https://github.com/maheshvaikri-code/doctrine/actions/runs/30185799191).
 The browser job ran seven scenarios in hosted Chromium and passed in 18.0
 seconds. The final source commit also passed both dashboard OS legs and all four
 Doctrine Python/OS legs.

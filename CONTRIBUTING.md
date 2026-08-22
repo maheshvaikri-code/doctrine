@@ -31,7 +31,7 @@ Python **3.11+**. There are **no runtime dependencies** — that is a deliberate
 design constraint, so please do not add any (see *Dependencies* below).
 
 ```bash
-git clone https://github.com/aroora-ai-labs/doctrine
+git clone https://github.com/maheshvaikri-code/doctrine
 cd doctrine
 python tools/doctrine_state.py init     # if you want the state plane locally
 make verify                             # lint + ruff + tests

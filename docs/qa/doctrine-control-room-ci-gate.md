@@ -53,11 +53,11 @@ condition; CI starts from a clean runner.
 
 | Commit | Workflow | Matrix result | Evidence |
 |---|---|---|---|
-| `9fdde17` | doctrine-dashboard | failed | [run 30179680083](https://github.com/aroora-ai-labs/doctrine/actions/runs/30179680083): Ubuntu `npm ci` rejected the npm-11-generated lockfile; Windows was cancelled by matrix fail-fast. |
-| `abb949d` | doctrine-dashboard | passed | [run 30179904285](https://github.com/aroora-ai-labs/doctrine/actions/runs/30179904285): Ubuntu and Windows passed clean install, lint, typecheck, build/tests, and audit. |
-| `abb949d` | doctrine | passed | [run 30179904288](https://github.com/aroora-ai-labs/doctrine/actions/runs/30179904288): Python 3.11/3.12 on Ubuntu/Windows all passed. |
-| `c890797` | doctrine-dashboard | passed | [run 30180068322](https://github.com/aroora-ai-labs/doctrine/actions/runs/30180068322): both OS legs passed with SHA-pinned Node 24 action runtimes and no deprecation annotation. |
-| `c890797` | doctrine | passed | [run 30180068321](https://github.com/aroora-ai-labs/doctrine/actions/runs/30180068321): all four Python/OS legs passed with independent matrix execution. |
+| `9fdde17` | doctrine-dashboard | failed | [run 30179680083](https://github.com/maheshvaikri-code/doctrine/actions/runs/30179680083): Ubuntu `npm ci` rejected the npm-11-generated lockfile; Windows was cancelled by matrix fail-fast. |
+| `abb949d` | doctrine-dashboard | passed | [run 30179904285](https://github.com/maheshvaikri-code/doctrine/actions/runs/30179904285): Ubuntu and Windows passed clean install, lint, typecheck, build/tests, and audit. |
+| `abb949d` | doctrine | passed | [run 30179904288](https://github.com/maheshvaikri-code/doctrine/actions/runs/30179904288): Python 3.11/3.12 on Ubuntu/Windows all passed. |
+| `c890797` | doctrine-dashboard | passed | [run 30180068322](https://github.com/maheshvaikri-code/doctrine/actions/runs/30180068322): both OS legs passed with SHA-pinned Node 24 action runtimes and no deprecation annotation. |
+| `c890797` | doctrine | passed | [run 30180068321](https://github.com/maheshvaikri-code/doctrine/actions/runs/30180068321): all four Python/OS legs passed with independent matrix execution. |
 
 The repair loop consumed two of the three allowed iterations: first lockfile
 portability and matrix observability, then action-runtime/supply-chain

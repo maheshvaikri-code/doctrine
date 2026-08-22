@@ -20,15 +20,15 @@
 
 | Iteration | Commit | Result | Named outcome |
 |---|---|---|---|
-| 1 | `d682301` | [run 30185556600](https://github.com/aroora-ai-labs/doctrine/actions/runs/30185556600): 4 passed, 3 failed | Found chart semantics, color contrast, and ambiguous test locators. |
-| 2 | `6f87761` | [run 30185733031](https://github.com/aroora-ai-labs/doctrine/actions/runs/30185733031): 6 passed, 1 failed | Axe was clean; one obsolete dialog-label assertion remained. |
-| 3 | `55cee5d` | [run 30185799191](https://github.com/aroora-ai-labs/doctrine/actions/runs/30185799191): 7 passed in 18.0 s | Chromium gate, Ubuntu dashboard, and Windows dashboard all green. |
+| 1 | `d682301` | [run 30185556600](https://github.com/maheshvaikri-code/doctrine/actions/runs/30185556600): 4 passed, 3 failed | Found chart semantics, color contrast, and ambiguous test locators. |
+| 2 | `6f87761` | [run 30185733031](https://github.com/maheshvaikri-code/doctrine/actions/runs/30185733031): 6 passed, 1 failed | Axe was clean; one obsolete dialog-label assertion remained. |
+| 3 | `55cee5d` | [run 30185799191](https://github.com/maheshvaikri-code/doctrine/actions/runs/30185799191): 7 passed in 18.0 s | Chromium gate, Ubuntu dashboard, and Windows dashboard all green. |
 
 The final hosted browser was Chrome Headless Shell 151.0.7922.34. The ratchet
 used its three planned iterations; no unchanged retry was used.
 
 Final Doctrine regression:
-[run 30185799199](https://github.com/aroora-ai-labs/doctrine/actions/runs/30185799199)
+[run 30185799199](https://github.com/maheshvaikri-code/doctrine/actions/runs/30185799199)
 passed Python 3.11 and 3.12 on Ubuntu and Windows.
 
 ## Regression evidence

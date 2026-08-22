@@ -41,9 +41,9 @@ VERIFY OK: 4 gate(s) green
 
 Hosted evidence:
 
-- [Dashboard run 30186825337](https://github.com/aroora-ai-labs/doctrine/actions/runs/30186825337):
+- [Dashboard run 30186825337](https://github.com/maheshvaikri-code/doctrine/actions/runs/30186825337):
   Windows success, Ubuntu success, Chromium `7 passed (18.1s)`.
-- [Doctrine run 30186825339](https://github.com/aroora-ai-labs/doctrine/actions/runs/30186825339):
+- [Doctrine run 30186825339](https://github.com/maheshvaikri-code/doctrine/actions/runs/30186825339):
   Windows and Ubuntu on Python 3.11 and 3.12 all succeeded.
 
 Flakes observed: none.

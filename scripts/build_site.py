@@ -92,7 +92,7 @@ THEME_JS = (
     "n=(d.dataset.theme==='dark'?'light':'dark');"
     "d.dataset.theme=n;localStorage.setItem(k,n)};})();</script>")
 
-REPO = "https://github.com/aroora-ai-labs/doctrine"
+REPO = "https://github.com/maheshvaikri-code/doctrine"
 
 SECRET_PATTERNS = [
     (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "private-key"),

@@ -37,9 +37,9 @@ VERIFY OK: 4 gate(s) green
 
 Hosted evidence:
 
-- dashboard [run 30180068322](https://github.com/aroora-ai-labs/doctrine/actions/runs/30180068322):
+- dashboard [run 30180068322](https://github.com/maheshvaikri-code/doctrine/actions/runs/30180068322):
   Ubuntu and Windows green;
-- Doctrine [run 30180068321](https://github.com/aroora-ai-labs/doctrine/actions/runs/30180068321):
+- Doctrine [run 30180068321](https://github.com/maheshvaikri-code/doctrine/actions/runs/30180068321):
   Python 3.11/3.12 on Ubuntu/Windows green.
 
 ## Findings

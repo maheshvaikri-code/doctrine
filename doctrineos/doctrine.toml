@@ -1,0 +1,9 @@
+[doctrine]
+version = "0.8.0"
+sha256  = "spike"
+
+[packs]
+enable = ["core"]
+
+[profile]
+delivery = "solobuilder"

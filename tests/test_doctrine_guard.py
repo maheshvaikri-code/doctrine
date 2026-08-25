@@ -327,6 +327,35 @@ class TestProtectedPaths(GuardTestCase):
                                    "PASSWORD=x\n"))["permissionDecision"],
             "deny")
 
+    def test_a_nested_env_EXAMPLE_is_exempt_like_the_root_one(self) -> None:
+        """The mirror of the rule above, and the half that was missing.
+
+        PROTECTED_ALWAYS guards `.env.*` AND `**/.env.*`, so protection
+        reached nested files - but PROTECTED_EXEMPT listed only bare names,
+        so the rescue stopped at the repo root. The result: `.env.example`
+        was allowed while `services/api/.env.example` was DENIED, though the
+        second is the more common layout and is equally a template. Caught by
+        a differential test against the Go port, not by review.
+        """
+        _make_repo(self.repo)
+        # `{}` is the house convention for "the guard raised no objection".
+        # This fixture repo has no FEATURES.md, so `autonomous-verification`
+        # is off (absence of the file is absence of consent) and the guard
+        # abstains rather than answering `allow`. Asserting "allow" here was
+        # my own error and produced four KeyErrors, not a code defect.
+        for rel in (".env.example", "services/api/.env.example",
+                    "packages/web/.env.sample", "deep/nested/dir/.env.template"):
+            with self.subTest(path=rel):
+                self.assertEqual(
+                    _run(self.repo, _write(self.repo, rel,
+                                           "API_KEY=<your-key-here>\n")),
+                    {}, f"{rel} is a template, not a secret")
+        # and the exemption must NOT rescue a real nested .env
+        self.assertEqual(
+            _run(self.repo, _write(self.repo, "services/api/.env",
+                                   "API_KEY=<your-key-here>\n"))["permissionDecision"],
+            "deny", "a real nested .env stays protected")
+
     def test_an_extended_length_windows_path_is_not_a_bypass(self) -> None:
         """`\\\\?\\C:\\...` survived resolve(), relative_to() raised, and every
         path rule was skipped while the write still landed."""

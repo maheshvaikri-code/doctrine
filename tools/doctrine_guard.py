@@ -210,8 +210,15 @@ BLANKET_CANARIES: Final[tuple[str, ...]] = (
 )
 # ...except the shape-documenting variants the repo-devops skill REQUIRES.
 # They hold names, never values, so the secret rules still apply to them.
+# The `**/` variants are NOT decoration. PROTECTED_ALWAYS guards both
+# `.env.*` AND `**/.env.*`, so protection reaches nested files - but this
+# exemption listed only bare names, so the rescue did not. The asymmetry
+# denied `services/api/.env.example`, one of the most common layouts there
+# is, while allowing the identical file at the repo root. Found by a
+# differential test against the Go port, not by review.
 PROTECTED_EXEMPT: Final[tuple[str, ...]] = (
     ".env.example", ".env.sample", ".env.template", ".env.dist",
+    "**/.env.example", "**/.env.sample", "**/.env.template", "**/.env.dist",
 )
 # Protected only in a CONSUMER repo: the installed corpus is a read-only
 # snapshot there (doctrine section 12). In Doctrine's own source repo the

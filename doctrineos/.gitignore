@@ -1,0 +1,6 @@
+# Build output and materialised corpus - never committed in thin mode.
+# "What the repo produced is committed; what the repo consumes is pinned."
+# The corpus under .doctrine/ is a verified copy of the pinned version, and
+# the binaries are rebuilt from source - neither is repo-owned.
+*.exe
+.doctrine/

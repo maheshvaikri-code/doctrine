@@ -118,11 +118,46 @@ missing schema             both exit 2, same message (cannot-run, not a finding)
 determinism                1 distinct output across 5 runs, two bad fields
 ```
 
-The v1 Python suite could **not** be run to completion: `discover` hangs in
+The v1 Python suite could **not** be run to completion here. An earlier version
+of this note called that a *hang* in
 `test_doctrine_dashboard.TestHttpBoundary.test_rejects_unapproved_browser_origin`.
-That hang is pre-existing and unrelated — this work changed no Python file —
-but it is recorded rather than glossed, and it means "the v1 suite is green"
-is not a claim this round can make.
+That was wrong, and the correction is worth more than the original claim.
+
+Run in isolation, the test **passes in 50 seconds**. It had merely been the
+last line printed when I stopped waiting — "stalled" was inferred from a
+bounded wait, which is not evidence of a stall. Instrumenting the phases put
+41s of those 50 in `_make_repo` (six `git` subprocesses), 0.025s in the server
+and 0.048s in the request. Timing each git call showed even
+`git config user.name` taking 8.5s, which no git workload explains. The
+decisive test was the cheapest possible process:
+
+```text
+cmd /c exit    (in TEMP)      min= 5.763s  med= 6.485s
+python -c pass (in TEMP)      min= 5.601s  med= 7.601s
+git --version  (in repo)      min= 5.379s  med= 6.496s
+```
+
+**Process creation on that host costs ~6 seconds.** Not git, not the temp
+directory, not the test code. Windows Defender real-time protection is off and
+`Get-MpPreference` errors — the signature of a third-party product having taken
+over — and `root\SecurityCenter2` reports **McAfee WPS** alongside Defender,
+with 632 processes live (28 stale `python`, 25 stale `node`).
+
+The suite has 364 tests over 73 subprocess call sites, many inside `setUp`. At
+~6s a spawn that is comfortably the ~55 minutes observed, with only 3.5s of CPU
+burned — blocked in process creation, not computing.
+
+Two things follow. First, **no test code was changed**: the cause is
+environmental, and editing tests until a symptom disappears is precisely the
+symptom-patching `skills/debugging.md` forbids. Building the repo fixture once
+per class instead of once per test would divide the spawn count, and is a fair
+optimisation on its own merits — but it would not fix this, and adopting it
+here would disguise a machine-level problem as a test-design one. Second, the
+same pathology explains the invalidated performance numbers earlier in this
+work; any timing taken on that host measures McAfee, not the code.
+
+The remedy is AV exclusions for the working tree and TEMP. That is a change to
+the machine's security posture, so it is the human's call, not the agent's.
 
 ## What this still does not prove
 

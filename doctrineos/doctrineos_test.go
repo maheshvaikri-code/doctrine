@@ -359,3 +359,127 @@ func TestStringLengthCountsRunesNotBytes(t *testing.T) {
 		t.Errorf("maxLength 4 must accept a 4-character string, got %v", err)
 	}
 }
+
+// TestHashedRefRefusesEmptyEvidence pins the rule the gold ladder exists for:
+// EXISTENCE IS NOT EVIDENCE. A gate written as "the sign-off is present"
+// passes on `touch security-signoff.md`, so the pin is over CONTENT.
+func TestHashedRefRefusesEmptyEvidence(t *testing.T) {
+	root := t.TempDir()
+	write := func(name, content string) string {
+		p := filepath.Join(root, name)
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return name
+	}
+
+	if _, err := hashedRef(root, write("good.md", "approved by security\n"), "sign-off"); err != nil {
+		t.Errorf("real content must pin, got %v", err)
+	}
+	for _, c := range []struct{ name, content string }{
+		{"empty.md", ""},
+		{"spaces.md", "   \n\t\n"},
+	} {
+		_, err := hashedRef(root, write(c.name, c.content), "sign-off")
+		if err == nil {
+			t.Errorf("%s: an empty file is not a sign-off", c.name)
+		} else if !strings.Contains(err.Error(), "not a sign-off") {
+			t.Errorf("%s: unexpected message %q", c.name, err)
+		}
+	}
+	if _, err := hashedRef(root, "absent.md", "sign-off"); err == nil {
+		t.Error("absent file must be refused")
+	}
+}
+
+// TestSafeRepoPathRefusesEscapes - a gold record names its own evidence, so
+// those names are untrusted input. Without this, a record could pin (and
+// appear to verify against) a file outside the repo entirely.
+func TestSafeRepoPathRefusesEscapes(t *testing.T) {
+	root := t.TempDir()
+	for _, rel := range []string{"../outside.md", "../../etc/passwd", ".." + string(filepath.Separator)} {
+		if _, err := safeRepoPath(root, rel, "sign-off"); err == nil {
+			t.Errorf("%q must be refused as an escape", rel)
+		}
+	}
+	for _, rel := range []string{"docs/x.md", "a/b/c.json", "."} {
+		if _, err := safeRepoPath(root, rel, "sign-off"); err != nil {
+			t.Errorf("%q is inside the repo, got %v", rel, err)
+		}
+	}
+	// "..foo" starts with ".." but does not escape - a prefix test written as
+	// strings.HasPrefix(rel, "..") would wrongly refuse it.
+	if _, err := safeRepoPath(root, "..foo", "sign-off"); err != nil {
+		t.Errorf("'..foo' is an ordinary name, got %v", err)
+	}
+}
+
+// TestLoadChainTopology pins the invariants that make the ladder a ladder.
+// Each loose alternative has a way to hide a record.
+func TestLoadChainTopology(t *testing.T) {
+	rec := func(prev any) []byte {
+		b, _ := canonicalBytes(map[string]any{"tag": "v", "prev_gold_sha256": prev})
+		return b
+	}
+	build := func(t *testing.T, files map[string][]byte) string {
+		root := t.TempDir()
+		gold := filepath.Join(root, "docs", "releases", "gold")
+		if err := os.MkdirAll(gold, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for name, data := range files {
+			if err := os.WriteFile(filepath.Join(gold, name), data, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return root
+	}
+
+	genesis := rec(nil)
+	child := rec(sha256Hex(genesis))
+
+	t.Run("linear chain is ordered", func(t *testing.T) {
+		root := build(t, map[string][]byte{"v1.0.0.json": genesis, "v1.1.0.json": child})
+		got, err := loadChain(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 2 || filepath.Base(got[0]) != "v1.0.0.json" {
+			t.Fatalf("chain not ordered from genesis: %v", got)
+		}
+	})
+	t.Run("two roots refused", func(t *testing.T) {
+		root := build(t, map[string][]byte{"a.json": genesis, "b.json": rec(nil)})
+		if _, err := loadChain(root); err == nil {
+			t.Error("two genesis records must be refused")
+		}
+	})
+	t.Run("fork refused", func(t *testing.T) {
+		// Two DISTINCT records claiming the same predecessor.
+		other, _ := canonicalBytes(map[string]any{"tag": "w", "prev_gold_sha256": sha256Hex(genesis)})
+		root := build(t, map[string][]byte{
+			"v1.0.0.json": genesis, "v1.1.0.json": child, "v1.2.0.json": other})
+		_, err := loadChain(root)
+		if err == nil || !strings.Contains(err.Error(), "fork") {
+			t.Errorf("fork must be refused, got %v", err)
+		}
+	})
+	t.Run("unparseable refused as unparseable, not as a broken chain", func(t *testing.T) {
+		root := build(t, map[string][]byte{"v1.0.0.json": genesis, "bad.json": []byte("{not json")})
+		_, err := loadChain(root)
+		if err == nil {
+			t.Fatal("a corrupt record must be refused")
+		}
+		if !strings.Contains(err.Error(), "unparseable") {
+			t.Errorf("a corrupt file must not be reported as a chain defect: %v", err)
+		}
+	})
+	t.Run("MANIFEST.json is not a link", func(t *testing.T) {
+		root := build(t, map[string][]byte{
+			"v1.0.0.json": genesis, "MANIFEST.json": []byte(`{"anchor":true}`)})
+		got, err := loadChain(root)
+		if err != nil || len(got) != 1 {
+			t.Errorf("the deletion anchor must be skipped, got %v / %v", got, err)
+		}
+	})
+}

@@ -30,6 +30,8 @@ const usage = `doctrineos - govern how work gets done, and prove it afterwards
   doctrineos gate --done          Definition-of-Done gate (Stop event)
   doctrineos verify               walk the state chain (tamper-evident, not tamper-proof)
   doctrineos canon [--hash]       canonical bytes of stdin JSON (chain encoding)
+  doctrineos gold-chain           order the gold ladder, or refuse a broken one
+  doctrineos gold-pin <path>      pin a file to its content hash (empty = not a sign-off)
   doctrineos status               what is pinned, installed, and materialised
 
 context flags:
@@ -57,6 +59,10 @@ func main() {
 		cmdVerify()
 	case "canon":
 		cmdCanon(os.Args[2:])
+	case "gold-chain":
+		cmdGoldChain()
+	case "gold-pin":
+		cmdGoldPin(os.Args[2:])
 	case "status":
 		cmdStatus()
 	case "-h", "--help", "help":

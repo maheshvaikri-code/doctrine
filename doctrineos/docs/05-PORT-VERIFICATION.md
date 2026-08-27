@@ -24,6 +24,7 @@ Three oracles, each aimed at a different layer:
 | `differential.py` | guard decisions on tool payloads | 24 |
 | `canon_diff.py` | canonical bytes, byte-for-byte | 15 |
 | `tamper_diff.py` | chain findings on a mutated real chain | 13 |
+| `gold_diff.py` | gold ladder topology + content pinning | 16 |
 
 Two rules make these worth more than their case counts suggest.
 
@@ -73,6 +74,43 @@ Every item here survived me reading the code and believing it correct.
   install. A finding says *your chain is bad*; an error says *I could not
   check*. `verifyFindings` now returns them separately, and `verify` exits 2
   for cannot-run versus 1 for a bad chain, matching the Python CLI.
+
+## The gold ladder, and two ways I fooled myself
+
+Porting `doctrine_gold`'s topology and content-pinning rules produced one real
+divergence — and, more usefully, two flaws in **my own harness**, both of the
+exact kind the harness exists to catch.
+
+The divergence: a record that will not parse. Python refuses it as
+`unparseable`; the first Go port fell through to `prev=""` and reported
+`broken rollback chain` — blaming the ladder for a broken rung, sending a
+reader to audit links that were fine. Go also had no size bound, where Python
+caps any parsed artifact at 5,000,000 bytes; an unbounded parse of an
+attacker-writable file is a memory-exhaustion primitive. Both fixed.
+
+The self-inflicted flaws are worth more:
+
+- **A section that compared Python to itself.** The `hashed_ref` block wrote
+  `rows.append((label, pv, pv, True))` and reported perfect agreement while
+  never invoking Go at all. A test that cannot fail, inside a harness written
+  around the principle that a mutation must be able to pass. Go needed a
+  `gold-pin` surface before the comparison could be real; with it, 5/5.
+- **Three cases wearing the wrong label.** One called "island unreachable" was
+  a duplicate of the dangling-prev case, because that check fires first. One
+  called "non-object record" was an ordinary object carrying a bogus `prev`.
+  An "oversized record" of 2 MiB never reached a 5 MB bound. Each *looked*
+  like coverage in the output.
+
+The reachability branch is now documented as **not covered, by construction**:
+reaching it needs every `prev` to resolve, one genesis, and no forks, which
+makes the only unreachable shape a cycle among non-genesis records — and a
+cycle requires record A to contain the hash of B while B contains the hash of
+A. Saying that plainly beats a case that dresses up a different error as proof.
+
+Normalisation in that oracle is deliberately narrow: the parenthetical of a
+parse error (CPython describing its own failure, which no port reproduces) and
+absolute temp paths. Nothing else. Relaxing more would let a real divergence
+hide inside the normalisation, which is how an oracle quietly stops being one.
 
 ## What the oracles could not catch
 

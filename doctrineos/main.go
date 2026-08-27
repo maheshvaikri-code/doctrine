@@ -25,10 +25,12 @@ import (
 const usage = `doctrineos - govern how work gets done, and prove it afterwards
 
   doctrineos init [--target dir]  make a repo governed (idempotent)
-  doctrineos check              decide a PreToolUse payload (stdin JSON -> stdout JSON)
-  doctrineos context [flags]    resolve which resources this task activates
-  doctrineos gate --done        Definition-of-Done gate (Stop event)
-  doctrineos status             what is pinned, installed, and materialised
+  doctrineos check                decide a PreToolUse payload (stdin JSON -> stdout JSON)
+  doctrineos context [flags]      resolve which resources this task activates
+  doctrineos gate --done          Definition-of-Done gate (Stop event)
+  doctrineos verify               walk the state chain (tamper-evident, not tamper-proof)
+  doctrineos canon [--hash]       canonical bytes of stdin JSON (chain encoding)
+  doctrineos status               what is pinned, installed, and materialised
 
 context flags:
   --task "<text>"      the request, for intent signals (weak: reads only)
@@ -51,6 +53,10 @@ func main() {
 		cmdGate(os.Args[2:])
 	case "init":
 		cmdInit(os.Args[2:])
+	case "verify":
+		cmdVerify()
+	case "canon":
+		cmdCanon(os.Args[2:])
 	case "status":
 		cmdStatus()
 	case "-h", "--help", "help":

@@ -38,11 +38,11 @@ const (
 type Cost string
 
 const (
-	CostRead    Cost = "read"    // put a file in context
-	CostAdopt   Cost = "adopt"   // take on a lens (checks + tool grant + write scope)
-	CostCompose Cost = "compose" // overlay a domain pack
+	CostRead     Cost = "read"     // put a file in context
+	CostAdopt    Cost = "adopt"    // take on a lens (checks + tool grant + write scope)
+	CostCompose  Cost = "compose"  // overlay a domain pack
 	CostDispatch Cost = "dispatch" // spawn a fresh-context subagent
-	CostRefuse  Cost = "refuse"  // deny a tool call
+	CostRefuse   Cost = "refuse"   // deny a tool call
 )
 
 // maxReliabilityFor returns the cheapest signal class permitted to fire a

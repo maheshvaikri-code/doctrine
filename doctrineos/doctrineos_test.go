@@ -3,7 +3,9 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // TestThresholdRule is the load-bearing test of this project.
@@ -242,5 +244,118 @@ func TestFrontmatterContract(t *testing.T) {
 	}
 	if got := len(LoadResources(dir)); got != 1 {
 		t.Errorf("LoadResources found %d, want 1 (the contract-less file must be excluded)", got)
+	}
+}
+
+// TestVerifySeparatesCannotRunFromFindings pins a distinction that is easy to
+// collapse and expensive to get wrong.
+//
+// A FINDING says "your chain is bad." An ERROR says "I could not check." The
+// first version of the schema wiring returned the missing schema as a finding,
+// so an incomplete install rendered as `VERIFY FAILED (1)` - telling a reader
+// their evidence had been tampered with and sending them to audit a chain that
+// was never in question.
+func TestVerifySeparatesCannotRunFromFindings(t *testing.T) {
+	root := t.TempDir()
+	pl := newPlane(root)
+
+	// An empty plane has nothing to check and owes no error: there are no
+	// checkpoints, so the schema is never needed.
+	findings, err := verifyFindings(pl)
+	if err != nil {
+		t.Fatalf("empty plane must not error, got %v", err)
+	}
+	if len(findings) != 0 {
+		t.Fatalf("empty plane must report no findings, got %v", findings)
+	}
+
+	// One checkpoint present, but no schema installed: that is cannot-run.
+	cps := filepath.Join(root, ".doctrine-state", "checkpoints")
+	if err := os.MkdirAll(cps, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cps, "0-0123456789ab.json"),
+		[]byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	findings, err = verifyFindings(pl)
+	if err == nil {
+		t.Fatal("missing schema must be an error, not a finding")
+	}
+	if findings != nil {
+		t.Fatalf("cannot-run must return no findings, got %v", findings)
+	}
+	if !strings.Contains(err.Error(), ".Doctrine/") {
+		t.Errorf("error should point at the likely cause (install), got %q", err)
+	}
+}
+
+// TestSchemaMessagesMatchPythonRepr guards the formatting the differential
+// oracle compares. Verdicts agreeing is not enough: two tools that refuse the
+// same record while describing it differently teach a reader to trust neither.
+func TestSchemaMessagesMatchPythonRepr(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"clean", "'clean'"},
+		{"it's", `"it's"`},
+		{"", "''"},
+	} {
+		if got := pyRepr(c.in); got != c.want {
+			t.Errorf("pyRepr(%q) = %s, want %s", c.in, got, c.want)
+		}
+	}
+	if got := pyRepr(true); got != "True" {
+		t.Errorf("pyRepr(true) = %s, want True", got)
+	}
+	if got := pyRepr(nil); got != "None" {
+		t.Errorf("pyRepr(nil) = %s, want None", got)
+	}
+	if got := pyRepr(float64(30)); got != "30" {
+		t.Errorf("pyRepr(30.0) = %s, want 30 (not 30.0)", got)
+	}
+	if got := pyReprList([]any{"clean", "dirty"}); got != "['clean', 'dirty']" {
+		t.Errorf("pyReprList = %s", got)
+	}
+}
+
+// TestJSONEqualIsTypeAware pins the fix for a bug that LOOSENED the schema.
+// Comparing fmt.Sprintf("%v", ...) made the number 1 equal to the string "1",
+// so an enum of integers silently accepted strings - a validator accepting
+// more than its schema allows, while reporting success.
+func TestJSONEqualIsTypeAware(t *testing.T) {
+	if jsonEqual(float64(1), "1") {
+		t.Error("number 1 must not equal string \"1\"")
+	}
+	if jsonEqual(true, float64(1)) {
+		t.Error("bool must not equal number")
+	}
+	if !jsonEqual(float64(1), float64(1)) || !jsonEqual("a", "a") || !jsonEqual(nil, nil) {
+		t.Error("like values must compare equal")
+	}
+}
+
+// TestStringLengthCountsRunesNotBytes pins a divergence found by READING the
+// reference, not by running the oracle - none of its cases were non-ASCII.
+//
+// Python's len() on a str counts characters; Go's len() on a string counts
+// bytes. They agree only while the input is ASCII, and disagree in opposite
+// directions depending on which bound is checked: byte count >= rune count, so
+// Go was too permissive on minLength and too strict on maxLength.
+func TestStringLengthCountsRunesNotBytes(t *testing.T) {
+	// "café" - 4 characters, 5 bytes. Python sees 4.
+	const s = "caf\u00e9"
+	if len(s) != 5 || utf8.RuneCountInString(s) != 4 {
+		t.Fatalf("fixture assumption broken: %d bytes, %d runes",
+			len(s), utf8.RuneCountInString(s))
+	}
+
+	// minLength 5 must REJECT a 4-character string, even though it is 5 bytes.
+	schema := map[string]any{"type": "string", "minLength": float64(5)}
+	if err := validateSchema(s, schema, schema, "$"); err == nil {
+		t.Error("minLength 5 must reject a 4-character string (byte count would accept)")
+	}
+	// maxLength 4 must ACCEPT it, even though it is 5 bytes.
+	schema = map[string]any{"type": "string", "maxLength": float64(4)}
+	if err := validateSchema(s, schema, schema, "$"); err != nil {
+		t.Errorf("maxLength 4 must accept a 4-character string, got %v", err)
 	}
 }

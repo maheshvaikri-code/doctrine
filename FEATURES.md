@@ -15,7 +15,7 @@ about what it does.
 | `autonomous-verification` | **on** | The guard answers **`allow`** instead of abstaining on an ordinary file write (Write/Edit only — the guard no longer runs on Bash at all; see ADR-014). Run this repo's own fmt/lint/type/test/build and paste the real output. |
 | `prune-on-force` | **on** | `--force` reinstall deletes corpus files removed upstream (backed up first). `off` = copy-only, stale files persist. |
 | `drift-banner` | **on** | Warn every turn when the corpus on disk changed since this session started. |
-| `state-plane` | **on** | Keep hash-chained checkpoints and hydrate them at session start. |
+| `state-plane` | **on** | Hydrate the state plane automatically at session start (`hydrate --if-present`, the SessionStart hook). `off` = that hook is a silent no-op. It does **not** disable the state plane: `checkpoint`, `verify` and an explicit `hydrate` are deliberate acts and keep working, so a chain already on disk stays readable and verifiable. |
 | `orchestration-ceremony` | **off** | Multi-agent dispatch (`03-parallel-execution.md`) and multi-iteration loops (`skills/loop-engineering.md`) produce their full paperwork: work-package brief docs, loop-journal lines, formal `docs/` review/QA artifacts. `off` = skip the paperwork. Does **not** make the G4/G5 verifier panel optional — dispatching fresh-context `code-reviewer`/`security-reviewer`/`qa-engineer` costs no human friction (autonomous, no approval needed) and stays mandatory regardless; only its formal write-up is skippable. Does not touch the collision guard or the loop stop-rules either — see below. |
 
 ## The one condition on autonomy

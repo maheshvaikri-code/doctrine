@@ -24,7 +24,7 @@ import (
 
 const usage = `doctrineos - govern how work gets done, and prove it afterwards
 
-  doctrineos init [--target dir]  make a repo governed (idempotent)
+  doctrineos init [--target dir] [--prune]  make a repo governed (idempotent)
   doctrineos check                decide a PreToolUse payload (stdin JSON -> stdout JSON)
   doctrineos context [flags]      resolve which resources this task activates
   doctrineos gate --done          Definition-of-Done gate (Stop event)

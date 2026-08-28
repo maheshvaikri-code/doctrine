@@ -182,6 +182,20 @@ Python's own text mode exposed it. The fix is `pySplitLines`, applied at all
 four sites that split file content (the bug class, not the one instance), with
 a table-driven regression test.
 
+## A known parity gap, recorded rather than discovered later
+
+`FEATURES.md`'s `state-plane` toggle gates the automatic session-start
+hydration. It is wired in **Python only**, because the SessionStart hook runs
+`tools/doctrine_state.py` and Go has no `FEATURES.md` reader yet.
+
+So `dos hydrate --if-present` ignores the toggle where
+`doctrine_state.py hydrate --if-present` honours it. Today that is theoretical
+— no hook invokes the Go binary — but it is a real divergence between two
+implementations that every other oracle here holds byte-identical, and the
+honest place for it is a written note rather than a future afternoon spent
+rediscovering it. Closing it means porting the `FEATURES.md` parser, which is
+its own piece of work.
+
 ## What the oracles could not catch
 
 Two divergences were found by **reading the reference**, because no case in the

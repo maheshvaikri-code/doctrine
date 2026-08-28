@@ -126,14 +126,45 @@ def record_baseline(root: Path, session_id: str | None) -> bool:
     return True
 
 
+def banner_enabled(root: Path) -> bool:
+    """Is `drift-banner` on in this repo's FEATURES.md?
+
+    Default ON, matching every other narrowing toggle: a repo installed before
+    this switch existed must keep warning exactly as before rather than
+    silently losing the warning. Any failure - no module, no file, unreadable -
+    also answers True, because a config problem must not quietly disable a
+    staleness warning.
+    """
+    try:
+        # Resolve the sibling module from this file's own path rather than
+        # trusting sys.path (the idiom doctrine_guard already uses).
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import doctrine_features
+    except Exception:  # noqa: BLE001 - a hook must never crash on an import
+        return True
+    try:
+        return doctrine_features.is_on(root, "drift-banner", default=True)
+    except Exception:  # noqa: BLE001 - unreadable config keeps the warning
+        return True
+
+
 def drift_notice(root: Path, session_id: str | None) -> str:
     """"" normally; the STALE banner once the corpus moves under a session.
 
     Compares against the baseline SessionStart recorded. Keeps warning until
     the next SessionStart, because until the context is reloaded the session
     really is still acting on a stale copy.
+
+    FEATURES.md's `drift-banner` gates the WARNING ONLY, never the bookkeeping
+    in record_baseline. Gating the baseline too would mean switching the toggle
+    back on left no fingerprint to compare against, so the banner would stay
+    silent until the next SessionStart - a switch that appears not to work.
     """
     if session_id is None:
+        return ""
+    if not banner_enabled(root):
         return ""
     current = corpus_fingerprint(root)
     if current is None:

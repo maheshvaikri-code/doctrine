@@ -498,6 +498,39 @@ class TestHydrate(TempRepo):
         self.assertEqual(header["bundle_sha256"],
                          ds.sha256_bytes(body.encode("utf-8")))
 
+    def _features(self, state: str) -> None:
+        (self.root / "FEATURES.md").write_text(
+            "| Feature | Default | What it does |\n|---|---|---|\n"
+            f"| `state-plane` | **{state}** | hash-chained checkpoints |\n",
+            encoding="utf-8")
+
+    def test_state_plane_toggle_gates_only_the_automatic_path(self):
+        """Regression: FEATURES.md documented `state-plane` and NOTHING read it.
+
+        The toggle gates --if-present, which is what the SessionStart hook
+        uses and the only caller of it. An explicit hydrate is a deliberate
+        act and must keep working with the toggle off - a switch about
+        automatic behaviour has no business disabling a command the user typed
+        on purpose.
+        """
+        self.checkpoint()
+        self._features("off")
+        self.assertEqual(ds.cmd_hydrate(self.plane, if_present=True), 0)
+        self.assertFalse((self.plane.local / "hydration.bundle.md").exists(),
+                         "state-plane off must not hydrate at session start")
+
+        # explicit invocation still works, and still writes
+        self.assertEqual(ds.cmd_hydrate(self.plane), 0)
+        self.assertTrue((self.plane.local / "hydration.bundle.md").exists(),
+                        "an explicit hydrate must not be gated by the toggle")
+
+    def test_state_plane_defaults_on_without_features_md(self):
+        """No FEATURES.md must behave exactly as before the toggle existed."""
+        self.checkpoint()
+        self.assertFalse((self.root / "FEATURES.md").exists())
+        self.assertEqual(ds.cmd_hydrate(self.plane, if_present=True), 0)
+        self.assertTrue((self.plane.local / "hydration.bundle.md").exists())
+
     def test_refuses_broken_chain(self):
         """Regression: security P-2 — no hydration from tampered state."""
         self.checkpoint()

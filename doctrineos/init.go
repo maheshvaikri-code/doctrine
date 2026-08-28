@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -59,12 +59,26 @@ delivery = "solobuilder"
 	// 2. materialise the corpus so the agent reads ordinary repo-relative
 	//    paths - no host sandbox, no additionalDirectories, no junction.
 	dst := filepath.Join(CorpusDir(root), "kernel")
-	n, err := copyTree(src, dst)
+	st, err := syncTree(src, dst, hasFlag(args, "prune"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "doctrineos:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("  .doctrine/          materialised (%d files)\n", n)
+	fmt.Printf("  .doctrine/          %s\n", st.summary())
+	if len(st.stale) > 0 {
+		// Loud, because this is a CORRECTNESS problem and not untidiness:
+		// LoadResources walks the corpus directory and activates every .md
+		// carrying frontmatter, so a file left behind by an older version
+		// still fires. The repo would be running resources its pinned
+		// version does not ship.
+		fmt.Printf("\n  WARNING: %d file(s) in .doctrine/ are not part of version %s.\n",
+			len(st.stale), version)
+		fmt.Println("  They will still ACTIVATE - the corpus is scanned, not enumerated.")
+		for _, s := range st.stale {
+			fmt.Println("    -", s)
+		}
+		fmt.Println("  fix: doctrineos init --prune   (deletes exactly those files)")
+	}
 
 	// 3. gitignore the materialised corpus (thin mode). Managed block with
 	//    markers so a later `doctrineos thin/vendor` can find its own edit
@@ -86,9 +100,46 @@ delivery = "solobuilder"
 	fmt.Println("  next:   doctrineos status")
 }
 
-func copyTree(src, dst string) (int, error) {
-	count := 0
-	return count, filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
+// copyStats is what syncTree actually did, kept separate per outcome so the
+// report can say it. "materialised (300 files)" printed whether 300 files were
+// written or none were: an agent could not tell a fresh install from a no-op,
+// in the one step of init that was not honest about skipping.
+type copyStats struct {
+	written   int
+	updated   int
+	identical int
+	stale     []string
+}
+
+func (s copyStats) summary() string {
+	switch {
+	case s.written > 0 && s.updated == 0 && s.identical == 0:
+		return fmt.Sprintf("materialised (%d files)", s.written)
+	case s.written == 0 && s.updated == 0:
+		return fmt.Sprintf("verified (%d files, all current)", s.identical)
+	default:
+		return fmt.Sprintf("synced (%d new, %d updated, %d unchanged)",
+			s.written, s.updated, s.identical)
+	}
+}
+
+// syncTree materialises the corpus by VERIFYING before writing.
+//
+// The previous version rewrote every file on every run. That was wasteful, but
+// the worse part was the reporting: an unconditional overwrite cannot tell you
+// whether anything changed, so a re-run looked identical to a first install.
+// Comparing content first makes the common case a no-op AND makes the report
+// true.
+//
+// Files present in the destination but absent from the source are collected,
+// not silently ignored: the corpus is SCANNED by the activation engine, so a
+// leftover from an older version still fires. They are deleted only with
+// --prune, because deletion is the caller's decision to make.
+func syncTree(src, dst string, prune bool) (copyStats, error) {
+	var st copyStats
+	seen := map[string]bool{}
+
+	err := filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -97,25 +148,61 @@ func copyTree(src, dst string) (int, error) {
 		if info.IsDir() {
 			return os.MkdirAll(target, 0o755)
 		}
-		in, err := os.Open(p)
+		seen[filepath.ToSlash(rel)] = true
+
+		want, err := os.ReadFile(p)
 		if err != nil {
 			return err
 		}
-		defer in.Close()
+		if have, err := os.ReadFile(target); err == nil {
+			if string(have) == string(want) {
+				st.identical++
+				return nil
+			}
+			if err := os.WriteFile(target, want, 0o644); err != nil {
+				return err
+			}
+			st.updated++
+			return nil
+		}
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			return err
 		}
-		out, err := os.Create(target)
-		if err != nil {
+		if err := os.WriteFile(target, want, 0o644); err != nil {
 			return err
 		}
-		defer out.Close()
-		if _, err := io.Copy(out, in); err != nil {
-			return err
-		}
-		count++
+		st.written++
 		return nil
 	})
+	if err != nil {
+		return st, err
+	}
+
+	// Anything in dst that src does not have.
+	filepath.Walk(dst, func(p string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		rel, relErr := filepath.Rel(dst, p)
+		if relErr != nil {
+			return nil
+		}
+		if !seen[filepath.ToSlash(rel)] {
+			st.stale = append(st.stale, filepath.ToSlash(rel))
+		}
+		return nil
+	})
+	sort.Strings(st.stale)
+
+	if prune {
+		for _, rel := range st.stale {
+			if err := os.Remove(filepath.Join(dst, filepath.FromSlash(rel))); err != nil {
+				return st, err
+			}
+		}
+		st.stale = nil
+	}
+	return st, nil
 }
 
 const gitBegin = "# >>> doctrineos (managed) >>>"

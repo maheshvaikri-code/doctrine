@@ -117,6 +117,60 @@ class TestCorpusDrift(unittest.TestCase):
             "x\n", "utf-8")
         (root / ".Doctrine" / "skills" / "testing.md").write_text("x\n", "utf-8")
 
+    def _features(self, root: Path, state: str) -> None:
+        (root / "FEATURES.md").write_text(
+            "| Feature | Default | What it does |\n|---|---|---|\n"
+            f"| `drift-banner` | **{state}** | warn on drift |\n", "utf-8")
+
+    def test_drift_banner_toggle_is_actually_wired(self):
+        """Regression: FEATURES.md documented `drift-banner` and NOTHING read it.
+
+        doctrine_engage emitted the banner unconditionally, so a user who set
+        the toggle off got the banner anyway. A switch that does nothing is
+        worse than no switch: the user believes it took effect and stops
+        looking for another way to silence it.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            self._features(root, "off")
+            eng.record_baseline(root, "s-off")
+            (root / ".Doctrine.md").write_text("# doctrine v2\n", "utf-8")
+            self.assertEqual(eng.drift_notice(root, "s-off"), "",
+                             "drift-banner off must suppress the banner")
+
+    def test_drift_banner_defaults_on_without_features_md(self):
+        """A repo with no FEATURES.md must keep warning.
+
+        Default-on matters for a narrowing switch: a repo installed before the
+        toggle existed must not silently lose a staleness warning.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)                    # deliberately no FEATURES.md
+            eng.record_baseline(root, "s-default")
+            (root / ".Doctrine.md").write_text("# doctrine v2\n", "utf-8")
+            self.assertIn("STALE", eng.drift_notice(root, "s-default"))
+
+    def test_drift_banner_off_still_records_the_baseline(self):
+        """Gating the WARNING must not gate the BOOKKEEPING.
+
+        If `off` also skipped record_baseline, switching the toggle back on
+        would leave no fingerprint to compare against, so the banner would stay
+        silent until the next SessionStart - a switch that looks broken.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._corpus(root)
+            self._features(root, "off")
+            self.assertTrue(eng.record_baseline(root, "s-book"))
+            (root / ".Doctrine.md").write_text("# doctrine v2\n", "utf-8")
+            self.assertEqual(eng.drift_notice(root, "s-book"), "")
+
+            self._features(root, "on")            # user flips it back
+            self.assertIn("STALE", eng.drift_notice(root, "s-book"),
+                          "turning the toggle on must work without a restart")
+
     def test_first_turn_records_baseline_and_stays_quiet(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

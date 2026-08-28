@@ -877,8 +877,44 @@ def emit_agents_block(plane: Plane, deterministic_header: str,
         print("AGENTS.md state block already current")
 
 
+def state_plane_enabled(repo: Path) -> bool:
+    """Is `state-plane` on in this repo's FEATURES.md?
+
+    Default ON: a repo installed before the toggle existed must keep hydrating
+    exactly as before. Any failure - no module, no file, unreadable - also
+    answers True, because a config problem must not silently stop a session
+    from being handed its own history.
+    """
+    try:
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import doctrine_features
+    except Exception:  # noqa: BLE001 - a hook must never crash on an import
+        return True
+    try:
+        return doctrine_features.is_on(repo, "state-plane", default=True)
+    except Exception:  # noqa: BLE001 - unreadable config keeps the behaviour
+        return True
+
+
 def cmd_hydrate(plane: Plane, check: bool = False,
                 if_present: bool = False, emit_agents: bool = False) -> int:
+    # FEATURES.md's `state-plane` gates the AUTOMATIC session-start hydration
+    # only, which is exactly what --if-present marks: it is used by the
+    # SessionStart hook and nothing else.
+    #
+    # An explicit `hydrate`, `checkpoint` or `verify` is a deliberate act and
+    # stays available with the toggle off. Gating those too would mean a switch
+    # about automatic behaviour silently disabled the commands a user typed on
+    # purpose - and would make `verify` unrunnable on a plane that already
+    # exists, which is the opposite of what anyone turning this off wants.
+    #
+    # Silent by design: this runs at SessionStart, whose stdout lands in the
+    # agent's context every session. "Off" should cost nothing, including
+    # nothing to read.
+    if if_present and not state_plane_enabled(plane.repo):
+        return 0
     if not plane.checkpoint.exists():
         if if_present:
             print("no state plane checkpoint - nothing to hydrate")

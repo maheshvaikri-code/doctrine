@@ -29,6 +29,7 @@ const usage = `doctrineos - govern how work gets done, and prove it afterwards
   doctrineos context [flags]      resolve which resources this task activates
   doctrineos gate --done          Definition-of-Done gate (Stop event)
   doctrineos checkpoint --proposal f  write a checkpoint (propose/dispose)
+  doctrineos hydrate [--check]    build the context bundle for the next session
   doctrineos verify               walk the state chain (tamper-evident, not tamper-proof)
   doctrineos canon [--hash]       canonical bytes of stdin JSON (chain encoding)
   doctrineos gold-chain           order the gold ladder, or refuse a broken one
@@ -66,6 +67,8 @@ func main() {
 		cmdGoldPin(os.Args[2:])
 	case "checkpoint":
 		cmdCheckpoint(os.Args[2:])
+	case "hydrate":
+		cmdHydrate(os.Args[2:])
 	case "status":
 		cmdStatus()
 	case "-h", "--help", "help":

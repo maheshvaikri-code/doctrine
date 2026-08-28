@@ -10,6 +10,7 @@ python canon_diff.py      # canonical bytes, byte-for-byte, 15 shapes
 python tamper_diff.py     # chain findings on 13 mutations of a real chain
 python gold_diff.py       # gold ladder topology + content pinning
 python interop_diff.py    # chains WRITTEN by one, verified by the other
+python hydrate_diff.py    # bundle bodies, byte for byte
 ```
 
 They need `dos` (or `dos.exe`) built first:

@@ -202,7 +202,7 @@ func unresolvedEffectCount(pl plane) int {
 		if err != nil {
 			continue
 		}
-		for _, line := range strings.Split(string(raw), "\n") {
+		for _, line := range pySplitLines(string(raw)) {
 			if strings.TrimSpace(line) == "" {
 				continue
 			}

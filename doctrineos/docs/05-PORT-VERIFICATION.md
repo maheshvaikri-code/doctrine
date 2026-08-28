@@ -26,6 +26,7 @@ Three oracles, each aimed at a different layer:
 | `tamper_diff.py` | chain findings on a mutated real chain | 13 |
 | `gold_diff.py` | gold ladder topology + content pinning | 16 |
 | `interop_diff.py` | **acceptance** of written chains, both ways | 11 |
+| `hydrate_diff.py` | bundle bodies, byte for byte | 7 |
 
 Two rules make these worth more than their case counts suggest.
 
@@ -147,6 +148,40 @@ parse error (CPython describing its own failure, which no port reproduces) and
 absolute temp paths. Nothing else. Relaxing more would let a real divergence
 hide inside the normalisation, which is how an oracle quietly stops being one.
 
+## Hydration: the strictest comparison available
+
+The hydration bundle body is deterministic by design - no timestamps, no map
+iteration, nothing that varies between runs over identical state. That makes it
+the one artifact here comparable the strictest possible way, so `hydrate_diff.py`
+compares it **byte for byte** and nothing weaker.
+
+The stakes justify it. The bundle is what the next agent *believes*. A section
+trimmed in one implementation and not the other, a staleness marker present in
+one and missing in the other, and two agents resume the same repo holding
+different pictures of it - while both report success. No later gate catches
+that.
+
+The real repo is the best fixture and is checked first: 31 checkpoints, and
+enough content to fire **both** the degradation and staleness paths that
+synthetic cases reach only by construction.
+
+```text
+THIS REPO (31 checkpoints)  10342 bytes, trimmed=distillate, stale=control,distillate
+```
+
+**The bug it caught was invisible on the happy path.** `extractSections` split
+on `"
+"`, so on a CRLF source every line kept its trailing `` and rejoining
+with `"
+"` reproduced CRLF where Python's `splitlines()` had stripped it. Go
+and Python emitted **different bundles from identical state** - and because the
+body's hash goes in the header, that is an interop break, not a formatting nit.
+
+It hid because the real repo's files are LF; only a fixture written through
+Python's own text mode exposed it. The fix is `pySplitLines`, applied at all
+four sites that split file content (the bug class, not the one instance), with
+a table-driven regression test.
+
 ## What the oracles could not catch
 
 Two divergences were found by **reading the reference**, because no case in the
@@ -182,7 +217,7 @@ better than they were:
 ## Current state
 
 ```text
-Go suite                  30/30
+Go suite                  33/33
 guard differential        24/24  decisions agree
 canonical bytes           15/15  byte-identical
 chain findings            13/13  verdicts AND finding text identical
@@ -190,6 +225,7 @@ schema-only control        3/3   pass pre-schema binary, fail current
 missing schema             both exit 2, same message (cannot-run, not a finding)
 gold topology             11/11  + content pinning 5/5
 interop (write path)      11/11  incl. interleaved Go/Python chains
+hydration bundles          7/7   BYTE-identical, incl. this repo's real plane
 determinism                1 distinct output across 5 runs, two bad fields
 ```
 

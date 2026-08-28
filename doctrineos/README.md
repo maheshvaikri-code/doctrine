@@ -40,6 +40,12 @@ doctrineos status               what is pinned, installed, and materialised
 
 ## The three mechanisms
 
+**Activation.** `context` computes which resources a task needs instead of
+asking the model to consult a table. The kernel ships **29 resources** — skills,
+standards and lenses — each declaring what fires it and what that costs. A weak
+signal (a keyword in the task) may hand you a document; only a deterministic
+one may make you adopt a lens. See [`kernel/README.md`](kernel/README.md).
+
 **Memory.** An agent resets to zero every session, so continuity lives outside
 it: hash-chained checkpoints, a distillate of what was learned and what failed,
 and a deterministic bundle the next session reads. `checkpoint` writes it,
@@ -59,11 +65,12 @@ mechanism**; containment there is a sandbox's job, a layer down.
 
 | Ported, oracle-verified | Not ported |
 | --- | --- |
-| state chain: `checkpoint`, `verify`, `hydrate` | the role/skill corpus beyond a small kernel |
-| canonical bytes (the chain encoding) | `doctrine_install`, fleet, metrics, lint, dashboard |
-| gold ladder topology + content pinning | gold `record`/`check` (git + GPG surfaces) |
-| the `PreToolUse` guard decision | `FEATURES.md` toggles (Python-only today) |
-| the activation engine (`context`) | |
+| state chain: `checkpoint`, `verify`, `hydrate` | `doctrine_install`, fleet, metrics, lint, dashboard |
+| canonical bytes (the chain encoding) | gold `record`/`check` (git + GPG surfaces) |
+| gold ladder topology + content pinning | `FEATURES.md` toggles (Python-only today) |
+| the `PreToolUse` guard decision | |
+| the activation engine (`context`) | roles, domain overlays, templates |
+| a 29-resource kernel (skills, standards, lenses) | the other 167 corpus files |
 
 Known divergences are recorded in
 [`docs/05-PORT-VERIFICATION.md`](docs/05-PORT-VERIFICATION.md) rather than left

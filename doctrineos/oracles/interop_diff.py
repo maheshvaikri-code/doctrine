@@ -20,17 +20,16 @@ byte of encoder drift anywhere in the chain breaks every link after it - and
 breaks it in the way that is indistinguishable from tampering.
 """
 import json
-import os
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-EXE = ".exe" if os.name == "nt" else ""
-GO = REPO / "doctrineos" / ("dos" + EXE)
+import _locate
+
+REPO = _locate.reference_tools()      # doctrine checkout (also puts tools/ on path)
+GO = _locate.require_binary()
 PY = REPO / "tools" / "doctrine_state.py"
 
 

@@ -17,20 +17,19 @@ trigger BOTH the degradation and staleness paths, which synthetic fixtures
 reach only by construction.
 """
 import json
-import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-EXE = ".exe" if os.name == "nt" else ""
-GO = REPO / "doctrineos" / ("dos" + EXE)
+import _locate
+
+REPO = _locate.reference_tools()      # doctrine checkout (also puts tools/ on path)
+GO = _locate.require_binary()
 PY = REPO / "tools" / "doctrine_state.py"
 
-sys.path.insert(0, str(REPO / "tools"))
-import doctrine_state as ds  # the reference implementation
+import doctrine_state as ds  # noqa: E402 - needs _locate's sys.path first
 
 
 def go_body(root):

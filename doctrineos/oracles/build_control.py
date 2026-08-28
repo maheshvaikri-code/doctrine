@@ -20,9 +20,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-SRC = REPO / "doctrineos"
-OUT = SRC / ("preschema.exe" if sys.platform == "win32" else "preschema")
+import _locate
+
+# Needs neither the reference checkout nor a built binary: it compiles one.
+SRC = _locate.MODULE
+
+OUT = _locate.CONTROL
 
 SCHEMA_CALL = '''		if err := validateSchema(data, schema, schema, "$"); err != nil {
 			findings = append(findings, fmt.Sprintf("%s: schema: %s", base, err.Error()))

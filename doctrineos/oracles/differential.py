@@ -15,17 +15,13 @@ of this file were refused by the v1 guard - once for a private-key marker,
 once for a quoted PASSWORD assignment. Both refusals were correct.
 """
 import json
-import os
 import subprocess
 import sys
-from pathlib import Path
 
-# Repo root derived from this file's own location, never hardcoded: an
-# oracle that only runs on the machine that wrote it verifies nothing for
-# anyone else.
-REPO = Path(__file__).resolve().parents[2]
-EXE = ".exe" if os.name == "nt" else ""
-GO = REPO / "doctrineos" / ("dos" + EXE)
+import _locate
+
+REPO = _locate.reference_tools()      # doctrine checkout (also puts tools/ on path)
+GO = _locate.require_binary()
 PY = REPO / "tools" / "doctrine_guard.py"
 
 AWS = "AKIA" + "IOSFODNN7EXAMPLE"

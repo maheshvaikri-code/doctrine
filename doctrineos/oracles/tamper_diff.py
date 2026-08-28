@@ -17,7 +17,6 @@ isolates the schema rule, so it is now tested directly, and against a binary
 built WITHOUT the rule to confirm the case can actually fail.
 """
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -25,19 +24,17 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Repo root derived from this file's own location, never hardcoded: an
-# oracle that only runs on the machine that wrote it verifies nothing for
-# anyone else.
-REPO = Path(__file__).resolve().parents[2]
-EXE = ".exe" if os.name == "nt" else ""
-GO = REPO / "doctrineos" / ("dos" + EXE)
+import _locate
+
+REPO = _locate.reference_tools()      # doctrine checkout (also puts tools/ on path)
+GO = _locate.require_binary()
+CONTROL = _locate.CONTROL   # optional pre-schema control binary
 PY = REPO / "tools" / "doctrine_state.py"
 CP_RE = re.compile(r"^(\d+)-[0-9a-f]{12}\.json$")
 
 # Optional control: a Go binary built WITHOUT the schema rule. When present,
 # the schema-only cases must come back OK from it, proving they are genuine
 # regression tests rather than cases that pass no matter what.
-CONTROL = REPO / "doctrineos" / ("preschema" + EXE)
 
 
 def fresh():

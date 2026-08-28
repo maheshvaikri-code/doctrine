@@ -19,7 +19,27 @@ They need `dos` (or `dos.exe`) built first:
 cd .. && go build -o dos .
 ```
 
-Paths are derived from each file's own location, so they run from anywhere.
+## Two layouts, one set of files
+
+These oracles hold Go to Python, so they need **both**. That is easy while
+doctrineos lives inside the doctrine tree and awkward once it does not - and it
+must never become a reason to drop them, because they are the only evidence the
+port is faithful.
+
+`_locate.py` resolves both layouts:
+
+| layout | reference found via |
+| --- | --- |
+| in-tree `<doctrine>/doctrineos/oracles/` | `../../tools` |
+| standalone `<doctrineos>/oracles/` | `$DOCTRINE_REF`, or a sibling `../doctrine` checkout |
+
+```
+DOCTRINE_REF=/path/to/doctrine python hydrate_diff.py
+```
+
+With no reference found, they **exit 2** naming what to do. They never fall
+back to comparing Go against itself - a harness that does that reports perfect
+agreement while proving nothing.
 
 ## The control binary
 

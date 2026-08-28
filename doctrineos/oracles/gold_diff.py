@@ -13,19 +13,17 @@ differently teach a reader to trust neither.
 import hashlib
 import json
 import re
-import os
 import shutil
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
-EXE = ".exe" if os.name == "nt" else ""
-GO = REPO / "doctrineos" / ("dos" + EXE)
 
-sys.path.insert(0, str(REPO / "tools"))
-import doctrine_gold as G  # the reference implementation
+import _locate
+
+REPO = _locate.reference_tools()      # doctrine checkout (also puts tools/ on path)
+GO = _locate.require_binary()
+import doctrine_gold as G  # noqa: E402 - needs _locate's sys.path first
 
 
 def sha(b):

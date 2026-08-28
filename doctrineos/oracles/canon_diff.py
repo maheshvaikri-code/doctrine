@@ -11,20 +11,14 @@ So the cases below are chosen to be exactly where two JSON encoders are most
 likely to disagree, not where they are most likely to agree.
 """
 import json
-import os
 import subprocess
-import sys
-from pathlib import Path
 
-# Repo root derived from this file's own location, never hardcoded: an
-# oracle that only runs on the machine that wrote it verifies nothing for
-# anyone else.
-REPO = Path(__file__).resolve().parents[2]
-EXE = ".exe" if os.name == "nt" else ""
-GO = REPO / "doctrineos" / ("dos" + EXE)
 
-sys.path.insert(0, str(REPO / "tools"))
-import doctrine_state as ds  # the reference implementation
+import _locate
+
+REPO = _locate.reference_tools()      # doctrine checkout (also puts tools/ on path)
+GO = _locate.require_binary()
+import doctrine_state as ds  # noqa: E402 - needs _locate's sys.path first
 
 CASES = {
     "flat object":          {"b": 2, "a": 1},

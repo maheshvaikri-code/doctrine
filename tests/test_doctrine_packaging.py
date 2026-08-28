@@ -73,6 +73,18 @@ def yaml_title_colon_violations(text):
     return violations
 
 
+def _can_symlink():
+    """Windows needs Developer Mode or admin rights to create symlinks."""
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d) / "t"
+            target.mkdir()
+            os.symlink(target, Path(d) / "l", target_is_directory=True)
+        return True
+    except (OSError, NotImplementedError):
+        return False
+
+
 class TestInstaller(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -826,6 +838,47 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(di.install(REPO, REPO / "consumer", ["claude"],
                                     False, False, False), 2)
         self.assertFalse((REPO / "consumer").exists())
+
+    def test_source_nested_inside_target_refused(self):
+        """The nesting guard has TWO clauses; only one was exercised.
+
+        `src_res in tgt_res.parents` (source contains target) was covered by
+        test_nested_source_target_refused. The mirror clause,
+        `tgt_res in src_res.parents` - installing a source tree INTO its own
+        parent - had no test, so half the guard was load-bearing on inspection
+        alone. Same self-ingestion class: the parent then contains a corpus
+        that re-ingests itself on the next run.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            source = target / "inner-doctrine"
+            source.mkdir()
+            (source / ".Doctrine.md").write_text("# law\n", encoding="utf-8")
+            self.assertEqual(
+                di.install(source, target, ["claude"], False, False, False), 2)
+            # refused BEFORE any write: the parent gained nothing
+            self.assertEqual({p.name for p in target.iterdir()},
+                             {"inner-doctrine"})
+
+    @unittest.skipUnless(_can_symlink(), "symlink creation not permitted here")
+    def test_symlinked_target_pointing_at_source_refused(self):
+        """`.resolve()` is what makes the guard hold, and nothing tested it.
+
+        A target that is merely a SYMLINK into the source compares unequal by
+        name, so a guard written on the literal paths would wave it through
+        and the installer would ingest its own tree. Resolving both sides
+        first is the reason it does not - which is worth a test, because a
+        later refactor that drops `.resolve()` breaks nothing else visible.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src"
+            source.mkdir()
+            (source / ".Doctrine.md").write_text("# law\n", encoding="utf-8")
+            link = Path(tmp) / "link-to-src"
+            os.symlink(source, link, target_is_directory=True)
+            self.assertNotEqual(str(source), str(link))
+            self.assertEqual(
+                di.install(source, link, ["claude"], False, False, False), 2)
 
     def test_installer_ships_every_tool(self):
         """Regression: doctrine_metrics.py was added in v0.6.1 but never

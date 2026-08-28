@@ -475,9 +475,25 @@ def install(source: Path, target: Path, tools: list[str],
 
     write_managed_block(target / ".gitignore", gitignore_block(tools, local),
                         report, target)
-    # MAPLE is the universal workforce selection. The legacy ``maple``
-    # argument is intentionally accepted for API/CLI compatibility; append_lines
-    # keeps the marker singular on both old and new invocations.
+    # Declaring MAPLE by default is a DECISION, not an oversight: ADR-009
+    # ("Personal delivery profile and default MAPLE selection", accepted,
+    # deciders Chief Architect + human) states "Every installation will declare
+    # `Workforce runtime: maple`", and its governance disposition records that
+    # the human explicitly selected it. Doctrine still installs, vendors and
+    # imports nothing, and falls back to native subagents or serial roles when
+    # the runtime is absent.
+    #
+    # The citation is load-bearing. This block previously read "MAPLE is the
+    # universal workforce selection" with no pointer to ADR-009 - which
+    # overstates the ADR ("default", not "universal") and reads as a
+    # contradiction of `.Doctrine.md` §4 ("one runtime among many"). A later
+    # reader, finding no decision record here, filed it as a defect and came
+    # close to reversing a human's choice as a drive-by fix. Anyone who thinks
+    # this line is wrong should take it up with ADR-009, not with this comment.
+    #
+    # The legacy ``maple`` argument is intentionally accepted for API/CLI
+    # compatibility; append_lines keeps the marker singular on both old and new
+    # invocations.
     brief_lines = ["Workforce runtime: maple"]
     if enterprise:
         brief_lines.append("Merge profile: enterprise")

@@ -1,6 +1,7 @@
 ---
 on: ["path:**/prompts/**", "path:**/evals/**", "intent:llm|prompt|rag|eval|embedding|guardrail"]
 cost: read
+provides: skill
 ---
 
 # Skill: ML Engineering

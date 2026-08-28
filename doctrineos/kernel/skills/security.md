@@ -1,6 +1,7 @@
 ---
-on: ["path:**/auth/**", "path:**/*credential*", "path:.env*", "path:**/*secret*", "intent:auth|secret|token|credential|injection"]
+on: ["path:**/auth/**", "path:**/auth.*", "path:**/*credential*", "path:.env*", "path:**/*secret*", "intent:auth|secret|token|credential|injection"]
 cost: read
+provides: skill
 ---
 
 # Skill: Security

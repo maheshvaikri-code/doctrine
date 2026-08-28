@@ -1,6 +1,7 @@
 ---
 on: ["intent:error|exception|failure|retry|timeout|panic"]
 cost: read
+provides: standard
 ---
 
 # Standard: Error Handling

@@ -1,6 +1,7 @@
 ---
 on: ["path:.github/workflows/**", "path:.gitlab-ci.yml", "path:**/Jenkinsfile", "repo:ci-actions", "intent:pipeline|workflow|release|deploy"]
 cost: read
+provides: skill
 ---
 
 # Skill: CI/CD

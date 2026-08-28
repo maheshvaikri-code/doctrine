@@ -1,6 +1,7 @@
 ---
 on: ["intent:commit|branch|pull request|rebase|cherry-pick"]
 cost: read
+provides: standard
 ---
 
 # Standard: Git Conventions

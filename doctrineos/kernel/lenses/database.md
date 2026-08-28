@@ -1,6 +1,7 @@
 ---
 on: ["path:migrations/**", "path:**/*.sql", "path:**/schema.*"]
 cost: adopt
+provides: lens
 ---
 
 # Skill: Database

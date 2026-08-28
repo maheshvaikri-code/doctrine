@@ -1,6 +1,7 @@
 ---
 on: ["path:**/*.tf", "path:**/*.tfvars", "repo:terraform", "intent:terraform|provision|infrastructure as code"]
 cost: read
+provides: skill
 ---
 
 # Skill: Infrastructure as Code

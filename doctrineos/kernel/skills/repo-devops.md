@@ -1,6 +1,7 @@
 ---
 on: ["path:Makefile", "path:scripts/**", "path:.gitignore", "path:**/Dockerfile", "repo:docker", "intent:tooling|hook|scaffold"]
 cost: read
+provides: skill
 ---
 
 # Skill: Repo DevOps

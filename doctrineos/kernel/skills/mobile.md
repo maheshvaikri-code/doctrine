@@ -1,6 +1,7 @@
 ---
 on: ["path:**/*.swift", "path:**/*.kt", "path:ios/**", "path:android/**", "intent:ios|android|mobile app"]
 cost: read
+provides: skill
 ---
 
 # Skill: Mobile

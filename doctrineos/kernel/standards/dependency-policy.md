@@ -1,6 +1,7 @@
 ---
 on: ["path:package.json", "path:requirements.txt", "path:go.mod", "path:Cargo.toml", "path:pyproject.toml", "path:**/go.sum", "intent:dependency|library|package|vendor"]
 cost: read
+provides: standard
 ---
 
 # Standard: Dependency Policy

@@ -41,8 +41,9 @@ doctrineos status               what is pinned, installed, and materialised
 ## The three mechanisms
 
 **Activation.** `context` computes which resources a task needs instead of
-asking the model to consult a table. The kernel ships **29 resources** — skills,
-standards and lenses — each declaring what fires it and what that costs. A weak
+asking the model to consult a table. The kernel ships **45 resources** — skills,
+standards, roles and lenses — each declaring what fires it and what that costs.
+A `UserPromptSubmit` hook runs it every turn. A weak
 signal (a keyword in the task) may hand you a document; only a deterministic
 one may make you adopt a lens. See [`kernel/README.md`](kernel/README.md).
 
@@ -69,8 +70,9 @@ mechanism**; containment there is a sandbox's job, a layer down.
 | canonical bytes (the chain encoding) | gold `record`/`check` (git + GPG surfaces) |
 | gold ladder topology + content pinning | `FEATURES.md` toggles (Python-only today) |
 | the `PreToolUse` guard decision | |
-| the activation engine (`context`) | roles, domain overlays, templates |
-| a 29-resource kernel (skills, standards, lenses) | the other 167 corpus files |
+| the activation engine (`context`) | templates (instantiated, fit no cost tier) |
+| a 45-resource kernel (skills, standards, roles, lenses) | the other 151 corpus files |
+| activation wired to `UserPromptSubmit` | `compose` (domains) and `dispatch` (subagents): 0 resources |
 
 Known divergences are recorded in
 [`docs/05-PORT-VERIFICATION.md`](docs/05-PORT-VERIFICATION.md) rather than left

@@ -116,3 +116,53 @@ func TestSyncTreeReportsStaleFiles(t *testing.T) {
 		t.Error("--prune must not touch current files")
 	}
 }
+
+// TestHooksWireTheActivationEngine.
+//
+// `init` wired `check` and `gate --done` but nothing that calls `context`, so
+// a governed repo materialised a corpus no turn ever consulted - an activation
+// model with no activation. This pins all three, and pins the merge behaviour
+// that keeps a consumer's own hooks intact.
+func TestHooksWireTheActivationEngine(t *testing.T) {
+	root := t.TempDir()
+
+	// a repo that already has its own unrelated hook
+	claude := filepath.Join(root, ".claude")
+	if err := os.MkdirAll(claude, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	existing := `{"hooks":{"PostToolUse":[{"matcher":"Write","hooks":[{"type":"command","command":"my-formatter"}]}]}}`
+	if err := os.WriteFile(filepath.Join(claude, "settings.json"), []byte(existing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ensureHooks(root); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(claude, "settings.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(b)
+
+	for _, want := range []string{
+		"doctrineos check",          // PreToolUse - refusal
+		"doctrineos gate --done",    // Stop - definition of done
+		"doctrineos context --hook", // UserPromptSubmit - ACTIVATION
+		"UserPromptSubmit",
+		"my-formatter", // the consumer's own hook must survive
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("settings.json missing %q", want)
+		}
+	}
+
+	// idempotent: a second init must not duplicate the wiring
+	if err := ensureHooks(root); err != nil {
+		t.Fatal(err)
+	}
+	b2, _ := os.ReadFile(filepath.Join(claude, "settings.json"))
+	if strings.Count(string(b2), "doctrineos context --hook") != 1 {
+		t.Error("re-running init duplicated the activation hook")
+	}
+}

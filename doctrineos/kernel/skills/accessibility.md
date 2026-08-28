@@ -1,6 +1,7 @@
 ---
 on: ["path:**/*.tsx", "path:**/*.jsx", "path:**/*.html", "path:**/*.vue", "intent:accessib|a11y|screen reader|wcag|keyboard nav"]
 cost: read
+provides: skill
 ---
 
 # Skill: Accessibility

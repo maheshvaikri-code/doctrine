@@ -1,6 +1,7 @@
 ---
 on: ["class:M|L", "intent:review|slop|verify the code"]
 cost: read
+provides: skill
 ---
 
 # Skill: AI-Slop Detection

@@ -1,6 +1,7 @@
 ---
 on: ["path:migrations/**", "path:**/schema.*", "path:**/*.sql", "intent:migration|schema|query|index"]
 cost: read
+provides: skill
 ---
 
 # Skill: Database

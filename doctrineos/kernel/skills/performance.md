@@ -1,6 +1,7 @@
 ---
 on: ["intent:performance|slow|latency|benchmark|optimi|profil"]
 cost: read
+provides: skill
 ---
 
 # Skill: Performance

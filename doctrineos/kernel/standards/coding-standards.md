@@ -1,6 +1,7 @@
 ---
 on: ["path:**/*.py", "path:**/*.go", "path:**/*.ts", "path:**/*.js", "path:**/*.rs", "path:**/*.java", "class:M|L"]
 cost: read
+provides: standard
 ---
 
 # Standard: Coding Standards

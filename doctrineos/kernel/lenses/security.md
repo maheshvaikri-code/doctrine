@@ -1,6 +1,7 @@
 ---
-on: ["path:**/auth/**", "path:.env*", "path:**/*credential*", "path:**/*secret*"]
+on: ["path:**/auth/**", "path:**/auth.*", "path:.env*", "path:**/*credential*", "path:**/*secret*"]
 cost: adopt
+provides: lens
 ---
 
 # Skill: Security

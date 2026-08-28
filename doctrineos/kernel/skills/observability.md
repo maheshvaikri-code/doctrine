@@ -1,6 +1,7 @@
 ---
 on: ["intent:logging|metrics|tracing|observab|telemetry|alert"]
 cost: read
+provides: skill
 ---
 
 # Skill: Observability

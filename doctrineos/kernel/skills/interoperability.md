@@ -1,6 +1,7 @@
 ---
 on: ["path:**/*.proto", "path:**/openapi*", "intent:protocol|serializ|ffi|binding|wire format"]
 cost: read
+provides: skill
 ---
 
 # Skill: Interoperability

@@ -1,6 +1,7 @@
 ---
-on: ["path:**/dags/**", "path:**/pipelines/**", "intent:pipeline|warehouse|backfill|etl|streaming"]
+on: ["path:**/dags/**", "path:**/pipelines/**", "intent:data pipeline|warehouse|backfill|etl|streaming|ingest"]
 cost: read
+provides: skill
 ---
 
 # Skill: Data Engineering

@@ -1,6 +1,7 @@
 ---
 on: ["path:**/api/**", "path:**/openapi*", "path:**/*.proto", "intent:api|endpoint|contract|versioning"]
 cost: read
+provides: standard
 ---
 
 # Standard: API Design

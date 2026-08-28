@@ -1,6 +1,7 @@
 ---
 on: ["intent:sandbox|isolat|blast radius|untrusted|egress"]
 cost: read
+provides: skill
 ---
 
 # Skill: Sandboxing & Isolation

@@ -1,6 +1,7 @@
 ---
 on: ["path:**/components/**", "path:**/*.css", "intent:ui|component|frontend|cli ergonomics|tui"]
 cost: read
+provides: skill
 ---
 
 # Skill: UI (web, TUI, and CLI ergonomics)

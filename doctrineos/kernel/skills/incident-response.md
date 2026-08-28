@@ -1,6 +1,7 @@
 ---
 on: ["intent:incident|outage|production down|postmortem|sev"]
 cost: read
+provides: skill
 ---
 
 # Skill: Incident Response

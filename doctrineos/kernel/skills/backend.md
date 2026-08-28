@@ -1,6 +1,7 @@
 ---
 on: ["path:**/handlers/**", "path:**/services/**", "path:**/controllers/**", "intent:service|handler|business logic"]
 cost: read
+provides: skill
 ---
 
 # Skill: Backend

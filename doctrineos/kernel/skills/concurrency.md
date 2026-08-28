@@ -1,6 +1,7 @@
 ---
 on: ["intent:concurren|thread|async|race condition|deadlock|mutex"]
 cost: read
+provides: skill
 ---
 
 # Skill: Concurrency & Async

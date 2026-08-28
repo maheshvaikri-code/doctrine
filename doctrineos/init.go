@@ -258,6 +258,9 @@ func ensureHooks(root string) error {
 	}
 	add("PreToolUse", "Write|Edit|MultiEdit|NotebookEdit", "doctrineos check")
 	add("Stop", "", "doctrineos gate --done")
+	// The activation engine's caller. Without it a governed repo materialises
+	// a corpus that nothing ever consults - which is what shipped until now.
+	add("UserPromptSubmit", "", "doctrineos context --hook")
 	settings["hooks"] = hooks
 
 	b, err := json.MarshalIndent(settings, "", "  ")

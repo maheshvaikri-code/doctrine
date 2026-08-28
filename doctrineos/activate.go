@@ -66,6 +66,17 @@ type Resource struct {
 	Name string   // basename without extension
 	On   []string // signal expressions: "path:migrations/**", "intent:schema"
 	Cost Cost
+	// Provides is WHAT KIND of thing this is - skill, lens, role, overlay.
+	//
+	// Cost alone is not enough, and the gap is not cosmetic. A role and a lens
+	// both cost `adopt`, but they compose differently: lenses STACK (each adds
+	// load paths and narrows write scope), while roles are worn ONE AT A TIME
+	// and announced (02-role-protocol). Emitting both under a single "adopt"
+	// list tells an agent to put on four hats at once.
+	//
+	// The field was in the activation spec from the start and simply was not
+	// parsed, so every resource was implicitly a skill.
+	Provides string
 }
 
 // TaskContext is everything the engine gets to reason from.
@@ -180,7 +191,7 @@ func parseFrontmatter(path string) (Resource, bool) {
 	}
 	defer f.Close()
 
-	r := Resource{Path: path, Cost: CostRead,
+	r := Resource{Path: path, Cost: CostRead, Provides: "skill",
 		Name: strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))}
 	sc := bufio.NewScanner(f)
 	if !sc.Scan() || strings.TrimSpace(sc.Text()) != "---" {
@@ -208,6 +219,8 @@ func parseFrontmatter(path string) (Resource, bool) {
 			}
 		case "cost":
 			r.Cost = Cost(strings.Trim(val, `"`))
+		case "provides":
+			r.Provides = strings.Trim(val, `"`)
 		}
 	}
 	return r, got

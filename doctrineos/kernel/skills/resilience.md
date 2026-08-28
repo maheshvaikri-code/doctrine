@@ -1,6 +1,7 @@
 ---
 on: ["intent:retry|circuit breaker|feature flag|rollout|backoff"]
 cost: read
+provides: skill
 ---
 
 # Skill: Resilience

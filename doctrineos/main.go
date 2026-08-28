@@ -17,8 +17,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -27,6 +29,7 @@ const usage = `doctrineos - govern how work gets done, and prove it afterwards
   doctrineos init [--target dir] [--prune]  make a repo governed (idempotent)
   doctrineos check                decide a PreToolUse payload (stdin JSON -> stdout JSON)
   doctrineos context [flags]      resolve which resources this task activates
+  doctrineos context --hook       UserPromptSubmit hook (stdin payload -> activations)
   doctrineos gate --done          Definition-of-Done gate (Stop event)
   doctrineos checkpoint --proposal f  write a checkpoint (propose/dispose)
   doctrineos hydrate [--check]    build the context bundle for the next session
@@ -100,10 +103,79 @@ func hasFlag(args []string, name string) bool {
 	return false
 }
 
+// cmdContextHook is the UserPromptSubmit wiring: the activation engine's
+// caller.
+//
+// Without this the engine was a library nothing invoked. `init` wired `check`
+// and `gate --done`, so a governed repo materialised 45 resources that could
+// only activate if somebody typed `doctrineos context` by hand - an activation
+// model with no activation.
+//
+// It FAILS OPEN, absolutely. A UserPromptSubmit hook that errors or hangs
+// breaks every turn in the repo, which is far worse than the context it would
+// have added. Every failure path here prints nothing and exits 0.
+//
+// Only WEAK signals exist at this moment: the prompt text, and repo facts.
+// There are no paths yet - those arrive per tool call - so by the threshold
+// rule this can only ever surface reads. Lenses and roles wait for PreToolUse,
+// where the path is known. That is not a limitation to work around; it is the
+// rule working.
+func cmdContextHook() {
+	defer func() {
+		// A panic in a prompt hook would take the turn down with it.
+		if r := recover(); r != nil {
+			os.Exit(0)
+		}
+	}()
+	raw, err := io.ReadAll(io.LimitReader(os.Stdin, maxPayload))
+	if err != nil {
+		os.Exit(0)
+	}
+	var payload struct {
+		Prompt string `json:"prompt"`
+	}
+	if json.Unmarshal(raw, &payload) != nil || strings.TrimSpace(payload.Prompt) == "" {
+		os.Exit(0)
+	}
+	cwd, _ := os.Getwd()
+	root, _, governed := FindConfig(cwd)
+	if !governed {
+		os.Exit(0)
+	}
+	corpus := CorpusDir(root)
+	if _, err := os.Stat(corpus); err != nil {
+		os.Exit(0) // not materialised: silent, not a broken turn
+	}
+	fired := Resolve(LoadResources(corpus), TaskContext{
+		Root: root, Task: payload.Prompt, RepoFact: repoFacts(root),
+	})
+	var reads []string
+	for _, a := range fired {
+		if a.Resource.Cost == CostRead {
+			rel, _ := filepath.Rel(root, a.Resource.Path)
+			reads = append(reads, filepath.ToSlash(rel))
+		}
+	}
+	if len(reads) == 0 {
+		os.Exit(0) // nothing matched: say nothing rather than add noise
+	}
+	sort.Strings(reads)
+	fmt.Printf("[DoctrineOS] this request activates %d resource(s) - read them before acting:\n",
+		len(reads))
+	for _, r := range reads {
+		fmt.Println("  -", r)
+	}
+	fmt.Println("  (matched on task text alone; paths and class may activate more)")
+}
+
 // cmdContext is the activation engine's public face. It answers "what does
 // this task need?" so the agent never scans the corpus - and it reports WHY,
 // so a wrong trigger is diagnosable rather than mysterious.
 func cmdContext(args []string) {
+	if hasFlag(args, "hook") {
+		cmdContextHook()
+		return
+	}
 	cwd, _ := os.Getwd()
 	root, cfg, governed := FindConfig(cwd)
 	if !governed {
@@ -141,6 +213,7 @@ func cmdContext(args []string) {
 		"version":  cfg.String(),
 		"read":     []string{},
 		"adopt":    []string{},
+		"roles":    []string{},
 		"compose":  []string{},
 		"why":      map[string]string{},
 	}
@@ -148,15 +221,28 @@ func cmdContext(args []string) {
 	for _, a := range fired {
 		rel, _ := filepath.Rel(root, a.Resource.Path)
 		rel = filepath.ToSlash(rel)
-		switch a.Resource.Cost {
-		case CostAdopt:
+		switch {
+		// Roles are separated from lenses even though both cost `adopt`,
+		// because they compose differently: lenses stack, roles are worn ONE
+		// AT A TIME and announced. Returning four hats in one "adopt" list
+		// would be an instruction to wear all four.
+		case a.Resource.Cost == CostAdopt && a.Resource.Provides == "role":
+			out["roles"] = append(out["roles"].([]string), a.Resource.Name)
+		case a.Resource.Cost == CostAdopt:
 			out["adopt"] = append(out["adopt"].([]string), a.Resource.Name)
-		case CostCompose:
+		case a.Resource.Cost == CostCompose:
 			out["compose"] = append(out["compose"].([]string), a.Resource.Name)
 		default:
 			out["read"] = append(out["read"].([]string), rel)
 		}
 		why[a.Resource.Name] = a.Why
+	}
+	// `roles` is a CANDIDATE list, not a set to apply. The engine can compute
+	// which hats the work matches; it cannot know which one the task is
+	// actually being done under, so it names them and the agent picks one.
+	if n := len(out["roles"].([]string)); n > 1 {
+		out["roles_note"] = fmt.Sprintf(
+			"%d roles match - wear ONE and announce it (02-role-protocol)", n)
 	}
 	if hasFlag(args, "content") {
 		contents := map[string]string{}

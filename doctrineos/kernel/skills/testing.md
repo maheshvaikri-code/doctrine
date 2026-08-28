@@ -1,6 +1,7 @@
 ---
 on: ["path:**/*test*", "path:tests/**", "path:**/*_spec.*", "class:M|L", "intent:test|coverage|regression|fixture"]
 cost: read
+provides: skill
 ---
 
 # Skill: Testing

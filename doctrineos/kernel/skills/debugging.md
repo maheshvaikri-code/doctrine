@@ -1,6 +1,7 @@
 ---
 on: ["intent:debug|failing|reproduce|root cause|bisect|why is"]
 cost: read
+provides: skill
 ---
 
 # Skill: Debugging

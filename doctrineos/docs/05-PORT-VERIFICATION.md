@@ -25,6 +25,7 @@ Three oracles, each aimed at a different layer:
 | `canon_diff.py` | canonical bytes, byte-for-byte | 15 |
 | `tamper_diff.py` | chain findings on a mutated real chain | 13 |
 | `gold_diff.py` | gold ladder topology + content pinning | 16 |
+| `interop_diff.py` | **acceptance** of written chains, both ways | 11 |
 
 Two rules make these worth more than their case counts suggest.
 
@@ -74,6 +75,40 @@ Every item here survived me reading the code and believing it correct.
   install. A finding says *your chain is bad*; an error says *I could not
   check*. `verifyFindings` now returns them separately, and `verify` exits 2
   for cannot-run versus 1 for a bad chain, matching the Python CLI.
+
+## The write path needs a different kind of oracle
+
+Message-diffing is the right test for a READER. For a WRITER it is far too
+weak: two implementations can describe a checkpoint identically and still emit
+bytes the other refuses. The costs are asymmetric too - a reader that is wrong
+returns one bad verdict; a writer that is wrong corrupts the evidence every
+future reader depends on.
+
+So `interop_diff.py` never compares messages. It compares **acceptance**: Go
+writes a chain and Python's verifier must accept it, Python writes and Go must
+accept, and - the case that actually matters - they **interleave**:
+
+```text
+interleaved g/p/g/p        4 checkpoints, both verifiers accept
+python seeds, go extends   4 checkpoints, both verifiers accept
+```
+
+A repo cannot promise that one binary writes every checkpoint forever; an agent
+may run Go today and Python on a colleague's machine tomorrow. Each link hashes
+its predecessor's exact bytes, so one byte of encoder drift anywhere breaks
+every link after it - and breaks it in the way that looks identical to
+tampering. Interleaving is the only case that tests the handover.
+
+Four poisoned proposals (an AWS key, a token assignment, an HTML-comment
+escape, a state-marker token) must be refused by **both**, with the plane left
+byte-for-byte untouched - "written, then complained about" is not fail-closed
+when the file is committed forever.
+
+Both harness bugs here were mine again, and both were *the tools working
+correctly*: my fixture omitted a required `confidence` field (Go's validator
+caught it), and I varied `session_id` per checkpoint, so every sequence died at
+seq 1 on the lease - which is exactly what a lease is for, on a scenario that
+does not occur. The second bug was worth keeping as its own case.
 
 ## The gold ladder, and two ways I fooled myself
 
@@ -147,12 +182,14 @@ better than they were:
 ## Current state
 
 ```text
-Go suite                  13/13
+Go suite                  30/30
 guard differential        24/24  decisions agree
 canonical bytes           15/15  byte-identical
 chain findings            13/13  verdicts AND finding text identical
 schema-only control        3/3   pass pre-schema binary, fail current
 missing schema             both exit 2, same message (cannot-run, not a finding)
+gold topology             11/11  + content pinning 5/5
+interop (write path)      11/11  incl. interleaved Go/Python chains
 determinism                1 distinct output across 5 runs, two bad fields
 ```
 

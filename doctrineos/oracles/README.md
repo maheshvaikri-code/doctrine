@@ -8,6 +8,8 @@ same inputs and diffing the results. Rationale and findings:
 python differential.py    # guard decisions on 24 tool payloads
 python canon_diff.py      # canonical bytes, byte-for-byte, 15 shapes
 python tamper_diff.py     # chain findings on 13 mutations of a real chain
+python gold_diff.py       # gold ladder topology + content pinning
+python interop_diff.py    # chains WRITTEN by one, verified by the other
 ```
 
 They need `dos` (or `dos.exe`) built first:
@@ -29,13 +31,33 @@ matter what is not a test. With it, those cases must come back **OK** from the
 pre-schema binary and **FAIL** from the current one. The first run of this
 control immediately rejected one of my own cases as mislabelled.
 
-To rebuild it, copy the sources to a scratch directory, delete the
-`validateSchema` call and its `loadSchema` loader from `verify.go`, drop the
-test file, and build to `../preschema`. Assert both excisions succeed — if the
-call is not found, the control silently becomes a copy of the real binary and
-every case "passes" for the wrong reason.
+Rebuild it with:
+
+```
+python build_control.py
+```
+
+That used to be a list of manual steps here, which is how a control quietly
+stops matching the code it is a control for. The script asserts both excisions
+rather than attempting them: if either stops matching after a refactor, it
+fails loudly instead of producing a binary identical to the real one — which
+would make every schema-only case "pass" for the wrong reason and look like
+success. Rebuild it whenever `verify.go` changes.
 
 The binary is gitignored; it is a diagnostic, not a deliverable.
+
+## Readers and writers need different oracles
+
+The first four compare what each implementation SAYS. `interop_diff.py` does
+not: it compares what each implementation ACCEPTS. Two writers can describe a
+checkpoint identically and still emit bytes the other refuses, and for a writer
+that matters more — a bad reader returns one wrong verdict, a bad writer
+corrupts the evidence every later reader depends on.
+
+Its load-bearing case is `interleaved g/p/g/p`: checkpoints written alternately
+by Go and Python, with both verifiers accepting the result. Each link hashes
+its predecessor's exact bytes, so a single byte of encoder drift breaks every
+link after it — indistinguishably from tampering.
 
 ## Reading the output
 
